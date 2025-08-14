@@ -16,16 +16,23 @@ public class FirebaseInitializer {
 
     @PostConstruct
     public void init() throws IOException {
-        FileInputStream serviceAccount = null;
-        try {
-            serviceAccount =
-                    new FileInputStream("firebase-service-account.json"); // make sure path matches
-        } catch (IOException e) {
-            e.printStackTrace();
+        GoogleCredentials credentials;
+        
+        // Try to get credentials from environment variable first
+        String credPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+        
+        if (credPath != null && !credPath.isEmpty()) {
+            // Use the environment variable path
+            try (FileInputStream serviceAccount = new FileInputStream(credPath)) {
+                credentials = GoogleCredentials.fromStream(serviceAccount);
+            }
+        } else {
+            // Fallback to application default credentials
+            credentials = GoogleCredentials.getApplicationDefault();
         }
 
         FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setCredentials(credentials)
                 .build();
 
         if (FirebaseApp.getApps().isEmpty()) {
