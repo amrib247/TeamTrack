@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
 import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/Auth';
 import './AuthPage.css';
@@ -11,6 +12,7 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   // Form states
   const [formData, setFormData] = useState({
@@ -74,6 +76,8 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
         const user = await authService.login(loginRequest);
         onAuthSuccess(user);
         setError('');
+        // Redirect to home page after successful login
+        navigate('/home');
       } else {
         const registerRequest: RegisterRequest = {
           email: formData.email,
@@ -86,6 +90,8 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
         const user = await authService.register(registerRequest);
         onAuthSuccess(user);
         setError('');
+        // Redirect to home page after successful registration
+        navigate('/home');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');

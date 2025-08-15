@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.TeamTrack_backend.dto.LoginRequest;
 import com.example.TeamTrack_backend.dto.RegisterRequest;
 import com.example.TeamTrack_backend.dto.UpdateUserRequest;
-import com.example.TeamTrack_backend.dto.UserDto;
+import com.example.TeamTrack_backend.dto.UserWithTeamsDto;
 import com.example.TeamTrack_backend.services.AuthService;
 
 @RestController
@@ -30,7 +30,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {
-            UserDto user = authService.login(loginRequest);
+            UserWithTeamsDto user = authService.login(loginRequest);
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -45,7 +45,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         try {
-            UserDto user = authService.register(registerRequest);
+            UserWithTeamsDto user = authService.register(registerRequest);
             return ResponseEntity.ok(user);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -79,7 +79,7 @@ public class AuthController {
     @PostMapping("/update-user")
     public ResponseEntity<?> updateUser(@RequestBody UpdateUserRequest updateRequest) {
         try {
-            UserDto updatedUser = authService.updateUser(updateRequest);
+            UserWithTeamsDto updatedUser = authService.updateUser(updateRequest);
             return ResponseEntity.ok(updatedUser);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -94,5 +94,21 @@ public class AuthController {
     @GetMapping("/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("Auth controller is working!");
+    }
+
+    /**
+     * Diagnostic endpoint to check backend status
+     */
+    @GetMapping("/status")
+    public ResponseEntity<String> getStatus() {
+        try {
+            // Test if we can create a simple object
+            String testId = java.util.UUID.randomUUID().toString();
+            String status = String.format("Backend is running! Test ID: %s, Time: %s", 
+                testId, java.time.LocalDateTime.now());
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Backend error: " + e.getMessage());
+        }
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/authService';
-import type { AuthResponse } from '../types/Auth';
+import type { AuthResponse, UserTeam } from '../types/Auth';
 import './HomePage.css';
 
 interface HomePageProps {
@@ -10,6 +11,7 @@ interface HomePageProps {
 
 function HomePage({ currentUser, onLogout }: HomePageProps) {
   const [error, setError] = useState<string>('');
+  const navigate = useNavigate();
   
   // Settings modal states
   const [showSettings, setShowSettings] = useState(false);
@@ -165,29 +167,71 @@ function HomePage({ currentUser, onLogout }: HomePageProps) {
     }
   };
 
+  // Helper function to get role display name
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'ADMIN': return 'Administrator';
+      case 'COACH': return 'Coach';
+      case 'PLAYER': return 'Player';
+      case 'PARENT': return 'Parent';
+      default: return role;
+    }
+  };
+
   return (
     <div className="app home-page">
       <div className="container">
-        {/* Settings button at top left */}
-        <div className="settings-button">
+        {/* Header Navigation */}
+        <div className="header-navigation">
+          {/* Settings button at top right */}
           <button className="btn btn-settings" onClick={openSettings}>
             ⚙️ Settings
           </button>
         </div>
         
         <h1>Welcome, {currentUser.firstName}!</h1>
-         
-         <div className="team-actions">
-           <h3>Team Management</h3>
-           <div className="action-buttons">
-             <button className="btn btn-primary">
-               🏆 Join a Team
-             </button>
-             <button className="btn btn-primary">
-               ➕ Create a Team
-             </button>
-           </div>
-         </div>
+        
+        {/* Teams Display */}
+        <div className="teams-section">
+          <h3>Your Teams</h3>
+          {currentUser.teams && currentUser.teams.length > 0 ? (
+            <div className="teams-grid">
+              {currentUser.teams.map((team: UserTeam) => (
+                <div key={team.id} className="team-card">
+                  <div className="team-header">
+                    <h4>{team.teamName}</h4>
+                    <span className="team-sport">{team.sport}</span>
+                  </div>
+                  <div className="team-details">
+                    <div className="team-role">
+                      <strong>Role:</strong> {getRoleDisplayName(team.role)}
+                    </div>
+                    <div className="team-joined">
+                      <strong>Joined:</strong> {new Date(team.joinedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-teams">
+              <p>You're not currently part of any teams.</p>
+              <p>Join or create a team to get started!</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="team-actions">
+          <h3>Team Management</h3>
+          <div className="action-buttons">
+            <button className="btn btn-primary">
+              🏆 Join a Team
+            </button>
+            <button className="btn btn-primary">
+              ➕ Create a Team
+            </button>
+          </div>
+        </div>
         
         <div className="actions">
           <button className="btn btn-secondary" onClick={onLogout}>
@@ -294,20 +338,22 @@ function HomePage({ currentUser, onLogout }: HomePageProps) {
               {/* Teams and Roles Section */}
               <div className="info-section">
                 <h4>Teams & Roles</h4>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Current Team</label>
-                    <div className="info-display">{currentUser.teamId || 'Not assigned to any team'}</div>
+                {currentUser.teams && currentUser.teams.length > 0 ? (
+                  <div className="teams-info">
+                    {currentUser.teams.map((team: UserTeam) => (
+                      <div key={team.id} className="team-info-item">
+                        <div className="team-name">{team.teamName}</div>
+                        <div className="team-role">{getRoleDisplayName(team.role)}</div>
+                        <div className="team-sport">{team.sport}</div>
+                        <div className="team-joined">Joined: {new Date(team.joinedAt).toLocaleDateString()}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="info-item">
-                    <label>Current Role</label>
-                    <div className="info-display">{currentUser.role} (default)</div>
+                ) : (
+                  <div className="no-teams-info">
+                    <p>You're not currently part of any teams.</p>
                   </div>
-                  <div className="info-item">
-                    <label>Date Joined</label>
-                    <div className="info-display">{new Date(currentUser.createdAt).toLocaleDateString()}</div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Edit Mode Controls */}

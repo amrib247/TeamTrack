@@ -20,6 +20,17 @@ export interface UpdateUserRequest {
   phoneNumber: string;
 }
 
+export interface UserTeam {
+  id: string;
+  userId: string;
+  teamId: string;
+  role: UserRole;
+  joinedAt: string;
+  isActive: boolean;
+  teamName: string;
+  sport: string;
+}
+
 export interface AuthResponse {
   id: string;
   email: string;
@@ -27,11 +38,10 @@ export interface AuthResponse {
   lastName: string;
   phoneNumber: string;
   dateOfBirth: string;
-  role: UserRole;
-  teamId?: string;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  teams: UserTeam[];
 }
 
 export enum UserRole {

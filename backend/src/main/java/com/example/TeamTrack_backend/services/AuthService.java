@@ -9,6 +9,7 @@ import com.example.TeamTrack_backend.dto.LoginRequest;
 import com.example.TeamTrack_backend.dto.RegisterRequest;
 import com.example.TeamTrack_backend.dto.UpdateUserRequest;
 import com.example.TeamTrack_backend.dto.UserDto;
+import com.example.TeamTrack_backend.dto.UserWithTeamsDto;
 import com.example.TeamTrack_backend.models.User;
 
 @Service
@@ -19,6 +20,9 @@ public class AuthService {
     
     @Autowired
     private PasswordService passwordService;
+    
+    @Autowired
+    private UserTeamService userTeamService;
 
     // Email validation pattern
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
@@ -26,7 +30,7 @@ public class AuthService {
     /**
      * Authenticate a user with email and password
      */
-    public UserDto login(LoginRequest loginRequest) {
+    public UserWithTeamsDto login(LoginRequest loginRequest) {
         // Validate input
         if (loginRequest.getEmail() == null || loginRequest.getEmail().trim().isEmpty()) {
             throw new IllegalArgumentException("Email is required");
@@ -51,13 +55,42 @@ public class AuthService {
             throw new IllegalArgumentException("Account is deactivated");
         }
 
-        return new UserDto(user);
+        // Get user's teams
+        try {
+            var userTeams = userTeamService.getUserTeams(user.getId()).get();
+            return new UserWithTeamsDto(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.isActive(),
+                userTeams
+            );
+        } catch (Exception e) {
+            // If we can't get teams, return user without teams
+            return new UserWithTeamsDto(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.isActive(),
+                new java.util.ArrayList<>()
+            );
+        }
     }
 
     /**
      * Register a new user
      */
-    public UserDto register(RegisterRequest registerRequest) {
+    public UserWithTeamsDto register(RegisterRequest registerRequest) {
         // Validate input
         validateRegistrationRequest(registerRequest);
 
@@ -69,20 +102,32 @@ public class AuthService {
         // Encrypt the password before storing
         String encryptedPassword = passwordService.encryptPassword(registerRequest.getPassword());
 
-        // Create new user with default PLAYER role (will be updated when joining team)
+        // Create new user (no default role or team - will be assigned when joining teams)
         User newUser = new User(
             registerRequest.getEmail(),
             encryptedPassword, // Store encrypted password
             registerRequest.getFirstName(),
             registerRequest.getLastName(),
             registerRequest.getPhoneNumber(),
-            registerRequest.getDateOfBirth(),
-            User.UserRole.PLAYER, // Default role - will be updated when joining team
-            null // No team assigned initially
+            registerRequest.getDateOfBirth()
         );
 
         // Save user
-        return userService.createUser(newUser);
+        UserDto savedUser = userService.createUser(newUser);
+        
+        // Return user with empty teams list
+        return new UserWithTeamsDto(
+            savedUser.getId(),
+            savedUser.getEmail(),
+            savedUser.getFirstName(),
+            savedUser.getLastName(),
+            savedUser.getPhoneNumber(),
+            savedUser.getDateOfBirth(),
+            savedUser.getCreatedAt(),
+            savedUser.getUpdatedAt(),
+            savedUser.isActive(),
+            new java.util.ArrayList<>()
+        );
     }
 
     /**
@@ -120,7 +165,7 @@ public class AuthService {
     /**
      * Update user information
      */
-    public UserDto updateUser(UpdateUserRequest updateRequest) {
+    public UserWithTeamsDto updateUser(UpdateUserRequest updateRequest) {
         // Validate input
         if (updateRequest == null) {
             throw new IllegalArgumentException("Update request cannot be null");
@@ -156,7 +201,38 @@ public class AuthService {
         user.setUpdatedAt(java.time.LocalDateTime.now().toString());
 
         // Save updated user
-        return userService.updateUser(user.getId(), user);
+        UserDto updatedUser = userService.updateUser(user.getId(), user);
+        
+        // Get user's teams
+        try {
+            var userTeams = userTeamService.getUserTeams(user.getId()).get();
+            return new UserWithTeamsDto(
+                updatedUser.getId(),
+                updatedUser.getEmail(),
+                updatedUser.getFirstName(),
+                updatedUser.getLastName(),
+                updatedUser.getPhoneNumber(),
+                updatedUser.getDateOfBirth(),
+                updatedUser.getCreatedAt(),
+                updatedUser.getUpdatedAt(),
+                updatedUser.isActive(),
+                userTeams
+            );
+        } catch (Exception e) {
+            // If we can't get teams, return user without teams
+            return new UserWithTeamsDto(
+                updatedUser.getId(),
+                updatedUser.getEmail(),
+                updatedUser.getFirstName(),
+                updatedUser.getLastName(),
+                updatedUser.getPhoneNumber(),
+                updatedUser.getDateOfBirth(),
+                updatedUser.getCreatedAt(),
+                updatedUser.getUpdatedAt(),
+                updatedUser.isActive(),
+                new java.util.ArrayList<>()
+            );
+        }
     }
 
     /**

@@ -8,6 +8,17 @@ build/
 # Firebase service account key
 firebase-service-account.json
 
+# Firebase credentials (SECURITY - NEVER commit these!)
+**/firebase-service-account.json
+**/firebase-config.json
+**/serviceAccountKey.json
+**/*-service-account.json
+
+# Environment files
+.env
+.env.local
+.env.production
+
 ### STS ###
 .apt_generated
 .classpath

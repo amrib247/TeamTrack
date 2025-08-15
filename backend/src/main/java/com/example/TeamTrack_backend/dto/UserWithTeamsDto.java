@@ -1,36 +1,37 @@
-package com.example.TeamTrack_backend.models;
+package com.example.TeamTrack_backend.dto;
 
-public class User {
+import com.example.TeamTrack_backend.models.UserTeam;
+import java.util.List;
+
+public class UserWithTeamsDto {
     private String id;
     private String email;
-    private String password; // Added for authentication
     private String firstName;
     private String lastName;
     private String phoneNumber;
-    private String dateOfBirth; // Added for registration
+    private String dateOfBirth;
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
-
-    public enum UserRole {
-        ADMIN,
-        COACH,
-        PLAYER,
-        PARENT
-    }
+    private List<UserTeam> teams;
 
     // Default constructor
-    public User() {}
+    public UserWithTeamsDto() {}
 
     // Constructor with all fields
-    public User(String email, String password, String firstName, String lastName, String phoneNumber, String dateOfBirth) {
+    public UserWithTeamsDto(String id, String email, String firstName, String lastName, 
+                           String phoneNumber, String dateOfBirth, String createdAt, 
+                           String updatedAt, boolean isActive, List<UserTeam> teams) {
+        this.id = id;
         this.email = email;
-        this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
         this.dateOfBirth = dateOfBirth;
-        this.isActive = true;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.isActive = isActive;
+        this.teams = teams;
     }
 
     // Getters and Setters
@@ -39,9 +40,6 @@ public class User {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -63,4 +61,7 @@ public class User {
 
     public boolean isActive() { return isActive; }
     public void setActive(boolean active) { isActive = active; }
+
+    public List<UserTeam> getTeams() { return teams; }
+    public void setTeams(List<UserTeam> teams) { this.teams = teams; }
 }

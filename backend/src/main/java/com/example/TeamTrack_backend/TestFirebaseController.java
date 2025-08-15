@@ -1,4 +1,4 @@
-/*package com.example.TeamTrack_backend;
+package com.example.TeamTrack_backend;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,4 +17,4 @@ public class TestFirebaseController {
             return "Error accessing Firebase: " + e.getMessage();
         }
     }
-}*/
+}

@@ -76,8 +76,8 @@ public class UserService {
             System.out.println("📋 Fetching from FIRESTORE");
             return getAllUsersFromFirestore();
         } else {
-            System.out.println("📋 Fetching from MEMORY (count: " + inMemoryUsers.size() + ")");
-            return getAllUsersFromMemory();
+            System.err.println("💥 ERROR: Firebase not available - cannot fetch users!");
+            throw new RuntimeException("Firebase database not available - cannot fetch users");
         }
     }
 
@@ -115,10 +115,13 @@ public class UserService {
     }
 
     public User findUserByEmail(String email) {
+        System.out.println("🔍 Finding user by email: " + email);
         if (isFirebaseAvailable()) {
+            System.out.println("🔍 Searching in FIRESTORE");
             return findUserByEmailFromFirestore(email);
         } else {
-            return findUserByEmailFromMemory(email);
+            System.err.println("💥 ERROR: Firebase not available - cannot search for user!");
+            throw new RuntimeException("Firebase database not available - cannot search for user");
         }
     }
 
@@ -183,12 +186,19 @@ public class UserService {
         System.out.println("🔥 Current Firebase status - useFirebase: " + useFirebase + ", firestore: " + (firestore != null));
         System.out.println("🔥 FirebaseApp.getApps().isEmpty(): " + FirebaseApp.getApps().isEmpty());
         
-        if (isFirebaseAvailable()) {
-            System.out.println("🔥 Creating user in FIRESTORE: " + user.getEmail());
-            return createUserInFirestore(user);
-        } else {
-            System.out.println("🔥 Creating user in MEMORY: " + user.getEmail());
-            return createUserInMemory(user);
+        try {
+            if (isFirebaseAvailable()) {
+                System.out.println("🔥 Creating user in FIRESTORE: " + user.getEmail());
+                return createUserInFirestore(user);
+            } else {
+                System.err.println("💥 ERROR: Firebase not available - cannot create user!");
+                System.err.println("💥 Users must be saved to persistent database, not in-memory storage");
+                throw new RuntimeException("Firebase database not available - user creation failed");
+            }
+        } catch (Exception e) {
+            System.err.println("🔥 ERROR creating user: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create user: " + e.getMessage(), e);
         }
     }
 
@@ -225,7 +235,8 @@ public class UserService {
         if (isFirebaseAvailable()) {
             return updateUserInFirestore(id, updatedUser);
         } else {
-            return updateUserInMemory(id, updatedUser);
+            System.err.println("💥 ERROR: Firebase not available - cannot update user!");
+            throw new RuntimeException("Firebase database not available - cannot update user");
         }
     }
 
@@ -245,8 +256,6 @@ public class UserService {
                 existingUser.setLastName(updatedUser.getLastName());
                 existingUser.setEmail(updatedUser.getEmail());
                 existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
-                existingUser.setRole(updatedUser.getRole());
-                existingUser.setTeamId(updatedUser.getTeamId());
                 existingUser.setUpdatedAt(LocalDateTime.now().toString()); // Set string directly
 
                 ApiFuture<WriteResult> writeFuture = docRef.set(existingUser);
@@ -271,8 +280,6 @@ public class UserService {
             existingUser.setLastName(updatedUser.getLastName());
             existingUser.setEmail(updatedUser.getEmail());
             existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
-            existingUser.setRole(updatedUser.getRole());
-            existingUser.setTeamId(updatedUser.getTeamId());
             existingUser.setUpdatedAt(LocalDateTime.now().toString()); // Set string directly
             
             return new UserDto(existingUser);
@@ -284,7 +291,8 @@ public class UserService {
         if (isFirebaseAvailable()) {
             return deleteUserFromFirestore(id);
         } else {
-            return deleteUserFromMemory(id);
+            System.err.println("💥 ERROR: Firebase not available - cannot delete user!");
+            throw new RuntimeException("Firebase database not available - cannot delete user");
         }
     }
 

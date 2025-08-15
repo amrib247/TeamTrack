@@ -1,7 +1,6 @@
 package com.example.TeamTrack_backend.dto;
 
 import com.example.TeamTrack_backend.models.User;
-import com.example.TeamTrack_backend.models.User.UserRole;
 
 public class UserDto {
     private String id;
@@ -10,8 +9,6 @@ public class UserDto {
     private String lastName;
     private String phoneNumber;
     private String dateOfBirth;
-    private UserRole role;
-    private String teamId;
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
@@ -24,8 +21,6 @@ public class UserDto {
         this.lastName = user.getLastName();
         this.phoneNumber = user.getPhoneNumber();
         this.dateOfBirth = user.getDateOfBirth();
-        this.role = user.getRole();
-        this.teamId = user.getTeamId();
         this.createdAt = user.getCreatedAt();
         this.updatedAt = user.getUpdatedAt();
         this.isActive = user.isActive();
@@ -52,12 +47,6 @@ public class UserDto {
 
     public String getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
-
-    public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
-
-    public String getTeamId() { return teamId; }
-    public void setTeamId(String teamId) { this.teamId = teamId; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
