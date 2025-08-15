@@ -114,6 +114,14 @@ public class UserService {
         }
     }
 
+    public User findUserByEmail(String email) {
+        if (isFirebaseAvailable()) {
+            return findUserByEmailFromFirestore(email);
+        } else {
+            return findUserByEmailFromMemory(email);
+        }
+    }
+
     private UserDto getUserByIdFromFirestore(String id) {
         try {
             DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
@@ -133,12 +141,41 @@ public class UserService {
         }
     }
 
+    private User findUserByEmailFromFirestore(String email) {
+        try {
+            // Query Firestore for user with matching email
+            ApiFuture<QuerySnapshot> future = getFirestore().collection(COLLECTION_NAME)
+                .whereEqualTo("email", email)
+                .limit(1)
+                .get();
+            
+            List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+            if (!documents.isEmpty()) {
+                User user = documents.get(0).toObject(User.class);
+                if (user != null) {
+                    user.setId(documents.get(0).getId());
+                    return user;
+                }
+            }
+            return null;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error finding user by email from Firestore", e);
+        }
+    }
+
     private UserDto getUserByIdFromMemory(String id) {
         User user = inMemoryUsers.stream()
                 .filter(u -> u.getId().equals(id))
                 .findFirst()
                 .orElse(null);
         return user != null ? new UserDto(user) : null;
+    }
+
+    private User findUserByEmailFromMemory(String email) {
+        return inMemoryUsers.stream()
+                .filter(u -> u.getEmail().equals(email))
+                .findFirst()
+                .orElse(null);
     }
 
     public UserDto createUser(User user) {
