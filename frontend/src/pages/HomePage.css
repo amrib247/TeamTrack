@@ -1,0 +1,313 @@
+/* HomePage specific styles */
+.team-actions {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.team-actions h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  text-align: center;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+  min-width: 150px;
+}
+
+.settings-button {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1000;
+}
+
+.btn-settings {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #333;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.btn-settings:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: white;
+  border-radius: 15px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.modal-title {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0.5rem;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.close-button:hover {
+  background-color: #f0f0f0;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+/* Profile section */
+.profile-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.profile-photo {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-photo img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 3px solid #007bff;
+  transition: transform 0.3s;
+}
+
+.profile-photo img:hover {
+  transform: scale(1.05);
+}
+
+.profile-photo input[type="file"] {
+  display: none;
+}
+
+.upload-text {
+  margin-top: 0.5rem;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+.remove-photo-btn {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Info sections */
+.info-section {
+  margin-bottom: 2rem;
+}
+
+.info-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  border-bottom: 2px solid #e1e5e9;
+  padding-bottom: 0.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.info-display {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+  color: #333;
+  min-height: 20px;
+}
+
+.info-item input {
+  padding: 0.75rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.info-item input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* Edit mode */
+.edit-mode {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid #e1e5e9;
+}
+
+.edit-mode strong {
+  color: #007bff;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.password-verification {
+  margin: 1rem 0;
+}
+
+.password-verification label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.password-verification input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Account termination */
+.account-termination {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 2rem;
+}
+
+.account-termination h4 {
+  color: #c53030;
+  margin: 0 0 0.5rem 0;
+}
+
+.account-termination p {
+  color: #744210;
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+}
+
+.terminate-button {
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.terminate-button:hover {
+  background: #c53030;
+}
+
+.terminate-button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+    max-width: 250px;
+  }
+  
+  .modal {
+    margin: 1rem;
+    max-height: 95vh;
+  }
+  
+  .edit-buttons {
+    flex-direction: column;
+  }
+  
+  .edit-buttons .btn {
+    width: 100%;
+  }
+}
