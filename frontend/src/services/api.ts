@@ -9,7 +9,7 @@ class ApiService {
         this.baseUrl = API_BASE_URL;
     }
 
-    private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
         const config: RequestInit = {
             headers: {
@@ -31,7 +31,7 @@ class ApiService {
                 return await response.json();
             } else {
                 return null as T;
-}
+            }
         } catch (error) {
             console.error('API request failed:', error);
             throw error;

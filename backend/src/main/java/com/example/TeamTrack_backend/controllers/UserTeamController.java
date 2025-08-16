@@ -1,35 +1,39 @@
 package com.example.TeamTrack_backend.controllers;
 
-import com.example.TeamTrack_backend.models.UserTeam;
-import com.example.TeamTrack_backend.models.User;
-import com.example.TeamTrack_backend.services.UserTeamService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.TeamTrack_backend.models.UserTeam;
+import com.example.TeamTrack_backend.services.UserTeamService;
+
 @RestController
 @RequestMapping("/api/user-teams")
-@CrossOrigin(origins = "*")
 public class UserTeamController {
 
     @Autowired
     private UserTeamService userTeamService;
 
-    // Add user to a team with a specific role
+    // Add user to team
     @PostMapping("/add")
     public CompletableFuture<ResponseEntity<UserTeam>> addUserToTeam(
             @RequestParam String userId,
             @RequestParam String teamId,
-            @RequestParam User.UserRole role) {
+            @RequestParam String role) {
         
         return userTeamService.addUserToTeam(userId, teamId, role)
                 .thenApply(userTeam -> ResponseEntity.ok(userTeam))
-                .exceptionally(throwable -> {
-                    return ResponseEntity.badRequest().build();
-                });
+                .exceptionally(throwable -> ResponseEntity.badRequest().build());
     }
 
     // Remove user from a team
@@ -45,18 +49,16 @@ public class UserTeamController {
                 });
     }
 
-    // Update user's role in a specific team
+    // Update user role in team
     @PutMapping("/update-role")
     public CompletableFuture<ResponseEntity<UserTeam>> updateUserRole(
             @RequestParam String userId,
             @RequestParam String teamId,
-            @RequestParam User.UserRole newRole) {
+            @RequestParam String newRole) {
         
         return userTeamService.updateUserRole(userId, teamId, newRole)
                 .thenApply(userTeam -> ResponseEntity.ok(userTeam))
-                .exceptionally(throwable -> {
-                    return ResponseEntity.badRequest().build();
-                });
+                .exceptionally(throwable -> ResponseEntity.badRequest().build());
     }
 
     // Get all teams for a specific user
@@ -94,14 +96,12 @@ public class UserTeamController {
 
     // Get user's role in a specific team
     @GetMapping("/role")
-    public CompletableFuture<ResponseEntity<User.UserRole>> getUserRoleInTeam(
+    public CompletableFuture<ResponseEntity<String>> getUserRoleInTeam(
             @RequestParam String userId,
             @RequestParam String teamId) {
         
         return userTeamService.getUserRoleInTeam(userId, teamId)
                 .thenApply(role -> ResponseEntity.ok(role))
-                .exceptionally(throwable -> {
-                    return ResponseEntity.badRequest().build();
-                });
+                .exceptionally(throwable -> ResponseEntity.badRequest().build());
     }
 }

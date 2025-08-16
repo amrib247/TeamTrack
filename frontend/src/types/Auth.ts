@@ -24,7 +24,7 @@ export interface UserTeam {
   id: string;
   userId: string;
   teamId: string;
-  role: UserRole;
+  role: string; // Changed from UserRole to string since backend sends it as a string
   joinedAt: string;
   isActive: boolean;
   teamName: string;

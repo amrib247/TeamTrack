@@ -125,6 +125,17 @@ public class UserService {
         }
     }
 
+    public User findUserById(String id) {
+        System.out.println("🔍 Finding user by ID: " + id);
+        if (isFirebaseAvailable()) {
+            System.out.println("🔍 Searching in FIRESTORE");
+            return findUserByIdFromFirestore(id);
+        } else {
+            System.err.println("💥 ERROR: Firebase not available - cannot search for user!");
+            throw new RuntimeException("Firebase database not available - cannot search for user");
+        }
+    }
+
     private UserDto getUserByIdFromFirestore(String id) {
         try {
             DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
@@ -163,6 +174,25 @@ public class UserService {
             return null;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error finding user by email from Firestore", e);
+        }
+    }
+
+    private User findUserByIdFromFirestore(String id) {
+        try {
+            DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
+            ApiFuture<DocumentSnapshot> future = docRef.get();
+            DocumentSnapshot document = future.get();
+            
+            if (document.exists()) {
+                User user = document.toObject(User.class);
+                if (user != null) {
+                    user.setId(document.getId());
+                    return user;
+                }
+            }
+            return null;
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error finding user by ID from Firestore", e);
         }
     }
 

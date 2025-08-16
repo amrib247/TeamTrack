@@ -1,44 +1,30 @@
 package com.example.TeamTrack_backend.models;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 public class Team {
     private String id;
-    private String name;
-    private String description;
+    private String teamName;
     private String sport;
     private String ageGroup;
-    private String season;
-    private String coachId;
-    private List<String> playerIds;
-    private TeamStatus status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String description;
+    private String profilePhotoUrl;
+    private String createdBy;
+    private String createdAt;
+    private String updatedAt;
     private boolean isActive;
-
-    public enum TeamStatus {
-        ACTIVE,
-        INACTIVE,
-        SEASON_ENDED,
-        DISBANDED
-    }
 
     // Default constructor
     public Team() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        this.isActive = true;
-        this.status = TeamStatus.ACTIVE;
     }
 
     // Constructor with required fields
-    public Team(String name, String sport, String ageGroup, String season) {
-        this();
-        this.name = name;
+    public Team(String teamName, String sport, String ageGroup, String createdBy) {
+        this.teamName = teamName;
         this.sport = sport;
         this.ageGroup = ageGroup;
-        this.season = season;
+        this.createdBy = createdBy;
+        this.createdAt = java.time.LocalDateTime.now().toString();
+        this.updatedAt = java.time.LocalDateTime.now().toString();
+        this.isActive = true;
     }
 
     // Getters and Setters
@@ -50,20 +36,12 @@ public class Team {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getTeamName() {
+        return teamName;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
 
     public String getSport() {
@@ -82,51 +60,43 @@ public class Team {
         this.ageGroup = ageGroup;
     }
 
-    public String getSeason() {
-        return season;
+    public String getDescription() {
+        return description;
     }
 
-    public void setSeason(String season) {
-        this.season = season;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public String getCoachId() {
-        return coachId;
+    public String getProfilePhotoUrl() {
+        return profilePhotoUrl;
     }
 
-    public void setCoachId(String coachId) {
-        this.coachId = coachId;
+    public void setProfilePhotoUrl(String profilePhotoUrl) {
+        this.profilePhotoUrl = profilePhotoUrl;
     }
 
-    public List<String> getPlayerIds() {
-        return playerIds;
+    public String getCreatedBy() {
+        return createdBy;
     }
 
-    public void setPlayerIds(List<String> playerIds) {
-        this.playerIds = playerIds;
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
 
-    public TeamStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TeamStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public String getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
 
@@ -136,22 +106,5 @@ public class Team {
 
     public void setActive(boolean active) {
         isActive = active;
-    }
-
-    // Helper methods
-    public void addPlayer(String playerId) {
-        if (this.playerIds != null && !this.playerIds.contains(playerId)) {
-            this.playerIds.add(playerId);
-        }
-    }
-
-    public void removePlayer(String playerId) {
-        if (this.playerIds != null) {
-            this.playerIds.remove(playerId);
-        }
-    }
-
-    public int getPlayerCount() {
-        return this.playerIds != null ? this.playerIds.size() : 0;
     }
 }

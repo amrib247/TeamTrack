@@ -133,41 +133,74 @@
 }
 
 .floating-card:nth-child(1) {
-  top: 8%;
-  left: 8%;
+  top: 10%;
+  left: 10%;
   animation-delay: 0s;
+  animation-duration: 4s;
 }
 
 .floating-card:nth-child(2) {
-  top: 15%;
-  right: 10%;
-  animation-delay: 1s;
-}
-
-.floating-card:nth-child(3) {
-  top: 30%;
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
   animation-delay: 2s;
+  animation-duration: 7s;
+}
+
+.floating-card:nth-child(3) {
+  top: 10%;
+  right: 10%;
+  animation-delay: 1s;
+  animation-duration: 6s;
 }
 
 .floating-card:nth-child(4) {
-  top: 45%;
-  right: 50%;
-  transform: translateX(50%);
+  bottom: 15%;
+  left: 10%;
   animation-delay: 3s;
+  animation-duration: 4.5s;
 }
 
 .floating-card:nth-child(5) {
-  bottom: 25%;
-  left: 15%;
-  animation-delay: 4s;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation-delay: 0.5s;
+  animation-duration: 3.5s;
 }
 
 .floating-card:nth-child(6) {
   bottom: 15%;
-  right: 12%;
-  animation-delay: 5s;
+  right: 10%;
+  animation-delay: 1.5s;
+  animation-duration: 4s;
+}
+
+/* Override the float animation for centered cards to preserve horizontal positioning */
+.floating-card:nth-child(2) {
+  animation: floatCentered2 7s ease-in-out infinite;
+}
+
+.floating-card:nth-child(5) {
+  animation: floatCentered5 3.5s ease-in-out infinite;
+}
+
+@keyframes floatCentered2 {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0px);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+@keyframes floatCentered5 {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0px);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-20px);
+  }
 }
 
 .card-icon {

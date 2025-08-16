@@ -236,6 +236,53 @@ public class AuthService {
     }
 
     /**
+     * Get user by ID (for refreshing user data)
+     */
+    public UserWithTeamsDto getUserById(String userId) {
+        // Find user by ID
+        User user = userService.findUserById(userId);
+        if (user == null) {
+            return null;
+        }
+
+        // Check if user is active
+        if (!user.isActive()) {
+            return null;
+        }
+
+        // Get user's teams
+        try {
+            var userTeams = userTeamService.getUserTeams(user.getId()).get();
+            return new UserWithTeamsDto(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.isActive(),
+                userTeams
+            );
+        } catch (Exception e) {
+            // If we can't get teams, return user without teams
+            return new UserWithTeamsDto(
+                user.getId(),
+                user.getEmail(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getPhoneNumber(),
+                user.getDateOfBirth(),
+                user.getCreatedAt(),
+                user.getUpdatedAt(),
+                user.isActive(),
+                new java.util.ArrayList<>()
+            );
+        }
+    }
+
+    /**
      * Validate registration request
      */
     private void validateRegistrationRequest(RegisterRequest request) {

@@ -17,6 +17,27 @@ function App() {
     setCurrentUser(null);
   };
 
+  const refreshUserData = async () => {
+    if (currentUser) {
+      try {
+        // Re-fetch user data to get updated teams using the new endpoint
+        const response = await fetch(`http://localhost:8080/api/auth/user/${currentUser.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const updatedUser = await response.json();
+          setCurrentUser(updatedUser);
+        }
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+      }
+    }
+  };
+
   return (
     <Router>
       <div className="App">
@@ -43,7 +64,8 @@ function App() {
               currentUser ? (
                 <HomePage 
                   currentUser={currentUser} 
-                  onLogout={handleLogout} 
+                  onLogout={handleLogout}
+                  onRefreshUserData={refreshUserData}
                 />
               ) : (
                 <Navigate to="/auth" replace />

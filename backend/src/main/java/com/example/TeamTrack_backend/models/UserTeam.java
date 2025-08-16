@@ -4,18 +4,11 @@ public class UserTeam {
     private String id;
     private String userId;
     private String teamId;
-    private User.UserRole role;
+    private String role; // Changed from User.UserRole to String
     private String joinedAt;
     private boolean isActive;
     private String teamName; // For display purposes
     private String sport; // For display purposes
-
-    public enum UserRole {
-        ADMIN,
-        COACH,
-        PLAYER,
-        PARENT
-    }
 
     // Default constructor
     public UserTeam() {
@@ -24,7 +17,7 @@ public class UserTeam {
     }
 
     // Constructor with required fields
-    public UserTeam(String userId, String teamId, User.UserRole role) {
+    public UserTeam(String userId, String teamId, String role) {
         this();
         this.userId = userId;
         this.teamId = teamId;
@@ -32,7 +25,7 @@ public class UserTeam {
     }
 
     // Constructor with display fields
-    public UserTeam(String userId, String teamId, User.UserRole role, String teamName, String sport) {
+    public UserTeam(String userId, String teamId, String role, String teamName, String sport) {
         this(userId, teamId, role);
         this.teamName = teamName;
         this.sport = sport;
@@ -63,11 +56,11 @@ public class UserTeam {
         this.teamId = teamId;
     }
 
-    public User.UserRole getRole() {
+    public String getRole() {
         return role;
     }
 
-    public void setRole(User.UserRole role) {
+    public void setRole(String role) {
         this.role = role;
     }
 
