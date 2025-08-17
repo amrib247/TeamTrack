@@ -4,18 +4,11 @@ export interface User {
     firstName: string;
     lastName: string;
     phoneNumber?: string;
-    role: UserRole;
+    role: string;
     teamId?: string;
     createdAt: string;
     updatedAt: string;
     isActive: boolean;
-}
-
-export enum UserRole {
-    ADMIN = 'ADMIN',
-    COACH = 'COACH',
-    PLAYER = 'PLAYER',
-    PARENT = 'PARENT'
 }
 
 export interface CreateUserRequest {
@@ -23,7 +16,7 @@ export interface CreateUserRequest {
     firstName: string;
     lastName: string;
     phoneNumber?: string;
-    role: UserRole;
+    role: string;
     teamId?: string;
 }
 
@@ -32,6 +25,6 @@ export interface UpdateUserRequest {
     firstName?: string;
     lastName?: string;
     phoneNumber?: string;
-    role?: UserRole;
+    role?: string;
     teamId?: string;
 }

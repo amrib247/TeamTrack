@@ -13,22 +13,22 @@ export interface RegisterRequest {
 }
 
 export interface UpdateUserRequest {
-  email: string;
-  password: string; // For verification
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
+  email?: string;
+  password?: string; // For verification
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
 }
 
 export interface UserTeam {
   id: string;
   userId: string;
   teamId: string;
-  role: string; // Changed from UserRole to string since backend sends it as a string
-  joinedAt: string;
-  isActive: boolean;
+  role: string;
   teamName: string;
   sport: string;
+  joinedAt: string;
+  isActive: boolean;
 }
 
 export interface AuthResponse {
@@ -42,11 +42,4 @@ export interface AuthResponse {
   updatedAt: string;
   isActive: boolean;
   teams: UserTeam[];
-}
-
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  COACH = 'COACH',
-  PLAYER = 'PLAYER',
-  PARENT = 'PARENT'
 }

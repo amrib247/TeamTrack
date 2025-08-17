@@ -8,18 +8,14 @@ import org.springframework.stereotype.Service;
 import com.example.TeamTrack_backend.dto.LoginRequest;
 import com.example.TeamTrack_backend.dto.RegisterRequest;
 import com.example.TeamTrack_backend.dto.UpdateUserRequest;
-import com.example.TeamTrack_backend.dto.UserDto;
 import com.example.TeamTrack_backend.dto.UserWithTeamsDto;
-import com.example.TeamTrack_backend.models.User;
+import com.example.TeamTrack_backend.models.UserProfile;
 
 @Service
 public class AuthService {
 
     @Autowired
-    private UserService userService;
-    
-    @Autowired
-    private PasswordService passwordService;
+    private FirebaseAuthService firebaseAuthService;
     
     @Autowired
     private UserTeamService userTeamService;
@@ -39,51 +35,50 @@ public class AuthService {
             throw new IllegalArgumentException("Password is required");
         }
 
-        // Find user by email
-        User user = userService.findUserByEmail(loginRequest.getEmail());
-        if (user == null) {
-            throw new IllegalArgumentException("Invalid email or password");
-        }
-
-        // Check password using encrypted verification
-        if (!passwordService.verifyPassword(loginRequest.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid email or password");
-        }
-
-        // Check if user is active
-        if (!user.isActive()) {
-            throw new IllegalArgumentException("Account is deactivated");
-        }
-
-        // Get user's teams
         try {
-            var userTeams = userTeamService.getUserTeams(user.getId()).get();
-            return new UserWithTeamsDto(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhoneNumber(),
-                user.getDateOfBirth(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.isActive(),
-                userTeams
-            );
+            // Firebase Auth handles the authentication
+            UserProfile userProfile = firebaseAuthService.authenticateUser(loginRequest);
+            if (userProfile == null) {
+                throw new IllegalArgumentException("Invalid email or password");
+            }
+
+            // Check if user is active
+            if (!userProfile.isActive()) {
+                throw new IllegalArgumentException("Account is deactivated");
+            }
+
+            // Get user's teams
+            try {
+                var userTeams = userTeamService.getUserTeams(userProfile.getUid()).get();
+                return new UserWithTeamsDto(
+                    userProfile.getUid(),
+                    userProfile.getEmail(),
+                    userProfile.getFirstName(),
+                    userProfile.getLastName(),
+                    userProfile.getPhoneNumber(),
+                    userProfile.getDateOfBirth(),
+                    userProfile.getCreatedAt(),
+                    userProfile.getUpdatedAt(),
+                    userProfile.isActive(),
+                    userTeams
+                );
+            } catch (Exception e) {
+                // If we can't get teams, return user without teams
+                return new UserWithTeamsDto(
+                    userProfile.getUid(),
+                    userProfile.getEmail(),
+                    userProfile.getFirstName(),
+                    userProfile.getLastName(),
+                    userProfile.getPhoneNumber(),
+                    userProfile.getDateOfBirth(),
+                    userProfile.getCreatedAt(),
+                    userProfile.getUpdatedAt(),
+                    userProfile.isActive(),
+                    new java.util.ArrayList<>()
+                );
+            }
         } catch (Exception e) {
-            // If we can't get teams, return user without teams
-            return new UserWithTeamsDto(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhoneNumber(),
-                user.getDateOfBirth(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.isActive(),
-                new java.util.ArrayList<>()
-            );
+            throw new IllegalArgumentException("Invalid email or password");
         }
     }
 
@@ -94,72 +89,49 @@ public class AuthService {
         // Validate input
         validateRegistrationRequest(registerRequest);
 
-        // Check if email already exists
-        if (userService.findUserByEmail(registerRequest.getEmail()) != null) {
-            throw new IllegalArgumentException("Email already registered");
+        try {
+            // Check if email already exists
+            UserProfile existingUser = firebaseAuthService.getUserProfileByEmail(registerRequest.getEmail());
+            if (existingUser != null) {
+                throw new IllegalArgumentException("Email already registered");
+            }
+
+            // Create new user with Firebase Auth
+            UserProfile newUserProfile = firebaseAuthService.registerUser(registerRequest);
+            
+            // Return user with empty teams list
+            return new UserWithTeamsDto(
+                newUserProfile.getUid(),
+                newUserProfile.getEmail(),
+                newUserProfile.getFirstName(),
+                newUserProfile.getLastName(),
+                newUserProfile.getPhoneNumber(),
+                newUserProfile.getDateOfBirth(),
+                newUserProfile.getCreatedAt(),
+                newUserProfile.getUpdatedAt(),
+                newUserProfile.isActive(),
+                new java.util.ArrayList<>()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to register user: " + e.getMessage(), e);
         }
-
-        // Encrypt the password before storing
-        String encryptedPassword = passwordService.encryptPassword(registerRequest.getPassword());
-
-        // Create new user (no default role or team - will be assigned when joining teams)
-        User newUser = new User(
-            registerRequest.getEmail(),
-            encryptedPassword, // Store encrypted password
-            registerRequest.getFirstName(),
-            registerRequest.getLastName(),
-            registerRequest.getPhoneNumber(),
-            registerRequest.getDateOfBirth()
-        );
-
-        // Save user
-        UserDto savedUser = userService.createUser(newUser);
-        
-        // Return user with empty teams list
-        return new UserWithTeamsDto(
-            savedUser.getId(),
-            savedUser.getEmail(),
-            savedUser.getFirstName(),
-            savedUser.getLastName(),
-            savedUser.getPhoneNumber(),
-            savedUser.getDateOfBirth(),
-            savedUser.getCreatedAt(),
-            savedUser.getUpdatedAt(),
-            savedUser.isActive(),
-            new java.util.ArrayList<>()
-        );
     }
 
     /**
      * Delete a user account
      */
-    public boolean deleteAccount(String email, String password) {
+    public boolean deleteAccount(String uid, String password) {
         // Validate input
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email is required");
-        }
-        if (password == null || password.trim().isEmpty()) {
-            throw new IllegalArgumentException("Password is required");
+        if (uid == null || uid.trim().isEmpty()) {
+            throw new IllegalArgumentException("User ID is required");
         }
 
-        // Find user by email
-        User user = userService.findUserByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
+        try {
+            // Delete the user account from Firebase Auth and Firestore
+            return firebaseAuthService.deleteUserAccount(uid);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete account: " + e.getMessage(), e);
         }
-
-        // Verify password
-        if (!passwordService.verifyPassword(password, user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
-        }
-
-        // Check if user is active
-        if (!user.isActive()) {
-            throw new IllegalArgumentException("Account is already deactivated");
-        }
-
-        // Delete the user account
-        return userService.deleteUser(user.getId());
     }
 
     /**
@@ -174,111 +146,114 @@ public class AuthService {
             throw new IllegalArgumentException("Email is required");
         }
 
-        // Find user by email
-        User user = userService.findUserByEmail(updateRequest.getEmail());
-        if (user == null) {
-            throw new IllegalArgumentException("User not found");
-        }
-
-        // Verify password
-        if (!passwordService.verifyPassword(updateRequest.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Invalid password");
-        }
-
-        // Update user fields if provided
-        if (updateRequest.getFirstName() != null && !updateRequest.getFirstName().trim().isEmpty()) {
-            user.setFirstName(updateRequest.getFirstName());
-        }
-        if (updateRequest.getLastName() != null && !updateRequest.getLastName().trim().isEmpty()) {
-            user.setLastName(updateRequest.getLastName());
-        }
-        if (updateRequest.getPhoneNumber() != null) {
-            // Allow empty string to clear phone number
-            user.setPhoneNumber(updateRequest.getPhoneNumber());
-        }
-
-        // Update timestamp
-        user.setUpdatedAt(java.time.LocalDateTime.now().toString());
-
-        // Save updated user
-        UserDto updatedUser = userService.updateUser(user.getId(), user);
-        
-        // Get user's teams
         try {
-            var userTeams = userTeamService.getUserTeams(user.getId()).get();
-            return new UserWithTeamsDto(
-                updatedUser.getId(),
-                updatedUser.getEmail(),
-                updatedUser.getFirstName(),
-                updatedUser.getLastName(),
-                updatedUser.getPhoneNumber(),
-                updatedUser.getDateOfBirth(),
-                updatedUser.getCreatedAt(),
-                updatedUser.getUpdatedAt(),
-                updatedUser.isActive(),
-                userTeams
-            );
+            // Find user by email
+            UserProfile userProfile = firebaseAuthService.getUserProfileByEmail(updateRequest.getEmail());
+            if (userProfile == null) {
+                throw new IllegalArgumentException("User not found");
+            }
+
+            // Update user fields if provided
+            if (updateRequest.getFirstName() != null && !updateRequest.getFirstName().trim().isEmpty()) {
+                userProfile.setFirstName(updateRequest.getFirstName());
+            }
+            if (updateRequest.getLastName() != null && !updateRequest.getLastName().trim().isEmpty()) {
+                userProfile.setLastName(updateRequest.getLastName());
+            }
+            if (updateRequest.getPhoneNumber() != null) {
+                // Allow empty string to clear phone number
+                userProfile.setPhoneNumber(updateRequest.getPhoneNumber());
+            }
+
+            // Update timestamp
+            userProfile.setUpdatedAt(java.time.LocalDateTime.now().toString());
+
+            // Save updated user profile
+            UserProfile updatedProfile = firebaseAuthService.updateUserProfile(userProfile.getUid(), userProfile);
+            
+            // Get user's teams
+            try {
+                var userTeams = userTeamService.getUserTeams(updatedProfile.getUid()).get();
+                return new UserWithTeamsDto(
+                    updatedProfile.getUid(),
+                    updatedProfile.getEmail(),
+                    updatedProfile.getFirstName(),
+                    updatedProfile.getLastName(),
+                    updatedProfile.getPhoneNumber(),
+                    updatedProfile.getDateOfBirth(),
+                    updatedProfile.getCreatedAt(),
+                    updatedProfile.getUpdatedAt(),
+                    updatedProfile.isActive(),
+                    userTeams
+                );
+            } catch (Exception e) {
+                // If we can't get teams, return user without teams
+                return new UserWithTeamsDto(
+                    updatedProfile.getUid(),
+                    updatedProfile.getEmail(),
+                    updatedProfile.getFirstName(),
+                    updatedProfile.getLastName(),
+                    updatedProfile.getPhoneNumber(),
+                    updatedProfile.getDateOfBirth(),
+                    updatedProfile.getCreatedAt(),
+                    updatedProfile.getUpdatedAt(),
+                    updatedProfile.isActive(),
+                    new java.util.ArrayList<>()
+                );
+            }
         } catch (Exception e) {
-            // If we can't get teams, return user without teams
-            return new UserWithTeamsDto(
-                updatedUser.getId(),
-                updatedUser.getEmail(),
-                updatedUser.getFirstName(),
-                updatedUser.getLastName(),
-                updatedUser.getPhoneNumber(),
-                updatedUser.getDateOfBirth(),
-                updatedUser.getCreatedAt(),
-                updatedUser.getUpdatedAt(),
-                updatedUser.isActive(),
-                new java.util.ArrayList<>()
-            );
+            throw new RuntimeException("Failed to update user: " + e.getMessage(), e);
         }
     }
 
     /**
      * Get user by ID (for refreshing user data)
      */
-    public UserWithTeamsDto getUserById(String userId) {
-        // Find user by ID
-        User user = userService.findUserById(userId);
-        if (user == null) {
-            return null;
-        }
-
-        // Check if user is active
-        if (!user.isActive()) {
-            return null;
-        }
-
-        // Get user's teams
+    public UserWithTeamsDto getUserById(String uid) {
         try {
-            var userTeams = userTeamService.getUserTeams(user.getId()).get();
-            return new UserWithTeamsDto(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhoneNumber(),
-                user.getDateOfBirth(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.isActive(),
-                userTeams
-            );
+            // Find user by UID
+            UserProfile userProfile = firebaseAuthService.getUserProfileByUid(uid);
+            if (userProfile == null) {
+                return null;
+            }
+
+            // Check if user is active
+            if (!userProfile.isActive()) {
+                return null;
+            }
+
+            // Get user's teams
+            try {
+                var userTeams = userTeamService.getUserTeams(userProfile.getUid()).get();
+                return new UserWithTeamsDto(
+                    userProfile.getUid(),
+                    userProfile.getEmail(),
+                    userProfile.getFirstName(),
+                    userProfile.getLastName(),
+                    userProfile.getPhoneNumber(),
+                    userProfile.getDateOfBirth(),
+                    userProfile.getCreatedAt(),
+                    userProfile.getUpdatedAt(),
+                    userProfile.isActive(),
+                    userTeams
+                );
+            } catch (Exception e) {
+                // If we can't get teams, return user without teams
+                return new UserWithTeamsDto(
+                    userProfile.getUid(),
+                    userProfile.getEmail(),
+                    userProfile.getFirstName(),
+                    userProfile.getLastName(),
+                    userProfile.getPhoneNumber(),
+                    userProfile.getDateOfBirth(),
+                    userProfile.getCreatedAt(),
+                    userProfile.getUpdatedAt(),
+                    userProfile.isActive(),
+                    new java.util.ArrayList<>()
+                );
+            }
         } catch (Exception e) {
-            // If we can't get teams, return user without teams
-            return new UserWithTeamsDto(
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getPhoneNumber(),
-                user.getDateOfBirth(),
-                user.getCreatedAt(),
-                user.getUpdatedAt(),
-                user.isActive(),
-                new java.util.ArrayList<>()
-            );
+            throw new RuntimeException("Failed to get user: " + e.getMessage(), e);
         }
     }
 
@@ -294,12 +269,12 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid email format");
         }
 
-        // Password validation using PasswordService
+        // Password validation
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new IllegalArgumentException("Password is required");
         }
-        if (!passwordService.isPasswordValid(request.getPassword())) {
-            throw new IllegalArgumentException("Password must be at least 6 characters long and contain both letters and numbers");
+        if (request.getPassword().trim().length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters long");
         }
 
         // Name validation

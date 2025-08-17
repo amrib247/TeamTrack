@@ -1,6 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/authService';
+import { useState, useRef } from 'react';
 import { teamService, type CreateTeamRequest } from '../services/teamService';
 import type { AuthResponse, UserTeam } from '../types/Auth';
 import './HomePage.css';
@@ -13,17 +11,16 @@ interface HomePageProps {
 
 function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const [error, setError] = useState<string>('');
-  const navigate = useNavigate();
 
   // Settings modal states (restored)
   const [showSettings, setShowSettings] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [editPassword, setEditPassword] = useState('');
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
     phoneNumber: ''
   });
+  const [editPassword, setEditPassword] = useState('');
   const [terminatePassword, setTerminatePassword] = useState('');
   const [showTerminateConfirm, setShowTerminateConfirm] = useState(false);
   const [terminateConfirm, setTerminateConfirm] = useState('');
@@ -38,7 +35,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     sport: '',
     description: ''
   });
-  const [teamProfilePhoto, setTeamProfilePhoto] = useState<File | null>(null);
   const [teamPhotoPreview, setTeamPhotoPreview] = useState<string | null>(null);
   const [creatingTeam, setCreatingTeam] = useState(false);
   const teamPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -74,8 +70,35 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const saveChanges = async () => {
     try {
       setError('');
-      // Implementation for saving changes
+      
+      if (!editPassword.trim()) {
+        setError('Please enter your password to confirm changes');
+        return;
+      }
+      
+      // Import firebaseAuthService at the top of the file
+      const { firebaseAuthService } = await import('../services/firebaseAuthService');
+      
+      // Update user profile
+      const updateData = {
+        firstName: editFormData.firstName,
+        lastName: editFormData.lastName,
+        phoneNumber: editFormData.phoneNumber,
+        password: editPassword
+      };
+      
+      await firebaseAuthService.updateUser(updateData);
+      
+      // Update the current user data
+      await onRefreshUserData();
+      
+      // Exit edit mode
       setIsEditMode(false);
+      setEditPassword('');
+      
+      // Show success message
+      alert('Profile updated successfully!');
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save changes');
     }
@@ -105,12 +128,16 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
     try {
       setError('');
-      // TODO: Verify password with backend before proceeding
-      // For now, we'll just proceed with the basic validation
-      // In a real implementation, you would call an API to verify the password
       
-      // Implementation for account termination
+      // Import firebaseAuthService at the top of the file
+      const { firebaseAuthService } = await import('../services/firebaseAuthService');
+      
+      // Delete the account
+      await firebaseAuthService.deleteAccount(terminatePassword);
+      
+      // Logout and redirect
       onLogout();
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to terminate account');
     }
@@ -125,7 +152,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       sport: '',
       description: ''
     });
-    setTeamProfilePhoto(null);
     setTeamPhotoPreview(null);
     setError('');
   };
@@ -147,7 +173,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const handleTeamPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setTeamProfilePhoto(file);
       setTeamPhotoPreview(URL.createObjectURL(file));
     }
   };
@@ -382,7 +407,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                           type="button"
                           className="btn btn-secondary btn-small"
                           onClick={() => {
-                            setTeamProfilePhoto(null);
                             setTeamPhotoPreview(null);
                           }}
                         >
@@ -516,6 +540,18 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                         name="phoneNumber"
                         value={editFormData.phoneNumber}
                         onChange={handleEditInputChange}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="editPassword">Password (to confirm changes)</label>
+                      <input
+                        type="password"
+                        id="editPassword"
+                        name="password"
+                        value={editPassword}
+                        onChange={(e) => setEditPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        required
                       />
                     </div>
                     <div className="edit-actions">

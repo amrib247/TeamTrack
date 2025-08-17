@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
+import { firebaseAuthService } from './services/firebaseAuthService';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
@@ -8,28 +11,48 @@ import './App.css';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<AuthResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Listen for Firebase authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Get user profile data from Firestore
+          const userData = await firebaseAuthService.getCurrentUser();
+          setCurrentUser(userData);
+        } catch (error) {
+          console.error('Failed to get user data:', error);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleAuthSuccess = (user: AuthResponse) => {
     setCurrentUser(user);
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    try {
+      await firebaseAuthService.logout();
+      setCurrentUser(null);
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const refreshUserData = async () => {
     if (currentUser) {
       try {
-        // Re-fetch user data to get updated teams using the new endpoint
-        const response = await fetch(`http://localhost:8080/api/auth/user/${currentUser.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (response.ok) {
-          const updatedUser = await response.json();
+        // Get updated user data from Firebase
+        const updatedUser = await firebaseAuthService.getCurrentUser();
+        if (updatedUser) {
           setCurrentUser(updatedUser);
         }
       } catch (error) {
@@ -37,6 +60,16 @@ function App() {
       }
     }
   };
+
+  // Show loading spinner while checking authentication state
+  if (loading) {
+    return (
+      <div className="loading-spinner">
+        <div className="spinner"></div>
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <Router>

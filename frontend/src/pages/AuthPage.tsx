@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/authService';
+import { firebaseAuthService } from '../services/firebaseAuthService';
 import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/Auth';
 import './AuthPage.css';
 
@@ -73,7 +73,7 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
           email: formData.email,
           password: formData.password
         };
-        const user = await authService.login(loginRequest);
+        const user = await firebaseAuthService.login(loginRequest);
         onAuthSuccess(user);
         setError('');
         // Redirect to home page after successful login
@@ -87,7 +87,7 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
           phoneNumber: formData.phoneNumber,
           dateOfBirth: formData.dateOfBirth
         };
-        const user = await authService.register(registerRequest);
+        const user = await firebaseAuthService.register(registerRequest);
         onAuthSuccess(user);
         setError('');
         // Redirect to home page after successful registration
