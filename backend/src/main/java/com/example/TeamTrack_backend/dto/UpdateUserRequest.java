@@ -6,17 +6,19 @@ public class UpdateUserRequest {
     private String firstName;
     private String lastName;
     private String phoneNumber;
+    private String profilePhotoUrl;
 
     // Default constructor
     public UpdateUserRequest() {}
 
     // Constructor with fields
-    public UpdateUserRequest(String email, String password, String firstName, String lastName, String phoneNumber) {
+    public UpdateUserRequest(String email, String password, String firstName, String lastName, String phoneNumber, String profilePhotoUrl) {
         this.email = email;
         this.password = password;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
+        this.profilePhotoUrl = profilePhotoUrl;
     }
 
     // Getters and Setters
@@ -34,4 +36,7 @@ public class UpdateUserRequest {
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getProfilePhotoUrl() { return profilePhotoUrl; }
+    public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
 }

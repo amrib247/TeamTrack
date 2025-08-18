@@ -7,19 +7,20 @@ public class UserTeam {
     private String role; // Changed from User.UserRole to String
     private String joinedAt;
     private boolean isActive;
+    private boolean inviteAccepted;
 
     // Default constructor
-    public UserTeam() {
-        this.joinedAt = java.time.LocalDateTime.now().toString();
-        this.isActive = true;
-    }
+    public UserTeam() {}
 
-    // Constructor with required fields
-    public UserTeam(String userId, String teamId, String role) {
-        this();
+    // Constructor with all fields
+    public UserTeam(String id, String userId, String teamId, String role, String joinedAt, boolean isActive, boolean inviteAccepted) {
+        this.id = id;
         this.userId = userId;
         this.teamId = teamId;
         this.role = role;
+        this.joinedAt = joinedAt;
+        this.isActive = isActive;
+        this.inviteAccepted = inviteAccepted;
     }
 
     // Getters and Setters
@@ -71,5 +72,11 @@ public class UserTeam {
         isActive = active;
     }
 
+    public boolean isInviteAccepted() {
+        return inviteAccepted;
+    }
 
+    public void setInviteAccepted(boolean inviteAccepted) {
+        this.inviteAccepted = inviteAccepted;
+    }
 }

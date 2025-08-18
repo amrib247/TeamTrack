@@ -133,6 +133,7 @@ class FirebaseAuthService {
             lastName: user.displayName?.split(' ').slice(1).join(' ') || 'User',
             phoneNumber: '',
             dateOfBirth: '',
+            profilePhotoUrl: '',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             isActive: true
@@ -165,7 +166,8 @@ class FirebaseAuthService {
               teamName: data.teamName || '',
               sport: data.sport || '',
               joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-              isActive: data.isActive !== false
+              isActive: data.isActive !== false,
+              inviteAccepted: !!data.inviteAccepted
             };
           });
           
@@ -179,6 +181,7 @@ class FirebaseAuthService {
             lastName: createdProfile.lastName,
             phoneNumber: createdProfile.phoneNumber || '',
             dateOfBirth: createdProfile.dateOfBirth,
+            profilePhotoUrl: createdProfile.profilePhotoUrl,
             createdAt: createdProfile.createdAt,
             updatedAt: createdProfile.updatedAt,
             isActive: createdProfile.isActive,
@@ -214,7 +217,8 @@ class FirebaseAuthService {
           teamName: data.teamName || '',
           sport: data.sport || '',
           joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-          isActive: data.isActive !== false
+          isActive: data.isActive !== false,
+          inviteAccepted: !!data.inviteAccepted
         };
       });
       
@@ -284,6 +288,7 @@ class FirebaseAuthService {
       if (userUpdateData.firstName) updateData.firstName = userUpdateData.firstName;
       if (userUpdateData.lastName) updateData.lastName = userUpdateData.lastName;
       if (userUpdateData.phoneNumber !== undefined) updateData.phoneNumber = userUpdateData.phoneNumber;
+      if (userUpdateData.profilePhotoUrl !== undefined) updateData.profilePhotoUrl = userUpdateData.profilePhotoUrl;
       
       updateData.updatedAt = new Date().toISOString();
       
@@ -308,7 +313,8 @@ class FirebaseAuthService {
         teamName: doc.data().teamName || '',
         sport: doc.data().sport || '',
         joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        isActive: doc.data().isActive !== false
+        isActive: doc.data().isActive !== false,
+        inviteAccepted: !!doc.data().inviteAccepted
       }));
       
       // Return updated user data
@@ -319,6 +325,7 @@ class FirebaseAuthService {
         lastName: updatedProfile.lastName,
         phoneNumber: updatedProfile.phoneNumber || '',
         dateOfBirth: updatedProfile.dateOfBirth,
+        profilePhotoUrl: updatedProfile.profilePhotoUrl,
         createdAt: updatedProfile.createdAt,
         updatedAt: updatedProfile.updatedAt,
         isActive: updatedProfile.isActive,
@@ -407,9 +414,11 @@ class FirebaseAuthService {
         teamName: doc.data().teamName || '',
         sport: doc.data().sport || '',
         joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        isActive: doc.data().isActive !== false
+        isActive: doc.data().isActive !== false,
+        inviteAccepted: !!doc.data().inviteAccepted
       }));
       
+      // Return user data in the expected format
       return {
         id: user.uid,
         email: user.email!,
@@ -417,6 +426,7 @@ class FirebaseAuthService {
         lastName: userProfile.lastName,
         phoneNumber: userProfile.phoneNumber || '',
         dateOfBirth: userProfile.dateOfBirth,
+        profilePhotoUrl: userProfile.profilePhotoUrl,
         createdAt: userProfile.createdAt,
         updatedAt: userProfile.updatedAt,
         isActive: userProfile.isActive,

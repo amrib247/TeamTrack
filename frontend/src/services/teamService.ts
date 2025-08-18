@@ -29,6 +29,21 @@ export interface Team {
   isActive: boolean;
 }
 
+export interface TeamMember {
+  id: string;
+  userId: string;
+  teamId: string;
+  role: string;
+  joinedAt: string;
+  isActive: boolean;
+  inviteAccepted: boolean;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber?: string;
+  profilePhotoUrl?: string;
+}
+
 class TeamService {
   
   async createTeam(request: CreateTeamRequest, createdByUserId: string): Promise<Team> {
@@ -167,6 +182,90 @@ class TeamService {
       console.error('Failed to get user teams:', error);
       throw error;
     }
+  }
+
+  async getTeamMembers(teamId: string): Promise<TeamMember[]> {
+    try {
+      console.log('🔍 Getting team members for team:', teamId);
+      
+      const response = await fetch(`${API_BASE_URL}/user-teams/team/${teamId}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to get team members:', response.status, errorText);
+        throw new Error(`Failed to get team members: ${response.status} ${errorText}`);
+      }
+
+      const teamMembers = await response.json();
+      console.log('✅ Team members retrieved successfully:', teamMembers);
+      return teamMembers;
+    } catch (error) {
+      console.error('Failed to get team members:', error);
+      throw error;
+    }
+  }
+
+  // Invite user to team
+  inviteUserToTeam(teamId: string, email: string, role: string): Promise<any> {
+    return fetch(`${API_BASE_URL}/user-teams/teams/${teamId}/invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, role }),
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to invite user');
+      }
+      return response.json();
+    });
+  }
+
+  // Accept team invite
+  acceptInvite(userTeamId: string): Promise<any> {
+    return fetch(`${API_BASE_URL}/user-teams/accept-invite/${userTeamId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to accept invite');
+      }
+      return response.json();
+    });
+  }
+
+  // Decline team invite (deletes the UserTeam relationship)
+  declineInvite(userTeamId: string): Promise<void> {
+    return fetch(`${API_BASE_URL}/user-teams/decline-invite/${userTeamId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to decline invite');
+      }
+    });
+  }
+
+  // Leave a team (deletes the UserTeam relationship)
+  leaveTeam(userTeamId: string): Promise<void> {
+    return fetch(`${API_BASE_URL}/user-teams/leave-team/${userTeamId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to leave team');
+      }
+    });
   }
 }
 

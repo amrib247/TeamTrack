@@ -1,7 +1,8 @@
 package com.example.TeamTrack_backend.dto;
 
-import com.example.TeamTrack_backend.models.UserTeam;
 import java.util.List;
+
+import com.example.TeamTrack_backend.models.UserTeam;
 
 public class UserWithTeamsDto {
     private String id;
@@ -10,6 +11,7 @@ public class UserWithTeamsDto {
     private String lastName;
     private String phoneNumber;
     private String dateOfBirth;
+    private String profilePhotoUrl;
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
@@ -20,7 +22,7 @@ public class UserWithTeamsDto {
 
     // Constructor with all fields
     public UserWithTeamsDto(String id, String email, String firstName, String lastName, 
-                           String phoneNumber, String dateOfBirth, String createdAt, 
+                           String phoneNumber, String dateOfBirth, String profilePhotoUrl, String createdAt, 
                            String updatedAt, boolean isActive, List<UserTeam> teams) {
         this.id = id;
         this.email = email;
@@ -28,6 +30,7 @@ public class UserWithTeamsDto {
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
         this.dateOfBirth = dateOfBirth;
+        this.profilePhotoUrl = profilePhotoUrl;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.isActive = isActive;
@@ -52,6 +55,9 @@ public class UserWithTeamsDto {
 
     public String getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getProfilePhotoUrl() { return profilePhotoUrl; }
+    public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

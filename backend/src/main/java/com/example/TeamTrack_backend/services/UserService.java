@@ -29,7 +29,7 @@ public class UserService {
     private Firestore firestore;
     private List<User> inMemoryUsers = new ArrayList<>(); // Fallback storage
     private boolean useFirebase = true;
-
+    
     public UserService() {
         // Initialize Firestore when needed, not in constructor
     }

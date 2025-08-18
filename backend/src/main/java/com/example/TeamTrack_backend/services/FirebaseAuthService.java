@@ -2,7 +2,6 @@ package com.example.TeamTrack_backend.services;
 
 import java.util.concurrent.ExecutionException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.TeamTrack_backend.dto.LoginRequest;
@@ -24,8 +23,7 @@ public class FirebaseAuthService {
     private static final String USER_PROFILES_COLLECTION = "userProfiles";
     private final FirebaseAuth firebaseAuth;
     private final Firestore firestore;
-
-    @Autowired
+    
     public FirebaseAuthService(FirebaseAuth firebaseAuth, Firestore firestore) {
         this.firebaseAuth = firebaseAuth;
         this.firestore = firestore;
@@ -121,15 +119,26 @@ public class FirebaseAuthService {
      * Delete user account
      */
     public boolean deleteUserAccount(String uid) throws FirebaseAuthException, InterruptedException, ExecutionException {
-        // Delete from Firebase Authentication
-        firebaseAuth.deleteUser(uid);
-        
-        // Delete profile from Firestore
-        DocumentReference docRef = firestore.collection(USER_PROFILES_COLLECTION).document(uid);
-        ApiFuture<WriteResult> future = docRef.delete();
-        future.get(); // Wait for the delete to complete
-        
-        return true;
+        try {
+            System.out.println("🗑️ FirebaseAuthService: Starting deletion of user account: " + uid);
+            
+            // Delete from Firebase Authentication
+            firebaseAuth.deleteUser(uid);
+            System.out.println("✅ FirebaseAuthService: Successfully deleted user from Firebase Auth: " + uid);
+            
+            // Delete profile from Firestore
+            DocumentReference docRef = firestore.collection(USER_PROFILES_COLLECTION).document(uid);
+            ApiFuture<WriteResult> future = docRef.delete();
+            future.get(); // Wait for the delete to complete
+            System.out.println("✅ FirebaseAuthService: Successfully deleted user profile from Firestore: " + uid);
+            
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("❌ FirebaseAuthService: Error deleting user account: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to delete user account: " + e.getMessage());
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ public class UserProfile {
     private String lastName;
     private String phoneNumber;
     private String dateOfBirth;
+    private String profilePhotoUrl;
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
@@ -22,6 +23,21 @@ public class UserProfile {
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
         this.dateOfBirth = dateOfBirth;
+        this.profilePhotoUrl = null;
+        this.isActive = true;
+        this.createdAt = java.time.LocalDateTime.now().toString();
+        this.updatedAt = java.time.LocalDateTime.now().toString();
+    }
+
+    // Constructor with profile photo
+    public UserProfile(String uid, String email, String firstName, String lastName, String phoneNumber, String dateOfBirth, String profilePhotoUrl) {
+        this.uid = uid;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phoneNumber = phoneNumber;
+        this.dateOfBirth = dateOfBirth;
+        this.profilePhotoUrl = profilePhotoUrl;
         this.isActive = true;
         this.createdAt = java.time.LocalDateTime.now().toString();
         this.updatedAt = java.time.LocalDateTime.now().toString();
@@ -45,6 +61,9 @@ public class UserProfile {
 
     public String getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public String getProfilePhotoUrl() { return profilePhotoUrl; }
+    public void setProfilePhotoUrl(String profilePhotoUrl) { this.profilePhotoUrl = profilePhotoUrl; }
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }

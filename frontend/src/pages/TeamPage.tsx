@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { UserTeam } from '../types/Auth';
-import { teamService } from '../services/teamService';
+import { teamService, type TeamMember } from '../services/teamService';
 import './TeamPage.css';
 
 interface TeamPageProps {
@@ -42,6 +42,10 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const [teamPhotoPreview, setTeamPhotoPreview] = useState<string | null>(null);
   const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
 
+  // Leave team states
+  const [showLeaveTeamConfirm, setShowLeaveTeamConfirm] = useState(false);
+  const [leaveTeamConfirm, setLeaveTeamConfirm] = useState('');
+  
   // Find the team data for the current user
   // Note: teamId in URL is actually the userTeams document ID
   const userTeam = currentUser.teams.find(team => team.id === userTeamId);
@@ -56,6 +60,19 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   } | null>(null);
   const [loadingTeamDetails, setLoadingTeamDetails] = useState(true);
   
+  // State for team members (roster)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
+  
+  // State for invite form
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    email: '',
+    role: 'PLAYER'
+  });
+  const [invitingUser, setInvitingUser] = useState(false);
+  const [inviteError, setInviteError] = useState<string>('');
+
   // Debug logging
   console.log('🔍 TeamPage Debug:', {
     userTeamId,
@@ -63,6 +80,7 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     allTeams: currentUser.teams.map(t => ({ id: t.id, teamId: t.teamId }))
   });
   
+  // Early return if userTeam is not found
   if (!userTeam) {
     return (
       <div className="team-page">
@@ -78,6 +96,58 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       </div>
     );
   }
+  
+  // Fetch team details when component mounts
+  useEffect(() => {
+    const fetchTeamDetails = async () => {
+      if (!userTeam) return;
+      
+      try {
+        setLoadingTeamDetails(true);
+        const team = await teamService.getTeam(userTeam.teamId);
+        if (team) {
+          setTeamDetails({
+            teamName: team.teamName,
+            sport: team.sport,
+            ageGroup: team.ageGroup,
+            description: team.description,
+            profilePhotoUrl: team.profilePhotoUrl
+          });
+        } else {
+          setError('Team not found');
+        }
+      } catch (err) {
+        console.error('Failed to fetch team details:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch team details');
+      } finally {
+        setLoadingTeamDetails(false);
+      }
+    };
+
+    fetchTeamDetails();
+  }, [userTeam]);
+
+  // Fetch team members when roster tab is active
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (activeTab === 'roster' && userTeam?.teamId) {
+        try {
+          setLoadingTeamMembers(true);
+          console.log('🔍 Fetching team members for teamId:', userTeam.teamId);
+          const members = await teamService.getTeamMembers(userTeam.teamId);
+          setTeamMembers(members);
+          console.log('✅ Team members fetched:', members);
+        } catch (error) {
+          console.error('❌ Failed to fetch team members:', error);
+          setError('Failed to load team roster');
+        } finally {
+          setLoadingTeamMembers(false);
+        }
+      }
+    };
+    
+    fetchTeamMembers();
+  }, [activeTab, userTeam]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -86,51 +156,6 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const handleBackToHome = () => {
     navigate('/home');
   };
-
-  // Fetch team details when component mounts
-  useEffect(() => {
-    const fetchTeamDetails = async () => {
-      if (userTeam?.teamId) {
-        try {
-          setLoadingTeamDetails(true);
-          console.log('🔍 Fetching team details for teamId:', userTeam.teamId);
-          const team = await teamService.getTeam(userTeam.teamId);
-          setTeamDetails({
-            teamName: team.teamName,
-            sport: team.sport,
-            ageGroup: team.ageGroup,
-            description: team.description,
-            profilePhotoUrl: team.profilePhotoUrl
-          });
-          
-          // Initialize edit form with team details
-          setEditTeamForm({
-            teamName: team.teamName,
-            sport: team.sport,
-            ageGroup: team.ageGroup,
-            description: team.description || '',
-            profilePhotoUrl: team.profilePhotoUrl || ''
-          });
-          
-          // Set photo preview if exists
-          if (team.profilePhotoUrl) {
-            setTeamPhotoPreview(team.profilePhotoUrl);
-          }
-          
-          console.log('✅ Team details fetched:', team);
-        } catch (error) {
-          console.error('❌ Failed to fetch team details:', error);
-          setError('Failed to load team information');
-        } finally {
-          setLoadingTeamDetails(false);
-        }
-      } else {
-        setLoadingTeamDetails(false);
-      }
-    };
-    
-    fetchTeamDetails();
-  }, [userTeam]);
 
   const handleEditTeamInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -269,13 +294,230 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     }
   };
 
+  const handleLeaveTeam = async () => {
+    if (leaveTeamConfirm !== 'LEAVE') {
+      setError('Please type LEAVE to confirm leaving the team');
+      return;
+    }
+
+    try {
+      setError('');
+      
+      // Call the backend API to leave team
+      console.log('👋 Leaving team with userTeamId:', userTeamId);
+      await teamService.leaveTeam(userTeamId!);
+      
+      // Show success message and redirect
+      alert('You have left the team successfully!');
+      
+      // Refresh user data to update the home page
+      // We need to navigate back to home first, then refresh
+      navigate('/home');
+      
+      // Force a page reload to ensure the home page shows updated data
+      window.location.reload();
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to leave team');
+    }
+  };
+
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!inviteForm.email.trim() || !inviteForm.role) {
+      setInviteError('Please fill in all fields');
+      return;
+    }
+
+    try {
+      setInvitingUser(true);
+      setInviteError('');
+      
+      await teamService.inviteUserToTeam(userTeam.teamId, inviteForm.email, inviteForm.role);
+      
+      // Show success message
+      alert('User invited successfully!');
+      
+      // Reset form and close
+      setInviteForm({ email: '', role: 'PLAYER' });
+      setShowInviteForm(false);
+      
+      // Refresh team members to show the new invite
+      if (activeTab === 'roster') {
+        const members = await teamService.getTeamMembers(userTeam.teamId);
+        setTeamMembers(members);
+      }
+      
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite user');
+    } finally {
+      setInvitingUser(false);
+    }
+  };
+
+  // Helper function to sort team members by role
+  const sortTeamMembersByRole = (members: TeamMember[]) => {
+    const roleOrder = { 'COACH': 1, 'PARENT': 2, 'PLAYER': 3 };
+    return [...members].sort((a, b) => {
+      const orderA = roleOrder[a.role as keyof typeof roleOrder] || 4;
+      const orderB = roleOrder[b.role as keyof typeof roleOrder] || 4;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      // If same role, sort by last name, then first name
+      if (a.lastName !== b.lastName) {
+        return a.lastName.localeCompare(b.lastName);
+      }
+      return a.firstName.localeCompare(b.firstName);
+    });
+  };
+
+  // Helper function to get role display name
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'COACH': return 'Coach';
+      case 'PARENT': return 'Parent';
+      case 'PLAYER': return 'Player';
+      default: return role;
+    }
+  };
+
+  // Helper function to get role icon
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'COACH': return '👨‍💼';
+      case 'PARENT': return '👨‍👩‍👧‍👦';
+      case 'PLAYER': return '⚽';
+      default: return '👤';
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'roster':
         return (
           <div className="content-roster">
-            <h2>Team Roster</h2>
-            <p>Roster management coming soon...</p>
+            <div className="roster-header">
+              <h2>Team Roster</h2>
+              {userTeam.role === 'COACH' && (
+                <button 
+                  className="btn btn-invite"
+                  onClick={() => setShowInviteForm(true)}
+                >
+                  Invite User
+                </button>
+              )}
+            </div>
+            
+            {/* Invite Form Modal */}
+            {showInviteForm && (
+              <div className="invite-form-modal">
+                <div className="invite-form-content">
+                  <h3>Invite User to Team</h3>
+                  <form onSubmit={handleInviteUser}>
+                    <div className="form-group">
+                      <label htmlFor="inviteEmail">Email Address</label>
+                      <input
+                        type="email"
+                        id="inviteEmail"
+                        value={inviteForm.email}
+                        onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter user's email"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="inviteRole">Role</label>
+                      <select
+                        id="inviteRole"
+                        value={inviteForm.role}
+                        onChange={(e) => setInviteForm(prev => ({ ...prev, role: e.target.value }))}
+                        required
+                      >
+                        <option value="PLAYER">Player</option>
+                        <option value="PARENT">Parent</option>
+                        <option value="COACH">Coach</option>
+                      </select>
+                    </div>
+                    
+                    {inviteError && (
+                      <div className="error-message">
+                        {inviteError}
+                      </div>
+                    )}
+                    
+                    <div className="form-actions">
+                      <button 
+                        type="button" 
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowInviteForm(false);
+                          setInviteForm({ email: '', role: 'PLAYER' });
+                          setInviteError('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="btn btn-primary"
+                        disabled={invitingUser}
+                      >
+                        {invitingUser ? 'Inviting...' : 'Send Invite'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+            
+            {loadingTeamMembers ? (
+              <div className="loading-message">
+                <p>Loading team roster...</p>
+              </div>
+            ) : teamMembers.length > 0 ? (
+              <div className="roster-container">
+                {sortTeamMembersByRole(teamMembers).map((member) => (
+                  <div key={member.id} className="roster-member" data-role={member.role}>
+                    <div className="member-avatar">
+                      <div className="profile-photo">
+                        {member.profilePhotoUrl ? (
+                          <img src={member.profilePhotoUrl} alt={`${member.firstName} ${member.lastName}`} />
+                        ) : (
+                          <div className="profile-initials">
+                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="member-info">
+                      <div className="member-name">
+                        {member.firstName} {member.lastName}
+                        {!member.inviteAccepted && (
+                          <span className="invite-pending"> (Invite Pending)</span>
+                        )}
+                      </div>
+                      <div className="member-role">
+                        {getRoleDisplayName(member.role)}
+                      </div>
+                      <div className="member-details">
+                        <span className="member-email">{member.email}</span>
+                        {member.phoneNumber && (
+                          <span className="member-phone">Phone: {member.phoneNumber}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-roster">
+                <p>No team members found.</p>
+                <p>Team roster will appear here once members are added.</p>
+              </div>
+            )}
           </div>
         );
       case 'schedule':
@@ -302,239 +544,343 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       case 'settings':
         return (
           <div className="content-settings">
-            <h2>Team Settings</h2>
-            
-                         {/* Team Information Display */}
+             
+             {/* Team Information Display */}
              <div className="team-info">
-               {loadingTeamDetails ? (
-                 <p>Loading team information...</p>
-               ) : teamDetails ? (
-                 <>
-                   <div className="team-header-info">
-                     {teamDetails.profilePhotoUrl && (
-                       <div className="team-photo">
-                         <img src={teamDetails.profilePhotoUrl} alt="Team photo" />
-                       </div>
-                     )}
-                     <div className="team-text-info">
-                       <h3>{teamDetails.teamName}</h3>
-                       <p className="team-sport">{teamDetails.sport}</p>
-                       <p className="team-age-group">Age Group: {teamDetails.ageGroup}</p>
-                       {teamDetails.description && (
-                         <p className="team-description">{teamDetails.description}</p>
-                       )}
-                     </div>
-                   </div>
-                 </>
-               ) : (
-                 <p>Failed to load team information</p>
-               )}
-               <p className="team-role">Your Role: {userTeam.role}</p>
-               <p className="team-joined">Joined: {new Date(userTeam.joinedAt).toLocaleDateString()}</p>
-             </div>
+              {loadingTeamDetails ? (
+                <p>Loading team information...</p>
+              ) : teamDetails ? (
+                <>
+                  <div className="team-header-info">
+                    {teamDetails.profilePhotoUrl && (
+                      <div className="team-photo">
+                        <img src={teamDetails.profilePhotoUrl} alt="Team photo" />
+                      </div>
+                    )}
+                    <div className="team-text-info">
+                      <h3>{teamDetails.teamName}</h3>
+                      <p className="team-sport">{teamDetails.sport}</p>
+                      <p className="team-age-group">Age Group: {teamDetails.ageGroup}</p>
+                      {teamDetails.description && (
+                        <p className="team-description">{teamDetails.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p>Failed to load team information</p>
+              )}
+              <p className="team-role">Your Role: {userTeam.role}</p>
+              <p className="team-joined">Joined: {new Date(userTeam.joinedAt).toLocaleDateString()}</p>
+            </div>
 
-                             {/* Coach-only Settings */}
-                 {userTeam.role === 'COACH' && !loadingTeamDetails && teamDetails && (
-              <div className="coach-settings">
-                <h3>Team Management</h3>
+            {/* Coach-only Settings */}
+            {userTeam.role === 'COACH' && !loadingTeamDetails && teamDetails && (
+          <div className="coach-settings">
+            <h3>Team Management</h3>
+            
+            {/* Edit Team Information */}
+            <div className="settings-section">
+              <h4>Edit Team Information</h4>
+              <form className="edit-team-form" onSubmit={handleEditTeam}>
+                <div className="form-group">
+                  <label htmlFor="teamName">Team Name</label>
+                  <input
+                    type="text"
+                    id="teamName"
+                    name="teamName"
+                    value={editTeamForm.teamName}
+                    onChange={handleEditTeamInputChange}
+                    placeholder="Enter team name"
+                    required
+                  />
+                </div>
                 
-                {/* Edit Team Information */}
-                <div className="settings-section">
-                  <h4>Edit Team Information</h4>
-                  <form className="edit-team-form" onSubmit={handleEditTeam}>
-                    <div className="form-group">
-                      <label htmlFor="teamName">Team Name</label>
-                      <input
-                        type="text"
-                        id="teamName"
-                        name="teamName"
-                        value={editTeamForm.teamName}
-                        onChange={handleEditTeamInputChange}
-                        placeholder="Enter team name"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="sport">Sport</label>
-                      <select
-                        id="sport"
-                        name="sport"
-                        value={editTeamForm.sport}
-                        onChange={handleEditTeamInputChange}
-                        required
-                      >
-                        <option value="">Select a sport</option>
-                        <option value="Soccer">Soccer</option>
-                        <option value="Basketball">Basketball</option>
-                        <option value="Baseball">Baseball</option>
-                        <option value="Football">Football</option>
-                        <option value="Volleyball">Volleyball</option>
-                        <option value="Tennis">Tennis</option>
-                        <option value="Swimming">Swimming</option>
-                        <option value="Track & Field">Track & Field</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="ageGroup">Age Group</label>
-                      <select
-                        id="ageGroup"
-                        name="ageGroup"
-                        value={editTeamForm.ageGroup}
-                        onChange={handleEditTeamInputChange}
-                        required
-                      >
-                        <option value="">Select age group</option>
-                        <option value="5-7">5-7 years</option>
-                        <option value="8-10">8-10 years</option>
-                        <option value="11-13">11-13 years</option>
-                        <option value="14-16">14-16 years</option>
-                        <option value="17-18">17-18 years</option>
-                        <option value="19+">19+ years</option>
-                      </select>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="description">Description</label>
-                      <textarea
-                        id="description"
-                        name="description"
-                        value={editTeamForm.description}
-                        onChange={handleEditTeamInputChange}
-                        placeholder="Optional team description"
-                        rows={3}
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Team Profile Photo</label>
-                      <div className="photo-upload-section">
-                        {teamPhotoPreview ? (
-                          <div className="photo-preview">
-                            <img src={teamPhotoPreview} alt="Team photo preview" />
-                            <div className="photo-actions">
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-small"
-                                onClick={() => document.getElementById('teamPhotoInput')?.click()}
-                              >
-                                Change Photo
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-danger btn-small"
-                                onClick={removeTeamPhoto}
-                              >
-                                Remove Photo
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
+                <div className="form-group">
+                  <label htmlFor="sport">Sport</label>
+                  <select
+                    id="sport"
+                    name="sport"
+                    value={editTeamForm.sport}
+                    onChange={handleEditTeamInputChange}
+                    required
+                  >
+                    <option value="">Select a sport</option>
+                    <option value="Soccer">Soccer</option>
+                    <option value="Basketball">Basketball</option>
+                    <option value="Baseball">Baseball</option>
+                    <option value="Football">Football</option>
+                    <option value="Volleyball">Volleyball</option>
+                    <option value="Tennis">Tennis</option>
+                    <option value="Swimming">Swimming</option>
+                    <option value="Track & Field">Track & Field</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="ageGroup">Age Group</label>
+                  <select
+                    id="ageGroup"
+                    name="ageGroup"
+                    value={editTeamForm.ageGroup}
+                    onChange={handleEditTeamInputChange}
+                    required
+                  >
+                    <option value="">Select age group</option>
+                    <option value="5-7">5-7 years</option>
+                    <option value="8-10">8-10 years</option>
+                    <option value="11-13">11-13 years</option>
+                    <option value="14-16">14-16 years</option>
+                    <option value="17-18">17-18 years</option>
+                    <option value="19+">19+ years</option>
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="description">Description</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={editTeamForm.description}
+                    onChange={handleEditTeamInputChange}
+                    placeholder="Optional team description"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="form-group">
+                  <label>Team Profile Photo</label>
+                  <div className="photo-upload-section">
+                    {teamPhotoPreview ? (
+                      <div className="photo-preview">
+                        <img src={teamPhotoPreview} alt="Team photo preview" />
+                        <div className="photo-actions">
                           <button
                             type="button"
                             className="btn btn-secondary btn-small"
                             onClick={() => document.getElementById('teamPhotoInput')?.click()}
                           >
-                            📷 Upload Photo
+                            Change Photo
                           </button>
-                        )}
-                        <input
-                          id="teamPhotoInput"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleTeamPhotoUpload}
-                          style={{ display: 'none' }}
-                        />
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-small"
+                            onClick={removeTeamPhoto}
+                          >
+                            Remove Photo
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="form-actions">
-                      <button type="submit" className="btn btn-primary" disabled={editingTeam}>
-                        {editingTeam ? 'Saving...' : 'Save Changes'}
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-small"
+                        onClick={() => document.getElementById('teamPhotoInput')?.click()}
+                      >
+                        📷 Upload Photo
                       </button>
-                      <button type="button" className="btn btn-secondary" onClick={resetEditForm}>
-                        Reset
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Team Termination */}
-                <div className="settings-section danger-zone">
-                  <h4>Danger Zone</h4>
-                  <div className="danger-warning">
-                    <p>⚠️ <strong>Warning:</strong> Terminating a team will permanently delete all team data, including roster, schedule, and chat history. This action cannot be undone.</p>
+                    )}
+                    <input
+                      id="teamPhotoInput"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleTeamPhotoUpload}
+                      style={{ display: 'none' }}
+                    />
                   </div>
-                  
-                  {!showTerminateConfirm ? (
+                </div>
+                
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary" disabled={editingTeam}>
+                    {editingTeam ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button type="button" className="btn btn-secondary" onClick={resetEditForm}>
+                    Reset
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Team Termination */}
+            <div className="settings-section danger-zone">
+              <h4>Danger Zone</h4>
+              <div className="danger-warning">
+                <p>⚠️ <strong>Warning:</strong> Terminating a team will permanently delete all team data, including roster, schedule, and chat history. This action cannot be undone.</p>
+              </div>
+              
+              {!showTerminateConfirm ? (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setShowTerminateConfirm(true)}
+                >
+                  🗑️ Terminate Team
+                </button>
+              ) : (
+                <div className="terminate-confirm">
+                  <p>Type "DELETE" to confirm team termination:</p>
+                  <input
+                    type="text"
+                    value={terminateConfirm}
+                    onChange={(e) => setTerminateConfirm(e.target.value)}
+                    placeholder="Type DELETE"
+                    className="terminate-input"
+                  />
+                  <div className="terminate-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowTerminateConfirm(false);
+                        setTerminateConfirm('');
+                      }}
+                    >
+                      Cancel
+                    </button>
                     <button
                       type="button"
                       className="btn btn-danger"
-                      onClick={() => setShowTerminateConfirm(true)}
+                      onClick={handleTerminateTeam}
+                      disabled={terminateConfirm !== 'DELETE'}
                     >
-                      🗑️ Terminate Team
+                      Confirm Termination
                     </button>
-                  ) : (
-                    <div className="terminate-confirm">
-                      <p>Type "DELETE" to confirm team termination:</p>
-                      <input
-                        type="text"
-                        value={terminateConfirm}
-                        onChange={(e) => setTerminateConfirm(e.target.value)}
-                        placeholder="Type DELETE"
-                        className="terminate-input"
-                      />
-                      <div className="terminate-actions">
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={() => {
-                            setShowTerminateConfirm(false);
-                            setTerminateConfirm('');
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          onClick={handleTerminateTeam}
-                          disabled={terminateConfirm !== 'DELETE'}
-                        >
-                          Confirm Termination
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Non-coach message */}
-            {userTeam.role !== 'COACH' && (
-              <div className="non-coach-message">
-                <p>Only team coaches can modify team settings.</p>
-                <p>Contact your team coach if you need changes made.</p>
+            {/* Leave Team Section for Coaches */}
+            <div className="settings-section danger-zone">
+              <h4>Leave Team</h4>
+              <div className="danger-warning">
+                <p>⚠️ <strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+                <p><strong>Note:</strong> As a coach, leaving the team will transfer ownership to another team member or the team may become inactive.</p>
               </div>
-            )}
-
-            {/* Loading state for coach */}
-            {userTeam.role === 'COACH' && loadingTeamDetails && (
-              <div className="coach-settings">
-                <h3>Team Management</h3>
-                <p>Loading team settings...</p>
-              </div>
-            )}
-
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
+              
+              {!showLeaveTeamConfirm ? (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setShowLeaveTeamConfirm(true)}
+                >
+                  🚪 Leave Team
+                </button>
+              ) : (
+                <div className="leave-team-confirm">
+                  <p>Type "LEAVE" to confirm leaving the team:</p>
+                  <input
+                    type="text"
+                    value={leaveTeamConfirm}
+                    onChange={(e) => setLeaveTeamConfirm(e.target.value)}
+                    placeholder="Type LEAVE"
+                    className="leave-team-input"
+                  />
+                  <div className="leave-team-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowLeaveTeamConfirm(false);
+                        setLeaveTeamConfirm('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleLeaveTeam}
+                      disabled={leaveTeamConfirm !== 'LEAVE'}
+                    >
+                      Confirm Leave
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        );
+        )}
+
+        {/* Non-coach message */}
+        {userTeam.role !== 'COACH' && (
+          <div className="non-coach-message">
+            <p>Only team coaches can modify team settings.</p>
+            <p>Contact your team coach if you need changes made.</p>
+          </div>
+        )}
+
+        {/* Loading state for coach */}
+        {userTeam.role === 'COACH' && loadingTeamDetails && (
+          <div className="coach-settings">
+            <h3>Team Management</h3>
+            <p>Loading team settings...</p>
+          </div>
+        )}
+
+        {/* View-only settings for non-coach users */}
+        {userTeam.role !== 'COACH' && teamDetails && (
+          <div className="view-only-settings">
+            
+            {/* Leave Team Section */}
+            <div className="settings-section danger-zone">
+              <h4>Leave Team</h4>
+              <div className="danger-warning">
+                <p>⚠️ <strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+              </div>
+              
+              {!showLeaveTeamConfirm ? (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={() => setShowLeaveTeamConfirm(true)}
+                >
+                  🚪 Leave Team
+                </button>
+              ) : (
+                <div className="leave-team-confirm">
+                  <p>Type "LEAVE" to confirm leaving the team:</p>
+                  <input
+                    type="text"
+                    value={leaveTeamConfirm}
+                    onChange={(e) => setLeaveTeamConfirm(e.target.value)}
+                    placeholder="Type LEAVE"
+                    className="leave-team-input"
+                  />
+                  <div className="leave-team-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowLeaveTeamConfirm(false);
+                        setLeaveTeamConfirm('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleLeaveTeam}
+                      disabled={leaveTeamConfirm !== 'LEAVE'}
+                    >
+                      Confirm Leave
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+      </div>
+    );
       default:
         return (
           <div className="content-roster">

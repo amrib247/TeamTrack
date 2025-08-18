@@ -18,6 +18,7 @@ export interface UpdateUserRequest {
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
+  profilePhotoUrl?: string;
 }
 
 export interface UserTeam {
@@ -27,6 +28,7 @@ export interface UserTeam {
   role: string;
   joinedAt: string;
   isActive: boolean;
+  inviteAccepted: boolean;
 }
 
 export interface AuthResponse {
@@ -36,6 +38,7 @@ export interface AuthResponse {
   lastName: string;
   phoneNumber: string;
   dateOfBirth: string;
+  profilePhotoUrl?: string;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;

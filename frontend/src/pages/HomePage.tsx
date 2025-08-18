@@ -42,7 +42,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const teamPhotoInputRef = useRef<HTMLInputElement>(null);
   
      // Team details state
-   const [teamDetails, setTeamDetails] = useState<Record<string, { teamName: string; sport: string; ageGroup: string; description?: string }>>({});
+   const [teamDetails, setTeamDetails] = useState<Record<string, { teamName: string; sport: string; ageGroup: string; description?: string; profilePhotoUrl?: string } | null>>({});
   const [loadingTeams, setLoadingTeams] = useState(false);
 
   // Settings modal functions (restored)
@@ -53,12 +53,14 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       lastName: currentUser.lastName,
       phoneNumber: currentUser.phoneNumber
     });
+    setProfilePhoto(currentUser.profilePhotoUrl || null);
   };
 
   const closeSettings = () => {
     setShowSettings(false);
     setIsEditMode(false);
     setError('');
+    setProfilePhoto(null);
   };
   
   // Fetch team details for all user teams
@@ -67,7 +69,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     
     setLoadingTeams(true);
     try {
-      const details: Record<string, { teamName: string; sport: string; ageGroup: string; description?: string }> = {};
+      const details: Record<string, { teamName: string; sport: string; ageGroup: string; description?: string; profilePhotoUrl?: string } | null> = {};
       const orphanedTeamIds: string[] = [];
       
       for (const userTeam of currentUser.teams) {
@@ -78,7 +80,8 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               teamName: team.teamName,
               sport: team.sport,
               ageGroup: team.ageGroup,
-              description: team.description
+              description: team.description,
+              profilePhotoUrl: team.profilePhotoUrl
             };
           } else {
             // Team doesn't exist, mark it for removal
@@ -123,6 +126,11 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     fetchTeamDetails();
   }, [currentUser.teams]);
 
+  // Debug profile photo URL
+  useEffect(() => {
+    console.log('Current user profile photo URL:', currentUser.profilePhotoUrl);
+  }, [currentUser.profilePhotoUrl]);
+
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
   };
@@ -147,12 +155,21 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       // Import firebaseAuthService at the top of the file
       const { firebaseAuthService } = await import('../services/firebaseAuthService');
       
+      // Handle profile photo if there's a new photo
+      let photoUrl = currentUser.profilePhotoUrl;
+      if (profilePhoto && profilePhoto !== currentUser.profilePhotoUrl) {
+        // Convert file to data URL for now (in production, upload to cloud storage)
+        // For now, we'll use the data URL directly
+        photoUrl = profilePhoto;
+      }
+      
       // Update user profile
       const updateData = {
         firstName: editFormData.firstName,
         lastName: editFormData.lastName,
         phoneNumber: editFormData.phoneNumber,
-        password: editPassword
+        password: editPassword,
+        profilePhotoUrl: photoUrl
       };
       
       await firebaseAuthService.updateUser(updateData);
@@ -163,6 +180,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       // Exit edit mode
       setIsEditMode(false);
       setEditPassword('');
+      setProfilePhoto(null);
       
       // Show success message
       alert('Profile updated successfully!');
@@ -318,9 +336,36 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     }
   };
 
+  // Pending invite modal state
+  const [pendingInvite, setPendingInvite] = useState<{ userTeamId: string; teamName: string } | null>(null);
+
   // Handle team card click
-  const handleTeamClick = (teamId: string) => {
-    navigate(`/team/${teamId}`);
+  const handleTeamClick = (userTeamId: string) => {
+    const team = currentUser.teams.find(t => t.id === userTeamId);
+    if (team && team.inviteAccepted === false) {
+      const name = teamDetails[team.teamId]?.teamName || 'This Team';
+      setPendingInvite({ userTeamId, teamName: name });
+      return;
+    }
+    navigate(`/team/${userTeamId}`);
+  };
+
+  // Handle accepting team invite
+  const handleAcceptInvite = async (userTeamId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent team card click
+    
+    try {
+      await teamService.acceptInvite(userTeamId);
+      
+      // Refresh user data to update invite status
+      await onRefreshUserData();
+      
+      // Show success message
+      alert('Team invite accepted successfully!');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to accept invite');
+    }
   };
 
   return (
@@ -343,40 +388,47 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
              const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
              return validTeams.length > 0 ? (
                <div className="teams-grid">
-                 {validTeams.map((team: UserTeam) => (
+                 {validTeams.map((userTeam: UserTeam) => {
+                   const isPending = userTeam.inviteAccepted === false;
+                   return (
                    <div 
-                     key={team.id} 
-                     className="team-card clickable"
-                     onClick={() => handleTeamClick(team.id)}
+                     key={userTeam.id} 
+                     className={`team-card clickable`}
+                     onClick={() => handleTeamClick(userTeam.id)}
                    >
                                            <div className="team-header">
                         <div className="team-header-left">
-                          {teamDetails[team.teamId]?.profilePhotoUrl && (
+                          {teamDetails[userTeam.teamId]?.profilePhotoUrl && (
                             <div className="team-photo-small">
-                              <img src={teamDetails[team.teamId]?.profilePhotoUrl} alt="Team photo" />
+                              <img src={teamDetails[userTeam.teamId]?.profilePhotoUrl} alt="Team photo" />
                             </div>
                           )}
                           <div className="team-header-text">
-                            <h4>{teamDetails[team.teamId]?.teamName || 'Loading...'}</h4>
-                            <span className="team-sport">{formatSportName(teamDetails[team.teamId]?.sport || 'Unknown')}</span>
+                            <h4>{teamDetails[userTeam.teamId]?.teamName || 'Loading...'}</h4>
+                            <span className="team-sport">{formatSportName(teamDetails[userTeam.teamId]?.sport || 'Unknown')}</span>
                           </div>
                         </div>
                       </div>
                                            <div className="team-details">
-                        <div className="team-role">
-                          <strong>Role:</strong> {getRoleDisplayName(team.role)}
-                        </div>
-                        <div className="team-joined">
-                          <strong>Joined:</strong> {new Date(team.joinedAt).toLocaleDateString()}
-                        </div>
-                        {teamDetails[team.teamId]?.description && (
-                          <div className="team-description">
-                            <strong>Description:</strong> {teamDetails[team.teamId]?.description}
+                          <div className="team-role">
+                            <strong>Role:</strong> {getRoleDisplayName(userTeam.role)}
                           </div>
-                        )}
-                      </div>
+                          <div className="team-joined">
+                            <strong>Joined:</strong> {new Date(userTeam.joinedAt).toLocaleDateString()}
+                          </div>
+                          {isPending && (
+                            <div className="invite-status invite-pending">
+                              ⚠️ Invite Pending - Tap to accept or decline
+                            </div>
+                          )}
+                          {teamDetails[userTeam.teamId]?.description && (
+                            <div className="team-description">
+                              <strong>Description:</strong> {teamDetails[userTeam.teamId]?.description}
+                            </div>
+                          )}
+                        </div>
                    </div>
-                 ))}
+                 );})}
                </div>
              ) : (
                <div className="no-teams">
@@ -403,7 +455,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
           <button className="btn btn-secondary" onClick={onLogout}>
             Logout
           </button>
-          <p className="coming-soon">Team functionality coming soon!</p>
         </div>
       </div>
 
@@ -555,6 +606,58 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
         </div>
       )}
 
+      {/* Pending Invite Modal */}
+      {pendingInvite && (
+        <div className="modal-overlay" onClick={() => setPendingInvite(null)}>
+          <div className="modal pending-invite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Team Invitation</h2>
+              <button className="close-button" onClick={() => setPendingInvite(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>You have been invited to join <strong>{pendingInvite.teamName}</strong>.</p>
+              <p>Would you like to accept this invitation?</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setPendingInvite(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    await teamService.declineInvite(pendingInvite.userTeamId);
+                    setPendingInvite(null);
+                    await onRefreshUserData();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to decline invite');
+                  }
+                }}
+              >
+                Decline
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await teamService.acceptInvite(pendingInvite.userTeamId);
+                    setPendingInvite(null);
+                    await onRefreshUserData();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to accept invite');
+                  }
+                }}
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Settings Modal (restored) */}
       {showSettings && (
         <div className="modal-overlay" onClick={closeSettings}>
@@ -567,41 +670,64 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
             </div>
 
             <div className="modal-body">
-              {/* Profile Photo Section (restored) */}
+              {/* Profile Photo Section - Always Visible */}
               <div className="profile-section">
                 <h4>Profile Photo</h4>
                 <div className="photo-upload-section">
-                  {profilePhoto ? (
-                    <div className="photo-preview">
-                      <img src={profilePhoto} alt="Profile preview" />
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-small"
-                        onClick={() => setProfilePhoto(null)}
-                      >
-                        Remove
-                      </button>
-                    </div>
+                  {isEditMode ? (
+                    // Edit mode: show upload/remove options
+                    <>
+                      {profilePhoto ? (
+                        <div className="photo-preview">
+                          <img src={profilePhoto} alt="Profile preview" />
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-small"
+                            onClick={() => setProfilePhoto(null)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-small"
+                          onClick={triggerFileUpload}
+                        >
+                          📷 Upload Photo
+                        </button>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePhotoUpload}
+                        style={{ display: 'none' }}
+                      />
+                    </>
                   ) : (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-small"
-                      onClick={triggerFileUpload}
-                    >
-                      📷 Upload Photo
-                    </button>
+                    // View mode: show current photo or placeholder
+                    <>
+                      {currentUser.profilePhotoUrl ? (
+                        <div className="current-profile-photo">
+                          <img 
+                            src={currentUser.profilePhotoUrl} 
+                            alt="Current profile" 
+                            onError={(e) => console.error('Image failed to load:', e)}
+                            onLoad={() => console.log('Image loaded successfully')}
+                          />
+                        </div>
+                      ) : (
+                        <div className="no-photo-placeholder">
+                          <span>📷 No profile photo</span>
+                        </div>
+                      )}
+                    </>
                   )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleProfilePhotoUpload}
-                    style={{ display: 'none' }}
-                  />
                 </div>
               </div>
 
-              {/* Personal Information Section (restored) */}
+              {/* Personal Information Section */}
               <div className="info-section">
                 <h4>Personal Information</h4>
                 {isEditMode ? (
@@ -652,7 +778,10 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                       <button
                         type="button"
                         className="btn btn-secondary"
-                        onClick={() => setIsEditMode(false)}
+                        onClick={() => {
+                          setIsEditMode(false);
+                          setProfilePhoto(null);
+                        }}
                       >
                         Cancel
                       </button>

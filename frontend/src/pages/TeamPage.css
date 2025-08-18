@@ -370,6 +370,48 @@
   font-weight: 500;
 }
 
+/* Leave Team Styles */
+.leave-team-confirm {
+  background: white;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.leave-team-confirm p {
+  color: #dc2626;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.leave-team-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  background-color: white;
+}
+
+.leave-team-input:focus {
+  outline: none;
+  border-color: #c82333;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.leave-team-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.leave-team-actions .btn {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
 /* Non-coach message */
 .non-coach-message {
   background: #f8f9fa;
@@ -487,4 +529,341 @@
   .sidebar-text {
     font-size: 0.75rem;
   }
+}
+
+/* Roster Styles */
+.content-roster {
+  padding: 2rem;
+}
+
+.roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.roster-header h2 {
+  color: #333;
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.btn-invite {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.btn-invite:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-invite:active {
+  transform: translateY(0);
+}
+
+.loading-message {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.loading-message p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.roster-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.roster-member {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid #667eea;
+  min-height: 80px;
+}
+
+.roster-member:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.roster-member[data-role="coach"] {
+  border-left-color: #f59e0b;
+}
+
+.roster-member[data-role="parent"] {
+  border-left-color: #10b981;
+}
+
+.roster-member[data-role="player"] {
+  border-left-color: #3b82f6;
+}
+
+.member-avatar {
+  flex-shrink: 0;
+}
+
+.profile-photo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-initials {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.member-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.member-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.member-role {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.member-details {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.member-email,
+.member-phone {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.empty-roster {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+.empty-roster p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Invite Form Modal */
+.invite-form-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.invite-form-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+}
+
+.invite-form-content h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+.invite-form-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.invite-form-content label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.invite-form-content input,
+.invite-form-content select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.invite-form-content .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+/* Invite Status */
+.invite-pending {
+  color: #e74c3c;
+  font-weight: 500;
+  font-size: 0.9rem;
+  background: #fdf2f2;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border-left: 3px solid #e74c3c;
+  margin-top: 0.5rem;
+}
+
+/* View-only settings for non-coach users */
+.view-only-settings {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e8ed;
+  margin-top: 2rem;
+}
+
+.view-only-settings h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.view-only-settings .settings-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e1e8ed;
+}
+
+.view-only-settings .settings-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.view-only-settings .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.view-only-settings .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.view-only-settings .info-item label {
+  font-weight: 600;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.view-only-settings .info-display {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  color: #2c3e50;
+  min-height: 20px;
+  border: 1px solid #e9ecef;
+}
+
+/* View-only settings styles */
+.view-only-settings {
+  margin-top: 2rem;
+}
+
+.view-only-settings .settings-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.view-only-settings .settings-section h4 {
+  color: #495057;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.info-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-display .info-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.info-display .info-item:last-child {
+  border-bottom: none;
+}
+
+.info-display .info-item label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 120px;
+  margin-right: 1rem;
+}
+
+.info-display .info-item span {
+  color: #212529;
+  flex: 1;
 }

@@ -96,7 +96,8 @@ public class TeamService {
                 System.out.println("  - teamId: " + teamId);
                 System.out.println("  - role: COACH");
                 
-                userTeamService.addUserToTeam(createdByUserId, teamId, "COACH");
+                // Wait for the user to be added to the team
+                userTeamService.addUserToTeam(createdByUserId, teamId, "COACH").get();
                 
                 System.out.println("✅ TeamService: User added to team as coach successfully");
                 System.out.println("🎉 TeamService: Team creation completed successfully!");

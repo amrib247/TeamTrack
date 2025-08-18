@@ -57,6 +57,7 @@ public class AuthService {
                     userProfile.getLastName(),
                     userProfile.getPhoneNumber(),
                     userProfile.getDateOfBirth(),
+                    userProfile.getProfilePhotoUrl(),
                     userProfile.getCreatedAt(),
                     userProfile.getUpdatedAt(),
                     userProfile.isActive(),
@@ -71,6 +72,7 @@ public class AuthService {
                     userProfile.getLastName(),
                     userProfile.getPhoneNumber(),
                     userProfile.getDateOfBirth(),
+                    userProfile.getProfilePhotoUrl(),
                     userProfile.getCreatedAt(),
                     userProfile.getUpdatedAt(),
                     userProfile.isActive(),
@@ -107,6 +109,7 @@ public class AuthService {
                 newUserProfile.getLastName(),
                 newUserProfile.getPhoneNumber(),
                 newUserProfile.getDateOfBirth(),
+                newUserProfile.getProfilePhotoUrl(),
                 newUserProfile.getCreatedAt(),
                 newUserProfile.getUpdatedAt(),
                 newUserProfile.isActive(),
@@ -164,6 +167,10 @@ public class AuthService {
                 // Allow empty string to clear phone number
                 userProfile.setPhoneNumber(updateRequest.getPhoneNumber());
             }
+            if (updateRequest.getProfilePhotoUrl() != null) {
+                // Allow empty string to clear profile photo
+                userProfile.setProfilePhotoUrl(updateRequest.getProfilePhotoUrl());
+            }
 
             // Update timestamp
             userProfile.setUpdatedAt(java.time.LocalDateTime.now().toString());
@@ -181,6 +188,7 @@ public class AuthService {
                     updatedProfile.getLastName(),
                     updatedProfile.getPhoneNumber(),
                     updatedProfile.getDateOfBirth(),
+                    updatedProfile.getProfilePhotoUrl(),
                     updatedProfile.getCreatedAt(),
                     updatedProfile.getUpdatedAt(),
                     updatedProfile.isActive(),
@@ -195,6 +203,7 @@ public class AuthService {
                     updatedProfile.getLastName(),
                     updatedProfile.getPhoneNumber(),
                     updatedProfile.getDateOfBirth(),
+                    updatedProfile.getProfilePhotoUrl(),
                     updatedProfile.getCreatedAt(),
                     updatedProfile.getUpdatedAt(),
                     updatedProfile.isActive(),
@@ -232,6 +241,7 @@ public class AuthService {
                     userProfile.getLastName(),
                     userProfile.getPhoneNumber(),
                     userProfile.getDateOfBirth(),
+                    userProfile.getProfilePhotoUrl(),
                     userProfile.getCreatedAt(),
                     userProfile.getUpdatedAt(),
                     userProfile.isActive(),
@@ -246,6 +256,7 @@ public class AuthService {
                     userProfile.getLastName(),
                     userProfile.getPhoneNumber(),
                     userProfile.getDateOfBirth(),
+                    userProfile.getProfilePhotoUrl(),
                     userProfile.getCreatedAt(),
                     userProfile.getUpdatedAt(),
                     userProfile.isActive(),
