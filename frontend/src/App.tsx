@@ -6,6 +6,7 @@ import { firebaseAuthService } from './services/firebaseAuthService';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
+import TeamPage from './pages/TeamPage';
 import type { AuthResponse } from './types/Auth';
 import './App.css';
 
@@ -99,6 +100,21 @@ function App() {
                   currentUser={currentUser} 
                   onLogout={handleLogout}
                   onRefreshUserData={refreshUserData}
+                />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            } 
+          />
+          
+          {/* Team page - only accessible when logged in */}
+          <Route 
+            path="/team/:teamId" 
+            element={
+              currentUser ? (
+                <TeamPage 
+                  currentUser={currentUser} 
+                  onLogout={handleLogout}
                 />
               ) : (
                 <Navigate to="/auth" replace />

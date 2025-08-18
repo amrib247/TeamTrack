@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { teamService, type CreateTeamRequest } from '../services/teamService';
 import type { AuthResponse, UserTeam } from '../types/Auth';
 import './HomePage.css';
@@ -10,6 +11,7 @@ interface HomePageProps {
 }
 
 function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
+  const navigate = useNavigate();
   const [error, setError] = useState<string>('');
 
   // Settings modal states (restored)
@@ -38,6 +40,10 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const [teamPhotoPreview, setTeamPhotoPreview] = useState<string | null>(null);
   const [creatingTeam, setCreatingTeam] = useState(false);
   const teamPhotoInputRef = useRef<HTMLInputElement>(null);
+  
+     // Team details state
+   const [teamDetails, setTeamDetails] = useState<Record<string, { teamName: string; sport: string; ageGroup: string; description?: string }>>({});
+  const [loadingTeams, setLoadingTeams] = useState(false);
 
   // Settings modal functions (restored)
   const openSettings = () => {
@@ -54,6 +60,68 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     setIsEditMode(false);
     setError('');
   };
+  
+  // Fetch team details for all user teams
+  const fetchTeamDetails = async () => {
+    if (currentUser.teams.length === 0) return;
+    
+    setLoadingTeams(true);
+    try {
+      const details: Record<string, { teamName: string; sport: string; ageGroup: string; description?: string }> = {};
+      const orphanedTeamIds: string[] = [];
+      
+      for (const userTeam of currentUser.teams) {
+        try {
+          const team = await teamService.getTeam(userTeam.teamId);
+          if (team) {
+            details[userTeam.teamId] = {
+              teamName: team.teamName,
+              sport: team.sport,
+              ageGroup: team.ageGroup,
+              description: team.description
+            };
+          } else {
+            // Team doesn't exist, mark it for removal
+            console.warn(`Team ${userTeam.teamId} not found, marking for removal`);
+            details[userTeam.teamId] = null;
+            orphanedTeamIds.push(userTeam.teamId);
+          }
+        } catch (error) {
+          console.error(`Failed to fetch details for team ${userTeam.teamId}:`, error);
+          // If we get a 404 or similar error, the team likely doesn't exist
+          if (error instanceof Error && (error.message.includes('not found') || error.message.includes('404'))) {
+            details[userTeam.teamId] = null;
+            orphanedTeamIds.push(userTeam.teamId);
+          } else {
+            // Set placeholder data for other types of errors
+            details[userTeam.teamId] = {
+              teamName: 'Unknown Team',
+              sport: 'Unknown Sport',
+              ageGroup: 'Unknown Age Group'
+            };
+          }
+        }
+      }
+      
+      setTeamDetails(details);
+      
+      // Log orphaned teams for debugging
+      if (orphanedTeamIds.length > 0) {
+        console.warn(`Found ${orphanedTeamIds.length} orphaned teams:`, orphanedTeamIds);
+        console.warn('These teams exist in userTeams but not in teams collection. They will be filtered out from display.');
+      }
+      
+    } catch (error) {
+      console.error('Failed to fetch team details:', error);
+    } finally {
+      setLoadingTeams(false);
+    }
+  };
+  
+  // Fetch team details when component mounts or teams change
+  useEffect(() => {
+    fetchTeamDetails();
+  }, [currentUser.teams]);
 
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
@@ -250,6 +318,11 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     }
   };
 
+  // Handle team card click
+  const handleTeamClick = (teamId: string) => {
+    navigate(`/team/${teamId}`);
+  };
+
   return (
     <div className="app home-page">
       <div className="container">
@@ -263,35 +336,56 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
         <h1>Welcome, {currentUser.firstName}!</h1>
 
-        {/* Teams Display (restored) */}
-        <div className="teams-section">
-          <h3>Your Teams</h3>
-          {currentUser.teams && currentUser.teams.length > 0 ? (
-            <div className="teams-grid">
-              {currentUser.teams.map((team: UserTeam) => (
-                <div key={team.id} className="team-card">
-                  <div className="team-header">
-                    <h4>{team.teamName}</h4>
-                    <span className="team-sport">{formatSportName(team.sport)}</span>
-                  </div>
-                  <div className="team-details">
-                    <div className="team-role">
-                      <strong>Role:</strong> {getRoleDisplayName(team.role)}
-                    </div>
-                    <div className="team-joined">
-                      <strong>Joined:</strong> {new Date(team.joinedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="no-teams">
-              <p>You're not currently part of any teams.</p>
-              <p>Join or create a team to get started!</p>
-            </div>
-          )}
-        </div>
+                 {/* Teams Display (restored) */}
+         <div className="teams-section">
+           <h3>Your Teams</h3>
+           {(() => {
+             const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
+             return validTeams.length > 0 ? (
+               <div className="teams-grid">
+                 {validTeams.map((team: UserTeam) => (
+                   <div 
+                     key={team.id} 
+                     className="team-card clickable"
+                     onClick={() => handleTeamClick(team.id)}
+                   >
+                                           <div className="team-header">
+                        <div className="team-header-left">
+                          {teamDetails[team.teamId]?.profilePhotoUrl && (
+                            <div className="team-photo-small">
+                              <img src={teamDetails[team.teamId]?.profilePhotoUrl} alt="Team photo" />
+                            </div>
+                          )}
+                          <div className="team-header-text">
+                            <h4>{teamDetails[team.teamId]?.teamName || 'Loading...'}</h4>
+                            <span className="team-sport">{formatSportName(teamDetails[team.teamId]?.sport || 'Unknown')}</span>
+                          </div>
+                        </div>
+                      </div>
+                                           <div className="team-details">
+                        <div className="team-role">
+                          <strong>Role:</strong> {getRoleDisplayName(team.role)}
+                        </div>
+                        <div className="team-joined">
+                          <strong>Joined:</strong> {new Date(team.joinedAt).toLocaleDateString()}
+                        </div>
+                        {teamDetails[team.teamId]?.description && (
+                          <div className="team-description">
+                            <strong>Description:</strong> {teamDetails[team.teamId]?.description}
+                          </div>
+                        )}
+                      </div>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <div className="no-teams">
+                 <p>You're not currently part of any teams.</p>
+                 <p>Join or create a team to get started!</p>
+               </div>
+             );
+           })()}
+         </div>
 
         <div className="team-actions">
           <h3>Team Management</h3>
@@ -595,26 +689,32 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                 )}
               </div>
 
-              {/* Teams and Roles Section (restored) */}
-              <div className="info-section">
-                <h4>Teams & Roles</h4>
-                {currentUser.teams && currentUser.teams.length > 0 ? (
-                  <div className="teams-info">
-                    {currentUser.teams.map((team: UserTeam) => (
-                      <div key={team.id} className="team-info-item">
-                        <div className="team-name">{team.teamName}</div>
-                        <div className="team-role">{getRoleDisplayName(team.role)}</div>
-                        <div className="team-sport">{formatSportName(team.sport)}</div>
-                        <div className="team-joined">Joined: {new Date(team.joinedAt).toLocaleDateString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="no-teams-info">
-                    <p>You're not currently part of any teams.</p>
-                  </div>
-                )}
-              </div>
+                             {/* Teams and Roles Section (restored) */}
+               <div className="info-section">
+                 <h4>Teams & Roles</h4>
+                 {(() => {
+                   const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
+                   return validTeams.length > 0 ? (
+                     <div className="teams-info">
+                                               {validTeams.map((team: UserTeam) => (
+                          <div key={team.id} className="team-info-item">
+                            <div className="team-name">{teamDetails[team.teamId]?.teamName || 'Loading...'}</div>
+                            <div className="team-role">{getRoleDisplayName(team.role)}</div>
+                            <div className="team-sport">{formatSportName(teamDetails[team.teamId]?.sport || 'Unknown')}</div>
+                            <div className="team-joined">Joined: {new Date(team.joinedAt).toLocaleDateString()}</div>
+                            {teamDetails[team.teamId]?.description && (
+                              <div className="team-description">{teamDetails[team.teamId]?.description}</div>
+                            )}
+                          </div>
+                        ))}
+                     </div>
+                   ) : (
+                     <div className="no-teams-info">
+                       <p>You're not currently part of any teams.</p>
+                     </div>
+                   );
+                 })()}
+               </div>
 
               {/* Edit Button (restored) */}
               {!isEditMode && (

@@ -1,17 +1,14 @@
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  getDoc, 
-  updateDoc, 
-  serverTimestamp,
-  query,
-  where,
-  getDocs
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { API_BASE_URL } from './api';
 
 export interface CreateTeamRequest {
+  teamName: string;
+  sport: string;
+  ageGroup: string;
+  description?: string;
+  profilePhotoUrl?: string;
+}
+
+export interface UpdateTeamRequest {
   teamName: string;
   sport: string;
   ageGroup: string;
@@ -32,149 +29,143 @@ export interface Team {
   isActive: boolean;
 }
 
-interface TeamData {
-  teamName: string;
-  sport: string;
-  ageGroup: string;
-  description?: string;
-  profilePhotoUrl?: string;
-  createdBy: string;
-  createdAt: any; // Firestore timestamp
-  updatedAt: any; // Firestore timestamp
-  isActive: boolean;
-}
-
 class TeamService {
   
   async createTeam(request: CreateTeamRequest, createdByUserId: string): Promise<Team> {
     try {
-      // Create team in Firestore
-      const teamData = {
-        teamName: request.teamName,
-        sport: request.sport,
-        ageGroup: request.ageGroup,
-        description: request.description || '',
-        profilePhotoUrl: request.profilePhotoUrl || '',
-        createdBy: createdByUserId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        isActive: true
-      };
+      console.log('🚀 Creating team with data:', request);
       
-      const docRef = await addDoc(collection(db, 'teams'), teamData);
-      
-      // Create userTeams record to associate the creator with the team as a coach
-      const userTeamData = {
-        userId: createdByUserId,
-        teamId: docRef.id,
-        role: 'COACH',
-        teamName: request.teamName,
-        sport: request.sport,
-        joinedAt: serverTimestamp(),
-        isActive: true
-      };
-      
-      await addDoc(collection(db, 'userTeams'), userTeamData);
-      
-      // Get the created team with its ID
-      const teamDoc = await getDoc(docRef);
-      const team = teamDoc.data() as TeamData;
-      
-      return {
-        id: docRef.id,
-        ...team,
-        createdAt: team.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        updatedAt: team.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-      };
+      const response = await fetch(`${API_BASE_URL}/teams?createdByUserId=${createdByUserId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to create team:', response.status, errorText);
+        throw new Error(`Failed to create team: ${response.status} ${errorText}`);
+      }
+
+      const createdTeam = await response.json();
+      console.log('✅ Team created successfully:', createdTeam);
+      return createdTeam;
     } catch (error) {
       console.error('Failed to create team:', error);
-      throw new Error('Failed to create team');
+      throw error;
     }
   }
 
   async getTeam(teamId: string): Promise<Team> {
     try {
-      const teamDoc = await getDoc(doc(db, 'teams', teamId));
+      console.log('🔍 Getting team:', teamId);
       
-      if (!teamDoc.exists()) {
-        throw new Error('Team not found');
+      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to get team:', response.status, errorText);
+        throw new Error(`Failed to get team: ${response.status} ${errorText}`);
       }
-      
-      const team = teamDoc.data() as TeamData;
-      
-      return {
-        id: teamDoc.id,
-        ...team,
-        createdAt: team.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        updatedAt: team.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-      };
+
+      const team = await response.json();
+      console.log('✅ Team retrieved successfully:', team);
+      return team;
     } catch (error) {
       console.error('Failed to get team:', error);
-      throw new Error('Failed to get team');
+      throw error;
     }
   }
 
-  async updateTeam(teamId: string, request: CreateTeamRequest): Promise<Team> {
+  async updateTeam(teamId: string, request: UpdateTeamRequest): Promise<Team> {
     try {
-      const teamRef = doc(db, 'teams', teamId);
+      console.log('🔄 Updating team:', teamId, 'with data:', request);
+      console.log('🔍 API URL:', `${API_BASE_URL}/teams/${teamId}`);
+      console.log('🔍 Request body:', JSON.stringify(request, null, 2));
       
-      // Update team in Firestore
-      await updateDoc(teamRef, {
-        teamName: request.teamName,
-        sport: request.sport,
-        ageGroup: request.ageGroup,
-        description: request.description || '',
-        profilePhotoUrl: request.profilePhotoUrl || '',
-        updatedAt: serverTimestamp()
+      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
       });
-      
-      // Get the updated team
-      return await this.getTeam(teamId);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to update team:', response.status, errorText);
+        throw new Error(`Failed to update team: ${response.status} ${errorText}`);
+      }
+
+      const updatedTeam = await response.json();
+      console.log('✅ Team updated successfully:', updatedTeam);
+      return updatedTeam;
     } catch (error) {
       console.error('Failed to update team:', error);
-      throw new Error('Failed to update team');
+      throw error;
     }
   }
 
   async deactivateTeam(teamId: string): Promise<void> {
     try {
-      const teamRef = doc(db, 'teams', teamId);
-      await updateDoc(teamRef, {
-        isActive: false,
-        updatedAt: serverTimestamp()
+      console.log('🔄 Deactivating team:', teamId);
+      
+      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to deactivate team:', response.status, errorText);
+        throw new Error(`Failed to deactivate team: ${response.status} ${errorText}`);
+      }
+
+      console.log('✅ Team deactivated successfully');
     } catch (error) {
       console.error('Failed to deactivate team:', error);
-      throw new Error('Failed to deactivate team');
+      throw error;
+    }
+  }
+
+  async terminateTeam(teamId: string): Promise<void> {
+    try {
+      console.log('🗑️ Terminating team:', teamId);
+      
+      const response = await fetch(`${API_BASE_URL}/teams/${teamId}/terminate`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to terminate team:', response.status, errorText);
+        throw new Error(`Failed to terminate team: ${response.status} ${errorText}`);
+      }
+
+      console.log('✅ Team terminated successfully');
+    } catch (error) {
+      console.error('Failed to terminate team:', error);
+      throw error;
     }
   }
 
   async getUserTeams(userId: string): Promise<Team[]> {
     try {
-      // Query teams where the user is the creator
-      const teamsQuery = query(
-        collection(db, 'teams'),
-        where('createdBy', '==', userId),
-        where('isActive', '==', true)
-      );
+      console.log('🔍 Getting teams for user:', userId);
       
-      const teamsSnapshot = await getDocs(teamsQuery);
-      const teams: Team[] = [];
-      
-      teamsSnapshot.forEach((doc) => {
-        const team = doc.data() as TeamData;
-        teams.push({
-          id: doc.id,
-          ...team,
-          createdAt: team.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-          updatedAt: team.updatedAt?.toDate?.()?.toISOString() || new Date().toISOString()
-        });
-      });
-      
-      return teams;
+      // This method is not needed in the backend API since teams are fetched through userTeams
+      // For now, return empty array - teams are fetched through the auth service
+      return [];
     } catch (error) {
       console.error('Failed to get user teams:', error);
-      throw new Error('Failed to get user teams');
+      throw error;
     }
   }
 }

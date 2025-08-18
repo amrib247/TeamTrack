@@ -64,49 +64,7 @@ public class UserTeamService {
         });
     }
 
-    // Add user to a team with a specific role and team details
-    public CompletableFuture<UserTeam> addUserToTeam(String userId, String teamId, String role, String teamName, String sport) {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                Firestore firestore = getFirestore();
-                if (firestore == null) {
-                    throw new RuntimeException("Firebase not available");
-                }
-                
-                System.out.println("🔍 UserTeamService: Adding user to team with details:");
-                System.out.println("  - userId: " + userId);
-                System.out.println("  - teamId: " + teamId);
-                System.out.println("  - role: " + role);
-                System.out.println("  - teamName: " + teamName);
-                System.out.println("  - sport: " + sport);
-                
-                // Create user-team relationship with team details
-                UserTeam userTeam = new UserTeam(userId, teamId, role);
-                userTeam.setTeamName(teamName);
-                userTeam.setSport(sport);
-                
-                System.out.println("🔍 UserTeamService: Created UserTeam object: " + userTeam.getTeamName() + " - " + userTeam.getSport());
-                System.out.println("🔍 UserTeamService: UserTeam isActive: " + userTeam.isActive());
-                
-                // Generate unique ID for the relationship
-                String userTeamId = firestore.collection("userTeams").document().getId();
-                userTeam.setId(userTeamId);
-                
-                System.out.println("🔍 UserTeamService: Generated userTeamId: " + userTeamId);
 
-                // Save to Firestore
-                firestore.collection("userTeams").document(userTeamId).set(userTeam).get();
-                
-                System.out.println("🔍 UserTeamService: Successfully saved UserTeam to Firestore");
-
-                return userTeam;
-            } catch (Exception e) {
-                System.err.println("❌ UserTeamService: Failed to add user to team: " + e.getMessage());
-                e.printStackTrace();
-                throw new RuntimeException("Failed to add user to team: " + e.getMessage());
-            }
-        });
-    }
 
     // Remove user from a team
     public CompletableFuture<Void> removeUserFromTeam(String userId, String teamId) {
@@ -174,7 +132,7 @@ public class UserTeamService {
                     UserTeam userTeam = document.toObject(UserTeam.class);
                     if (userTeam != null) {
                         userTeam.setId(document.getId());
-                        System.out.println("🔍 UserTeamService: Created UserTeam object: " + userTeam.getTeamName() + " - " + userTeam.getSport());
+                        System.out.println("🔍 UserTeamService: Created UserTeam object with role: " + userTeam.getRole());
                         userTeams.add(userTeam);
                     } else {
                         System.err.println("❌ UserTeamService: Failed to convert document to UserTeam object");
@@ -227,6 +185,41 @@ public class UserTeamService {
                 return null;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to get user role: " + e.getMessage());
+            }
+        });
+    }
+    
+    // Remove all users from a team (used when terminating a team)
+    public CompletableFuture<Void> removeAllUsersFromTeam(String teamId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                System.out.println("🗑️ UserTeamService: Removing all users from team: " + teamId);
+                
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase not available");
+                }
+                
+                // Query for all user-team relationships for this team
+                var future = firestore.collection("userTeams")
+                    .whereEqualTo("teamId", teamId)
+                    .get();
+                
+                var querySnapshot = future.get();
+                System.out.println("🔍 UserTeamService: Found " + querySnapshot.size() + " user-team relationships to remove");
+                
+                // Delete all user-team relationships for this team
+                for (var document : querySnapshot.getDocuments()) {
+                    firestore.collection("userTeams").document(document.getId()).delete().get();
+                    System.out.println("🗑️ UserTeamService: Removed user-team relationship: " + document.getId());
+                }
+                
+                System.out.println("✅ UserTeamService: Successfully removed all users from team: " + teamId);
+                
+            } catch (Exception e) {
+                System.err.println("❌ UserTeamService: Error removing users from team: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to remove users from team: " + e.getMessage());
             }
         });
     }

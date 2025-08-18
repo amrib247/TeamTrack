@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.TeamTrack_backend.dto.CreateTeamRequest;
+import com.example.TeamTrack_backend.dto.UpdateTeamRequest;
 import com.example.TeamTrack_backend.models.Team;
 import com.example.TeamTrack_backend.services.TeamService;
 
@@ -69,11 +70,21 @@ public class TeamController {
     @PutMapping("/{teamId}")
     public CompletableFuture<ResponseEntity<Team>> updateTeam(
             @PathVariable String teamId,
-            @RequestBody CreateTeamRequest request) {
+            @RequestBody UpdateTeamRequest request) {
+        
+        System.out.println("📥 TeamController.updateTeam called with teamId: " + teamId);
+        System.out.println("📝 Update request: " + request.getTeamName() + " - " + request.getSport() + " - " + request.getAgeGroup());
         
         return teamService.updateTeam(teamId, request)
-                .thenApply(team -> ResponseEntity.ok(team))
-                .exceptionally(throwable -> ResponseEntity.<Team>badRequest().build());
+                .thenApply(team -> {
+                    System.out.println("✅ TeamController: Team updated successfully");
+                    return ResponseEntity.ok(team);
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("❌ TeamController: Error updating team: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return ResponseEntity.<Team>badRequest().build();
+                });
     }
     
     /**
@@ -84,5 +95,24 @@ public class TeamController {
         return teamService.deactivateTeam(teamId)
                 .thenApply(result -> ResponseEntity.ok().<Void>build())
                 .exceptionally(throwable -> ResponseEntity.<Void>badRequest().build());
+    }
+    
+    /**
+     * Terminate team (deactivates and removes all user associations)
+     */
+    @DeleteMapping("/{teamId}/terminate")
+    public CompletableFuture<ResponseEntity<Void>> terminateTeam(@PathVariable String teamId) {
+        System.out.println("📥 TeamController.terminateTeam called with teamId: " + teamId);
+        
+        return teamService.terminateTeam(teamId)
+                .thenApply(result -> {
+                    System.out.println("✅ TeamController: Team terminated successfully");
+                    return ResponseEntity.ok().<Void>build();
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("❌ TeamController: Error terminating team: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return ResponseEntity.<Void>badRequest().build();
+                });
     }
 }

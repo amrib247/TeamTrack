@@ -25,8 +25,6 @@ export interface UserTeam {
   userId: string;
   teamId: string;
   role: string;
-  teamName: string;
-  sport: string;
   joinedAt: string;
   isActive: boolean;
 }

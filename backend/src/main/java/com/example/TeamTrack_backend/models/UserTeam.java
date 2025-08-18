@@ -7,8 +7,6 @@ public class UserTeam {
     private String role; // Changed from User.UserRole to String
     private String joinedAt;
     private boolean isActive;
-    private String teamName; // For display purposes
-    private String sport; // For display purposes
 
     // Default constructor
     public UserTeam() {
@@ -22,13 +20,6 @@ public class UserTeam {
         this.userId = userId;
         this.teamId = teamId;
         this.role = role;
-    }
-
-    // Constructor with display fields
-    public UserTeam(String userId, String teamId, String role, String teamName, String sport) {
-        this(userId, teamId, role);
-        this.teamName = teamName;
-        this.sport = sport;
     }
 
     // Getters and Setters
@@ -80,19 +71,5 @@ public class UserTeam {
         isActive = active;
     }
 
-    public String getTeamName() {
-        return teamName;
-    }
 
-    public void setTeamName(String teamName) {
-        this.teamName = teamName;
-    }
-
-    public String getSport() {
-        return sport;
-    }
-
-    public void setSport(String sport) {
-        this.sport = sport;
-    }
 }
