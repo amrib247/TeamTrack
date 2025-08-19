@@ -257,13 +257,39 @@ class TeamService {
   leaveTeam(userTeamId: string): Promise<void> {
     return fetch(`${API_BASE_URL}/user-teams/leave-team/${userTeamId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     }).then(async response => {
       if (!response.ok) {
         const text = await response.text().catch(() => '');
         throw new Error(text || 'Failed to leave team');
+      }
+    });
+  }
+
+  // Update user role in team
+  updateUserRole(userTeamId: string, newRole: string): Promise<any> {
+    return fetch(`${API_BASE_URL}/user-teams/update-role/${userTeamId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newRole }),
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to update user role');
+      }
+      return response.json();
+    });
+  }
+
+  // Remove user from team
+  removeUserFromTeam(userTeamId: string): Promise<void> {
+    return fetch(`${API_BASE_URL}/user-teams/remove-user/${userTeamId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    }).then(async response => {
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || 'Failed to remove user from team');
       }
     });
   }

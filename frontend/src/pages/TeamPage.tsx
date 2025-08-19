@@ -73,6 +73,11 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const [invitingUser, setInvitingUser] = useState(false);
   const [inviteError, setInviteError] = useState<string>('');
 
+  // State for user management (coaches only)
+  const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
+  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
+  const [newRole, setNewRole] = useState('');
+
   // Debug logging
   console.log('🔍 TeamPage Debug:', {
     userTeamId,
@@ -383,13 +388,68 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     }
   };
 
-  // Helper function to get role icon
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'COACH': return '👨‍💼';
-      case 'PARENT': return '👨‍👩‍👧‍👦';
-      case 'PLAYER': return '⚽';
-      default: return '👤';
+  // User management functions (coaches only)
+  const handleUserClick = (user: TeamMember) => {
+    if (userTeam.role === 'COACH' && user.userId !== currentUser.id) {
+      setSelectedUser(user);
+      setNewRole(user.role);
+      setShowUserManagementModal(true);
+    }
+  };
+
+  const handleUpdateUserRole = async () => {
+    if (!selectedUser || !newRole.trim()) {
+      setError('Please select a valid role');
+      return;
+    }
+
+    // Prevent coaches from changing their own role
+    if (selectedUser.userId === currentUser.id) {
+      setError('You cannot change your own role');
+      return;
+    }
+
+    try {
+      setError('');
+      await teamService.updateUserRole(selectedUser.id, newRole);
+      
+      // Update local state
+      setTeamMembers(prev => prev.map(member => 
+        member.id === selectedUser.id 
+          ? { ...member, role: newRole }
+          : member
+      ));
+      
+      alert('User role updated successfully!');
+      setShowUserManagementModal(false);
+      setSelectedUser(null);
+      setNewRole('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user role');
+    }
+  };
+
+  const handleRemoveUserFromTeam = async () => {
+    if (!selectedUser) {
+      setError('No user selected');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to remove ${selectedUser.firstName} ${selectedUser.lastName} from the team? This action cannot be undone.`)) {
+      try {
+        setError('');
+        await teamService.removeUserFromTeam(selectedUser.id);
+        
+        // Update local state
+        setTeamMembers(prev => prev.filter(member => member.id !== selectedUser.id));
+        
+        alert('User removed from team successfully!');
+        setShowUserManagementModal(false);
+        setSelectedUser(null);
+        setNewRole('');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to remove user from team');
+      }
     }
   };
 
@@ -400,14 +460,19 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
           <div className="content-roster">
             <div className="roster-header">
               <h2>Team Roster</h2>
-              {userTeam.role === 'COACH' && (
-                <button 
-                  className="btn btn-invite"
-                  onClick={() => setShowInviteForm(true)}
-                >
-                  Invite User
-                </button>
-              )}
+              <div className="roster-header-actions">
+                {userTeam.role === 'COACH' && (
+                  <>
+                    <p className="coach-hint">💡 Click on any roster member (except yourself) to manage their role. Coaches can change other coaches' roles but cannot change their own.</p>
+                    <button 
+                      className="btn btn-invite"
+                      onClick={() => setShowInviteForm(true)}
+                    >
+                      Invite User
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             
             {/* Invite Form Modal */}
@@ -479,8 +544,16 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
               </div>
             ) : teamMembers.length > 0 ? (
               <div className="roster-container">
-                {sortTeamMembersByRole(teamMembers).map((member) => (
-                  <div key={member.id} className="roster-member" data-role={member.role}>
+                {sortTeamMembersByRole(teamMembers).map((member) => {
+                  const isClickable = userTeam.role === 'COACH' && member.userId !== currentUser.id;
+                  return (
+                    <div 
+                      key={member.id} 
+                      className={`roster-member ${isClickable ? 'clickable' : ''}`} 
+                      data-role={member.role}
+                      onClick={() => handleUserClick(member)}
+                      style={{ cursor: isClickable ? 'pointer' : 'default' }}
+                    >
                     <div className="member-avatar">
                       <div className="profile-photo">
                         {member.profilePhotoUrl ? (
@@ -510,12 +583,87 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="empty-roster">
                 <p>No team members found.</p>
                 <p>Team roster will appear here once members are added.</p>
+              </div>
+            )}
+
+            {/* User Management Modal */}
+            {showUserManagementModal && selectedUser && (
+              <div className="modal-overlay" onClick={() => setShowUserManagementModal(false)}>
+                <div className="modal user-management-modal" onClick={(e) => e.stopPropagation()}>
+                  <h3>Manage User: {selectedUser.firstName} {selectedUser.lastName}</h3>
+                  
+                  <div className="form-group">
+                    <label htmlFor="newRole">Role</label>
+                    <select
+                      id="newRole"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      required
+                    >
+                      <option value="PLAYER">Player</option>
+                      <option value="PARENT">Parent</option>
+                      {selectedUser.userId !== currentUser.id && (
+                        <option value="COACH">Coach</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {selectedUser.role === 'COACH' && (
+                    <div className="info-message">
+                      <p>💡 <strong>Note:</strong> Coaches cannot be removed from the team, but their role can be changed by other coaches.</p>
+                    </div>
+                  )}
+
+                  {selectedUser.userId === currentUser.id && (
+                    <div className="info-message">
+                      <p>⚠️ <strong>Note:</strong> You cannot change your own role.</p>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="error-message">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="form-actions">
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowUserManagementModal(false);
+                        setSelectedUser(null);
+                        setNewRole('');
+                        setError('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-warning"
+                      onClick={handleUpdateUserRole}
+                    >
+                      Update Role
+                    </button>
+                    {selectedUser.role !== 'COACH' && (
+                      <button 
+                        type="button" 
+                        className="btn btn-danger"
+                        onClick={handleRemoveUserFromTeam}
+                      >
+                        Remove from Team
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>

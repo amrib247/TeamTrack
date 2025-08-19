@@ -62,17 +62,53 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        System.out.println("🚨 UserController.deleteUser() called with id: " + id);
+        System.out.println("🚨 HTTP DELETE request received for user: " + id);
+        
         boolean deleted = userService.deleteUser(id);
         
         if (!deleted) {
+            System.out.println("❌ UserController: User not found for deletion: " + id);
             return ResponseEntity.notFound().build();
         }
         
+        System.out.println("✅ UserController: User successfully deleted: " + id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("User controller is working!");
+    }
+
+    @PostMapping("/test-cascade-deletion/{id}")
+    public ResponseEntity<String> testCascadeDeletion(@PathVariable String id) {
+        try {
+            System.out.println("🧪 Testing cascade deletion for user: " + id);
+            System.out.println("🧪 This endpoint will call UserService.deleteUser() which should trigger cascade deletion");
+            boolean deleted = userService.deleteUser(id);
+            if (deleted) {
+                return ResponseEntity.ok("Cascade deletion test successful for user: " + id);
+            } else {
+                return ResponseEntity.badRequest().body("User not found: " + id);
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Cascade deletion test failed: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Cascade deletion test failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/list-all-user-teams")
+    public ResponseEntity<String> listAllUserTeams() {
+        try {
+            System.out.println("🔍 Listing all UserTeam documents in the database for debugging");
+            // This is a debug endpoint to see what UserTeam documents exist
+            return ResponseEntity.ok("Check backend logs for UserTeam document listing");
+        } catch (Exception e) {
+            System.err.println("❌ Failed to list UserTeam documents: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Failed to list UserTeam documents: " + e.getMessage());
+        }
     }
 }

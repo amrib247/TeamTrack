@@ -12,6 +12,7 @@ import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
 
+
 @Service
 public class UserTeamService {
     
@@ -302,6 +303,10 @@ public class UserTeamService {
     public CompletableFuture<Void> removeAllTeamsForUser(String userId) {
         return CompletableFuture.runAsync(() -> {
             try {
+                System.out.println("🚨 UserTeamService.removeAllTeamsForUser() called with userId: " + userId);
+                System.out.println("🚨 Stack trace for removeAllTeamsForUser call:");
+                Thread.dumpStack();
+                
                 System.out.println("🗑️ UserTeamService: Removing all teams for user: " + userId);
                 
                 Firestore firestore = getFirestore();
@@ -453,10 +458,56 @@ public class UserTeamService {
                 if (firestore == null) {
                     throw new RuntimeException("Firebase not available");
                 }
-
+                
                 firestore.collection("userTeams").document(userTeamId).delete().get();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to leave team: " + e.getMessage(), e);
+                throw new RuntimeException("Failed to leave team", e);
+            }
+        });
+    }
+
+    // Update user role in team
+    public CompletableFuture<UserTeam> updateUserRole(String userTeamId, String newRole) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase not available");
+                }
+                
+                var docRef = firestore.collection("userTeams").document(userTeamId);
+                var doc = docRef.get().get();
+                
+                if (!doc.exists()) {
+                    throw new RuntimeException("UserTeam not found");
+                }
+                
+                UserTeam userTeam = doc.toObject(UserTeam.class);
+                if (userTeam == null) {
+                    throw new RuntimeException("Failed to parse UserTeam");
+                }
+                
+                userTeam.setRole(newRole);
+                docRef.set(userTeam).get();
+                return userTeam;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to update user role", e);
+            }
+        });
+    }
+
+    // Remove user from team
+    public CompletableFuture<Void> removeUserFromTeam(String userTeamId) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase not available");
+                }
+                
+                firestore.collection("userTeams").document(userTeamId).delete().get();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to remove user from team", e);
             }
         });
     }

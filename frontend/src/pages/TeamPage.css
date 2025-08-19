@@ -550,6 +550,20 @@
   font-weight: 600;
 }
 
+.roster-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.coach-hint {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  font-style: italic;
+}
+
 .btn-invite {
   background: #10b981;
   color: white;
@@ -584,28 +598,40 @@
   margin: 0;
 }
 
+/* Roster */
 .roster-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
 }
 
 .roster-member {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
   background: white;
   border-radius: 12px;
+  padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border-left: 4px solid #667eea;
+  border: 2px solid transparent;
   min-height: 80px;
 }
 
-.roster-member:hover {
+.roster-member.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.roster-member.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: #667eea;
+}
+
+.roster-member.clickable:active {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .roster-member[data-role="coach"] {
@@ -866,4 +892,67 @@
 .info-display .info-item span {
   color: #212529;
   flex: 1;
+}
+
+/* User Management Modal */
+.user-management-modal {
+  max-width: 600px;
+  width: 95%;
+  min-height: 300px;
+  padding: 2.5rem;
+}
+
+.user-management-modal h3 {
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.user-management-modal .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.user-management-modal .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.user-management-modal .btn {
+  min-width: 120px;
+}
+
+.user-management-modal .btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.user-management-modal .btn-warning:hover {
+  background: #e0a800;
+}
+
+.user-management-modal .btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.user-management-modal .btn-danger:hover {
+  background: #c82333;
+}
+
+/* Info Message */
+.info-message {
+  background: #e3f2fd;
+  border: 1px solid #2196f3;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.info-message p {
+  color: #1976d2;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }

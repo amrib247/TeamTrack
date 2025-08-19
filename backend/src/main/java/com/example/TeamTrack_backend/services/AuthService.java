@@ -123,17 +123,36 @@ public class AuthService {
     /**
      * Delete a user account
      */
-    public boolean deleteAccount(String uid, String password) {
+    public boolean deleteAccount(String email, String password) {
         // Validate input
-        if (uid == null || uid.trim().isEmpty()) {
-            throw new IllegalArgumentException("User ID is required");
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password is required");
         }
 
         try {
+            System.out.println("🚨 AuthService.deleteAccount() called with email: " + email);
+            
+            // First, find the user by email to get the UID
+            UserProfile userProfile = firebaseAuthService.getUserProfileByEmail(email);
+            if (userProfile == null) {
+                throw new IllegalArgumentException("User not found");
+            }
+            
+            String uid = userProfile.getUid();
+            System.out.println("🚨 AuthService.deleteAccount() found user with UID: " + uid);
+            
+            // TODO: Verify password here if needed (Firebase Auth handles this)
+            
             // Delete the user account from Firebase Auth and Firestore
+            System.out.println("🚨 AuthService.deleteAccount() calling FirebaseAuthService.deleteUserAccount() with uid: " + uid);
             return firebaseAuthService.deleteUserAccount(uid);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to delete account: " + e.getMessage(), e);
+            System.err.println("❌ AuthService.deleteAccount() failed: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to delete account: " + e.getMessage());
         }
     }
 

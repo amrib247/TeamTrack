@@ -30,13 +30,20 @@ public class UserService {
     private List<User> inMemoryUsers = new ArrayList<>(); // Fallback storage
     private boolean useFirebase = true;
     
-    public UserService() {
+    private final UserTeamService userTeamService;
+    
+    public UserService(UserTeamService userTeamService) {
+        this.userTeamService = userTeamService;
         // Initialize Firestore when needed, not in constructor
     }
 
     @PostConstruct
     public void initialize() {
         System.out.println("🚀 UserService starting up...");
+        System.out.println("🚀 UserService: userTeamService injected: " + (userTeamService != null));
+        if (userTeamService != null) {
+            System.out.println("🚀 UserService: userTeamService class: " + userTeamService.getClass().getName());
+        }
         System.out.println("🚀 UserService startup complete. Will check Firebase status dynamically.");
     }
 
@@ -318,6 +325,10 @@ public class UserService {
     }
 
     public boolean deleteUser(String id) {
+        System.out.println("🚨 UserService.deleteUser() called with id: " + id);
+        System.out.println("🚨 Stack trace for deleteUser call:");
+        Thread.dumpStack();
+        
         if (isFirebaseAvailable()) {
             return deleteUserFromFirestore(id);
         } else {
@@ -328,9 +339,16 @@ public class UserService {
 
     private boolean deleteUserFromFirestore(String id) {
         try {
+            // First, remove all UserTeam documents associated with this user
+            System.out.println("🗑️ UserService: Removing all UserTeam documents for user: " + id);
+            userTeamService.removeAllTeamsForUser(id).get(); // Wait for cascade deletion to complete
+            System.out.println("✅ UserService: Successfully removed all UserTeam documents for user: " + id);
+            
+            // Then delete the user document
             DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
             ApiFuture<WriteResult> future = docRef.delete();
             future.get(); // Wait for the delete to complete
+            System.out.println("✅ UserService: Successfully deleted user: " + id);
             return true;
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Error deleting user from Firestore", e);

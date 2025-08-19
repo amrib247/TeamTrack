@@ -351,11 +351,25 @@ class FirebaseAuthService {
       // Re-authenticate user to verify password
       await signInWithEmailAndPassword(auth, user.email!, password);
       
-      // Delete user profile from Firestore
-      await deleteDoc(doc(db, 'userProfiles', user.uid));
+      // Call the backend API to delete account (this will trigger cascade deletion)
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/delete-account`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.email,
+          password: password
+        })
+      });
       
-      // Delete user from Firebase Auth
-      await deleteUser(user);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete account');
+      }
+      
+      // Backend already deleted the user from Firebase Auth and Firestore
+      // No need to delete again from Firebase Auth here
       
       return 'Account deleted successfully';
       

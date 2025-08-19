@@ -23,10 +23,16 @@ public class FirebaseAuthService {
     private static final String USER_PROFILES_COLLECTION = "userProfiles";
     private final FirebaseAuth firebaseAuth;
     private final Firestore firestore;
+    private final UserTeamService userTeamService;
     
-    public FirebaseAuthService(FirebaseAuth firebaseAuth, Firestore firestore) {
+    public FirebaseAuthService(FirebaseAuth firebaseAuth, Firestore firestore, UserTeamService userTeamService) {
         this.firebaseAuth = firebaseAuth;
         this.firestore = firestore;
+        this.userTeamService = userTeamService;
+        System.out.println("🚀 FirebaseAuthService: userTeamService injected: " + (userTeamService != null));
+        if (userTeamService != null) {
+            System.out.println("🚀 FirebaseAuthService: userTeamService class: " + userTeamService.getClass().getName());
+        }
     }
 
     /**
@@ -120,7 +126,16 @@ public class FirebaseAuthService {
      */
     public boolean deleteUserAccount(String uid) throws FirebaseAuthException, InterruptedException, ExecutionException {
         try {
+            System.out.println("🚨 FirebaseAuthService.deleteUserAccount() called with uid: " + uid);
+            System.out.println("🚨 Stack trace for deleteUserAccount call:");
+            Thread.dumpStack();
+            
             System.out.println("🗑️ FirebaseAuthService: Starting deletion of user account: " + uid);
+            
+            // First, remove all UserTeam documents associated with this user
+            System.out.println("🗑️ FirebaseAuthService: Removing all UserTeam documents for user: " + uid);
+            userTeamService.removeAllTeamsForUser(uid).get(); // Wait for cascade deletion to complete
+            System.out.println("✅ FirebaseAuthService: Successfully removed all UserTeam documents for user: " + uid);
             
             // Delete from Firebase Authentication
             firebaseAuth.deleteUser(uid);

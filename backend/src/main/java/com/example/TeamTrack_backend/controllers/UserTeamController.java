@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.TeamTrack_backend.dto.InviteUserRequest;
+import com.example.TeamTrack_backend.dto.UpdateRoleRequest;
 import com.example.TeamTrack_backend.dto.UserTeamWithUserDto;
 import com.example.TeamTrack_backend.models.UserTeam;
 import com.example.TeamTrack_backend.services.UserTeamService;
@@ -155,6 +156,24 @@ public class UserTeamController {
     @DeleteMapping("/leave-team/{userTeamId}")
     public CompletableFuture<ResponseEntity<Void>> leaveTeam(@PathVariable String userTeamId) {
         return userTeamService.leaveTeam(userTeamId)
+            .thenApply(v -> ResponseEntity.ok().<Void>build())
+            .exceptionally(throwable -> ResponseEntity.badRequest().build());
+    }
+
+    // Update user role in team
+    @PutMapping("/update-role/{userTeamId}")
+    public CompletableFuture<ResponseEntity<UserTeam>> updateUserRole(
+            @PathVariable String userTeamId,
+            @RequestBody UpdateRoleRequest updateRequest) {
+        return userTeamService.updateUserRole(userTeamId, updateRequest.getNewRole())
+            .thenApply(userTeam -> ResponseEntity.ok(userTeam))
+            .exceptionally(throwable -> ResponseEntity.badRequest().build());
+    }
+
+    // Remove user from team
+    @DeleteMapping("/remove-user/{userTeamId}")
+    public CompletableFuture<ResponseEntity<Void>> removeUserFromTeam(@PathVariable String userTeamId) {
+        return userTeamService.removeUserFromTeam(userTeamId)
             .thenApply(v -> ResponseEntity.ok().<Void>build())
             .exceptionally(throwable -> ResponseEntity.badRequest().build());
     }
