@@ -16,6 +16,12 @@ import com.google.firebase.cloud.FirestoreClient;
 @Service
 public class UserTeamService {
     
+    private final TeamService teamService;
+    
+    public UserTeamService(TeamService teamService) {
+        this.teamService = teamService;
+    }
+    
     private Firestore getFirestore() {
         try {
             System.out.println("🔍 TeamService: Checking Firebase initialization...");
@@ -102,6 +108,24 @@ public class UserTeamService {
                     throw new RuntimeException("Firebase not available");
                 }
                 
+                // Get the current role to determine coach count delta
+                String currentRole = null;
+                try {
+                    var currentDoc = firestore.collection("userTeams")
+                        .whereEqualTo("userId", userId)
+                        .whereEqualTo("teamId", teamId)
+                        .get().get();
+                    
+                    if (!currentDoc.getDocuments().isEmpty()) {
+                        UserTeam currentUserTeam = currentDoc.getDocuments().get(0).toObject(UserTeam.class);
+                        if (currentUserTeam != null) {
+                            currentRole = currentUserTeam.getRole();
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not get current role, assuming new user: " + e.getMessage());
+                }
+                
                 // Create updated user-team relationship
                 UserTeam userTeam = new UserTeam(
                     null, // ID will be set after creation
@@ -113,6 +137,9 @@ public class UserTeamService {
                     true  // inviteAccepted - true for role updates
                 );
                 firestore.collection("userTeams").document(userId + "_" + teamId).set(userTeam).get();
+
+                // Update coach count based on role change
+                updateCoachCountForRoleChange(teamId, currentRole, newRole);
 
                 return userTeam;
             } catch (Exception e) {
@@ -285,6 +312,18 @@ public class UserTeamService {
                 
                 // Delete all user-team relationships for this team
                 for (var document : querySnapshot.getDocuments()) {
+                    // Get the user's role before deleting to update coach count
+                    UserTeam userTeam = document.toObject(UserTeam.class);
+                    if (userTeam != null && "COACH".equals(userTeam.getRole())) {
+                        System.out.println("👥 UserTeamService: Removing COACH user, decrementing coach count for team: " + teamId);
+                        try {
+                            teamService.updateCoachCount(teamId, -1).get();
+                        } catch (Exception e) {
+                            System.err.println("❌ UserTeamService: Error updating coach count for removed user: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    
                     firestore.collection("userTeams").document(document.getId()).delete().get();
                     System.out.println("🗑️ UserTeamService: Removed user-team relationship: " + document.getId());
                 }
@@ -324,6 +363,18 @@ public class UserTeamService {
                 
                 // Delete all user-team relationships for this user
                 for (var document : querySnapshot.getDocuments()) {
+                    // Get the user's role and team ID before deleting to update coach count
+                    UserTeam userTeam = document.toObject(UserTeam.class);
+                    if (userTeam != null && "COACH".equals(userTeam.getRole())) {
+                        System.out.println("👥 UserTeamService: Removing COACH user, decrementing coach count for team: " + userTeam.getTeamId());
+                        try {
+                            teamService.updateCoachCount(userTeam.getTeamId(), -1).get();
+                        } catch (Exception e) {
+                            System.err.println("❌ UserTeamService: Error updating coach count for removed user: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                    
                     firestore.collection("userTeams").document(document.getId()).delete().get();
                     System.out.println("🗑️ UserTeamService: Removed user-team relationship: " + document.getId());
                 }
@@ -389,6 +440,9 @@ public class UserTeamService {
                 var docRef = firestore.collection("userTeams").add(newUserTeam).get();
                 newUserTeam.setId(docRef.getId());
                 
+                // Note: Coach count will only be incremented when the invite is accepted
+                // This prevents counting coaches who haven't accepted yet
+                
                 return newUserTeam;
                 
             } catch (Exception e) {
@@ -426,6 +480,17 @@ public class UserTeamService {
                 // Save the updated document
                 docRef.set(userTeam).get();
                 
+                // Update coach count if the accepted invite is for a COACH role
+                if ("COACH".equals(userTeam.getRole())) {
+                    System.out.println("👥 UserTeamService: User accepted COACH invite, incrementing coach count for team: " + userTeam.getTeamId());
+                    try {
+                        teamService.updateCoachCount(userTeam.getTeamId(), 1).get();
+                    } catch (Exception e) {
+                        System.err.println("❌ UserTeamService: Error updating coach count for accepted invite: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+                
                 return userTeam;
                 
             } catch (Exception e) {
@@ -443,7 +508,36 @@ public class UserTeamService {
                     throw new RuntimeException("Firebase not available");
                 }
 
+                // Get the user's role before deleting to update coach count
+                String userRole = null;
+                String teamId = null;
+                try {
+                    var doc = firestore.collection("userTeams").document(userTeamId).get().get();
+                    if (doc.exists()) {
+                        UserTeam userTeam = doc.toObject(UserTeam.class);
+                        if (userTeam != null) {
+                            userRole = userTeam.getRole();
+                            teamId = userTeam.getTeamId();
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not get user role before declining: " + e.getMessage());
+                }
+
+                // Delete the UserTeam document
                 firestore.collection("userTeams").document(userTeamId).delete().get();
+                
+                // Update coach count if the declined invite was for a COACH role
+                if ("COACH".equals(userRole) && teamId != null) {
+                    System.out.println("👥 UserTeamService: COACH invite declined, decrementing coach count for team: " + teamId);
+                    try {
+                        teamService.updateCoachCount(teamId, -1).get();
+                    } catch (Exception e) {
+                        System.err.println("❌ UserTeamService: Error updating coach count for declined invite: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+                
             } catch (Exception e) {
                 throw new RuntimeException("Failed to decline invite: " + e.getMessage(), e);
             }
@@ -459,9 +553,49 @@ public class UserTeamService {
                     throw new RuntimeException("Firebase not available");
                 }
                 
+                // Get the user's role and team ID before proceeding
+                String userRole = null;
+                String teamId = null;
+                String userId = null;
+                try {
+                    var doc = firestore.collection("userTeams").document(userTeamId).get().get();
+                    if (doc.exists()) {
+                        UserTeam userTeam = doc.toObject(UserTeam.class);
+                        if (userTeam != null) {
+                            userRole = userTeam.getRole();
+                            teamId = userTeam.getTeamId();
+                            userId = userTeam.getUserId();
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not get user role before leaving: " + e.getMessage());
+                    throw new RuntimeException("Failed to get user information");
+                }
+                
+                // If this is a COACH, check if they can safely leave
+                if ("COACH".equals(userRole) && userId != null) {
+                    var safetyCheck = checkCoachSafety(userId, "LEAVE_TEAM").get();
+                    if (!safetyCheck.isCanProceed()) {
+                        throw new RuntimeException("Coach safety check failed: " + safetyCheck.getMessage());
+                    }
+                }
+                
+                // Delete the UserTeam document
                 firestore.collection("userTeams").document(userTeamId).delete().get();
+                
+                // Update coach count if the leaving user was a COACH
+                if ("COACH".equals(userRole) && teamId != null) {
+                    System.out.println("👥 UserTeamService: COACH user leaving team, decrementing coach count for team: " + teamId);
+                    try {
+                        teamService.updateCoachCount(teamId, -1).get();
+                    } catch (Exception e) {
+                        System.err.println("❌ UserTeamService: Error updating coach count for leaving user: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+                
             } catch (Exception e) {
-                throw new RuntimeException("Failed to leave team", e);
+                throw new RuntimeException("Failed to leave team: " + e.getMessage(), e);
             }
         });
     }
@@ -487,8 +621,13 @@ public class UserTeamService {
                     throw new RuntimeException("Failed to parse UserTeam");
                 }
                 
+                String oldRole = userTeam.getRole();
                 userTeam.setRole(newRole);
                 docRef.set(userTeam).get();
+                
+                // Update coach count based on role change
+                updateCoachCountForRoleChange(userTeam.getTeamId(), oldRole, newRole);
+                
                 return userTeam;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to update user role", e);
@@ -505,7 +644,36 @@ public class UserTeamService {
                     throw new RuntimeException("Firebase not available");
                 }
                 
+                // Get the user's role before deleting to update coach count
+                String userRole = null;
+                String teamId = null;
+                try {
+                    var doc = firestore.collection("userTeams").document(userTeamId).get().get();
+                    if (doc.exists()) {
+                        UserTeam userTeam = doc.toObject(UserTeam.class);
+                        if (userTeam != null) {
+                            userRole = userTeam.getRole();
+                            teamId = userTeam.getTeamId();
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("⚠️ Could not get user role before removal: " + e.getMessage());
+                }
+                
+                // Delete the UserTeam document
                 firestore.collection("userTeams").document(userTeamId).delete().get();
+                
+                // Update coach count if the removed user was a COACH
+                if ("COACH".equals(userRole) && teamId != null) {
+                    System.out.println("👥 UserTeamService: Removing COACH user, decrementing coach count for team: " + teamId);
+                    try {
+                        teamService.updateCoachCount(teamId, -1).get();
+                    } catch (Exception e) {
+                        System.err.println("❌ UserTeamService: Error updating coach count for removed user: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+                
             } catch (Exception e) {
                 throw new RuntimeException("Failed to remove user from team", e);
             }
@@ -584,6 +752,127 @@ public class UserTeamService {
             } catch (Exception e) {
                 System.err.println("❌ Error fixing team creators invite status: " + e.getMessage());
                 e.printStackTrace();
+            }
+        });
+    }
+
+    /**
+     * Helper method to update coach count when a user's role changes
+     */
+    private void updateCoachCountForRoleChange(String teamId, String oldRole, String newRole) {
+        try {
+            // Determine the delta for coach count
+            int delta = 0;
+            
+            // If old role was COACH, decrement
+            if ("COACH".equals(oldRole)) {
+                delta -= 1;
+            }
+            
+            // If new role is COACH, increment
+            if ("COACH".equals(newRole)) {
+                delta += 1;
+            }
+            
+            // Only update if there's a change
+            if (delta != 0) {
+                System.out.println("👥 UserTeamService: Updating coach count for team " + teamId + 
+                    " - old role: " + oldRole + ", new role: " + newRole + ", delta: " + delta);
+                teamService.updateCoachCount(teamId, delta).get();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ UserTeamService: Error updating coach count: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Check if a coach can safely leave a team or delete their account
+     * Returns a response indicating whether they can proceed or need to take action first
+     */
+    public CompletableFuture<com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse> checkCoachSafety(String userId, String action) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🔒 UserTeamService: Checking coach safety for user: " + userId + ", action: " + action);
+                
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase not available");
+                }
+                
+                // Get all teams where this user is a COACH
+                var future = firestore.collection("userTeams")
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("role", "COACH")
+                    .get();
+                
+                var querySnapshot = future.get();
+                System.out.println("🔒 UserTeamService: Found " + querySnapshot.size() + " teams where user is COACH");
+                
+                // Check each team where user is a coach
+                for (var document : querySnapshot.getDocuments()) {
+                    UserTeam userTeam = document.toObject(UserTeam.class);
+                    if (userTeam != null) {
+                        String teamId = userTeam.getTeamId();
+                        
+                        // Get current coach count for this team
+                        try {
+                            int coachCount = teamService.getCoachCount(teamId).get();
+                            System.out.println("🔒 UserTeamService: Team " + teamId + " has " + coachCount + " coaches");
+                            
+                            // If this is the only coach, they cannot proceed
+                            if (coachCount == 1) {
+                                // Get team name for better user experience
+                                String teamName = "Unknown Team";
+                                try {
+                                    var teamDoc = firestore.collection("teams").document(teamId).get().get();
+                                    if (teamDoc.exists()) {
+                                        var team = teamDoc.toObject(com.example.TeamTrack_backend.models.Team.class);
+                                        if (team != null) {
+                                            teamName = team.getTeamName();
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    System.out.println("⚠️ Could not get team name: " + e.getMessage());
+                                }
+                                
+                                String message = "You are the only coach of '" + teamName + "'. You must either promote someone else to coach or delete the team before you can " + 
+                                    (action.equals("DELETE_ACCOUNT") ? "delete your account" : "leave the team") + ".";
+                                
+                                System.out.println("🚨 UserTeamService: Coach safety check failed - user is only coach of team: " + teamId);
+                                
+                                return new com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse(
+                                    false, // cannot proceed
+                                    message,
+                                    teamId,
+                                    teamName,
+                                    coachCount,
+                                    action
+                                );
+                            }
+                        } catch (Exception e) {
+                            System.err.println("❌ UserTeamService: Error getting coach count for team " + teamId + ": " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                
+                // If we get here, the user can safely proceed
+                System.out.println("✅ UserTeamService: Coach safety check passed - user can proceed with action: " + action);
+                return new com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse(
+                    true, // can proceed
+                    "You can safely proceed with this action.",
+                    null,
+                    null,
+                    0,
+                    action
+                );
+                
+            } catch (Exception e) {
+                System.err.println("❌ UserTeamService: Error checking coach safety: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to check coach safety: " + e.getMessage(), e);
             }
         });
     }

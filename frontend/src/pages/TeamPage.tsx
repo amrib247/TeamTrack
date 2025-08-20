@@ -78,6 +78,12 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const [showUserManagementModal, setShowUserManagementModal] = useState(false);
   const [newRole, setNewRole] = useState('');
 
+  // State for coach count
+  const [coachCount, setCoachCount] = useState<number>(0);
+  const [loadingCoachCount, setLoadingCoachCount] = useState(false);
+  const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
+  const [coachSafetyData, setCoachSafetyData] = useState<any>(null);
+
   // Debug logging
   console.log('🔍 TeamPage Debug:', {
     userTeamId,
@@ -152,6 +158,28 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     };
     
     fetchTeamMembers();
+  }, [activeTab, userTeam]);
+
+  // Fetch coach count when roster tab is active
+  useEffect(() => {
+    const fetchCoachCount = async () => {
+      if (activeTab === 'roster' && userTeam?.teamId) {
+        try {
+          setLoadingCoachCount(true);
+          console.log('👥 Fetching coach count for teamId:', userTeam.teamId);
+          const count = await teamService.getCoachCount(userTeam.teamId);
+          setCoachCount(count);
+          console.log('✅ Coach count fetched:', count);
+        } catch (error) {
+          console.error('❌ Failed to fetch coach count:', error);
+          setError('Failed to load coach count');
+        } finally {
+          setLoadingCoachCount(false);
+        }
+      }
+    };
+    
+    fetchCoachCount();
   }, [activeTab, userTeam]);
 
   const handleTabChange = (tab: string) => {
@@ -310,7 +338,7 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       
       // Call the backend API to leave team
       console.log('👋 Leaving team with userTeamId:', userTeamId);
-      await teamService.leaveTeam(userTeamId!);
+      await teamService.leaveTeam(userTeamId!, currentUser.id);
       
       // Show success message and redirect
       alert('You have left the team successfully!');
@@ -323,7 +351,22 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       window.location.reload();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to leave team');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to leave team';
+      console.log('🔍 Leave team error:', errorMessage);
+      
+      // Check if this is a coach safety error
+      if (errorMessage.includes("You are the only coach")) {
+        console.log('✅ Coach safety error detected, showing modal');
+        // Show the coach safety modal instead of error message
+        setShowCoachSafetyModal(true);
+        // Clear any existing error message
+        setError('');
+      } else {
+        console.log('❌ Not a coach safety error, showing error message');
+        console.log('❌ Error message was:', errorMessage);
+        // Only show error message if it's not a coach safety issue
+        setError(errorMessage);
+      }
     }
   };
 
@@ -461,6 +504,16 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
             <div className="roster-header">
               <h2>Team Roster</h2>
               <div className="roster-header-actions">
+                {/* Coach Count Display */}
+                <div className="coach-count-display">
+                  <span className="coach-count-label">👥 Coaches:</span>
+                  {loadingCoachCount ? (
+                    <span className="coach-count-loading">Loading...</span>
+                  ) : (
+                    <span className="coach-count-value">{coachCount}</span>
+                  )}
+                </div>
+                
                 {userTeam.role === 'COACH' && (
                   <>
                     <p className="coach-hint">💡 Click on any roster member (except yourself) to manage their role. Coaches can change other coaches' roles but cannot change their own.</p>
@@ -1103,6 +1156,55 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
           {renderContent()}
         </div>
       </div>
+
+      {/* Coach Safety Modal */}
+      {showCoachSafetyModal && (
+        <div className="modal-overlay" onClick={() => setShowCoachSafetyModal(false)}>
+          <div className="modal coach-safety-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>⚠️ Coach Safety Check</h3>
+            <p>You are the only coach of this team. You must take action before you can leave the team.</p>
+            
+            <div className="coach-safety-options">
+              <div className="option-card">
+                <h4>👑 Promote Someone to Coach</h4>
+                <p>Promote another team member to coach so you can leave safely.</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setShowCoachSafetyModal(false);
+                    handleTabChange('roster');
+                  }}
+                >
+                  Go to Roster
+                </button>
+              </div>
+              
+              <div className="option-card">
+                <h4>🗑️ Delete Team</h4>
+                <p>Delete the entire team if you no longer want to manage it.</p>
+                <button 
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setShowCoachSafetyModal(false);
+                    handleTabChange('settings');
+                  }}
+                >
+                  Go to Settings
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowCoachSafetyModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

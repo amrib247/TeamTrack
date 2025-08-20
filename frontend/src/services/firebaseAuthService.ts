@@ -348,6 +348,17 @@ class FirebaseAuthService {
         throw new Error('No authenticated user');
       }
       
+      // First check if this user can safely delete their account (coach safety check)
+      console.log('🔍 Checking coach safety before account deletion for user:', user.uid);
+      const { teamService } = await import('./teamService');
+      const safetyCheck = await teamService.checkCoachSafety(user.uid, 'DELETE_ACCOUNT');
+      console.log('🔍 Coach safety check result:', safetyCheck);
+      
+      if (!safetyCheck.canProceed) {
+        console.log('🚨 Coach safety check failed, throwing error:', safetyCheck.message);
+        throw new Error(safetyCheck.message);
+      }
+      
       // Re-authenticate user to verify password
       await signInWithEmailAndPassword(auth, user.email!, password);
       
@@ -365,6 +376,7 @@ class FirebaseAuthService {
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('🔍 Backend error response:', errorData);
         throw new Error(errorData.error || 'Failed to delete account');
       }
       
@@ -377,6 +389,10 @@ class FirebaseAuthService {
       console.error('Delete account error:', error);
       if (error.code === 'auth/wrong-password') {
         throw new Error('Incorrect password');
+      }
+      // Preserve the original error message if it's a coach safety error
+      if (error.message && error.message.includes('You are the only coach')) {
+        throw error; // Re-throw the original error with the coach safety message
       }
       throw new Error('Failed to delete account');
     }

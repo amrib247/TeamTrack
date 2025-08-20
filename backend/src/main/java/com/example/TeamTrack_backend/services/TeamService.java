@@ -3,7 +3,6 @@ package com.example.TeamTrack_backend.services;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.TeamTrack_backend.dto.CreateTeamRequest;
@@ -15,9 +14,6 @@ import com.google.firebase.cloud.FirestoreClient;
 
 @Service
 public class TeamService {
-    
-    @Autowired
-    private UserTeamService userTeamService;
     
     public TeamService() {
         System.out.println("🔧 TeamService constructor called");
@@ -90,16 +86,26 @@ public class TeamService {
                 System.out.println("💾 TeamService: Team saved to Firestore successfully");
                 System.out.println("👥 TeamService: Adding user to team as coach...");
                 
-                // Automatically add creator as coach (no redundant team details needed)
-                System.out.println("👥 TeamService: About to call userTeamService.addUserToTeam with:");
-                System.out.println("  - createdByUserId: " + createdByUserId);
-                System.out.println("  - teamId: " + teamId);
-                System.out.println("  - role: COACH");
+                // Create UserTeam relationship directly in Firestore
+                try {
+                    if (firestore != null) {
+                        // Create UserTeam document for the creator
+                        var userTeamData = new java.util.HashMap<String, Object>();
+                        userTeamData.put("userId", createdByUserId);
+                        userTeamData.put("teamId", teamId);
+                        userTeamData.put("role", "COACH");
+                        userTeamData.put("joinDate", java.time.LocalDateTime.now().toString());
+                        userTeamData.put("isActive", true);
+                        userTeamData.put("inviteAccepted", true);
+                        
+                        firestore.collection("userTeams").add(userTeamData).get();
+                        System.out.println("✅ TeamService: User added to team as coach successfully");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not create UserTeam relationship: " + e.getMessage());
+                    // Don't fail team creation if UserTeam creation fails
+                }
                 
-                // Wait for the user to be added to the team
-                userTeamService.addUserToTeam(createdByUserId, teamId, "COACH").get();
-                
-                System.out.println("✅ TeamService: User added to team as coach successfully");
                 System.out.println("🎉 TeamService: Team creation completed successfully!");
                 
                 return team;
@@ -236,8 +242,27 @@ public class TeamService {
                 
                 // First, remove all user associations for this team
                 System.out.println("👥 TeamService: Removing all users from team...");
-                userTeamService.removeAllUsersFromTeam(teamId);
-                System.out.println("✅ TeamService: All users removed from team");
+                try {
+                    if (firestore != null) {
+                        // Query for all user-team relationships for this team
+                        var future = firestore.collection("userTeams")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var querySnapshot = future.get();
+                        System.out.println("🔍 TeamService: Found " + querySnapshot.size() + " user-team relationships to remove");
+                        
+                        // Delete all user-team relationships for this team
+                        for (var document : querySnapshot.getDocuments()) {
+                            firestore.collection("userTeams").document(document.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Removed user-team relationship: " + document.getId());
+                        }
+                        System.out.println("✅ TeamService: All users removed from team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not remove user associations: " + e.getMessage());
+                    // Don't fail team termination if user removal fails
+                }
                 
                 // Then delete the actual team document
                 System.out.println("🗑️ TeamService: Deleting team document...");
@@ -277,6 +302,101 @@ public class TeamService {
                 System.err.println("❌ TeamService: Error deactivating team: " + e.getMessage());
                 e.printStackTrace();
                 throw new RuntimeException("Failed to deactivate team: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Updates the coach count for a team
+     */
+    public CompletableFuture<Void> updateCoachCount(String teamId, int delta) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+
+        return CompletableFuture.runAsync(() -> {
+            try {
+                System.out.println("👥 TeamService: Updating coach count for team: " + teamId + " with delta: " + delta);
+                
+                // Get current team document
+                var document = firestore.collection("teams").document(teamId).get().get();
+                
+                if (!document.exists()) {
+                    System.err.println("❌ TeamService: Team not found with ID: " + teamId);
+                    throw new RuntimeException("Team not found with ID: " + teamId);
+                }
+                
+                Team team = document.toObject(Team.class);
+                if (team == null) {
+                    throw new RuntimeException("Failed to parse team data");
+                }
+                
+                int newCoachCount = team.getCoachCount() + delta;
+                
+                // Prevent negative coach count
+                if (newCoachCount < 0) {
+                    System.err.println("❌ TeamService: Cannot have negative coach count. Current: " + team.getCoachCount() + ", Delta: " + delta);
+                    throw new RuntimeException("Cannot have negative coach count");
+                }
+                
+                // Prevent zero coach count
+                if (newCoachCount == 0) {
+                    System.err.println("❌ TeamService: Cannot have zero coach count. At least one coach is required.");
+                    throw new RuntimeException("Cannot have zero coach count. At least one coach is required.");
+                }
+                
+                System.out.println("👥 TeamService: Updating coach count from " + team.getCoachCount() + " to " + newCoachCount);
+                
+                // Update the coach count in Firestore
+                firestore.collection("teams").document(teamId).update("coachCount", newCoachCount).get();
+                
+                System.out.println("✅ TeamService: Coach count updated successfully to: " + newCoachCount);
+                
+            } catch (Exception e) {
+                System.err.println("❌ TeamService: Error updating coach count: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to update coach count: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Gets the current coach count for a team
+     */
+    public CompletableFuture<Integer> getCoachCount(String teamId) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("👥 TeamService: Getting coach count for team: " + teamId);
+                
+                var document = firestore.collection("teams").document(teamId).get().get();
+                
+                if (!document.exists()) {
+                    System.err.println("❌ TeamService: Team not found with ID: " + teamId);
+                    return 0;
+                }
+                
+                Team team = document.toObject(Team.class);
+                if (team == null) {
+                    return 0;
+                }
+                
+                System.out.println("✅ TeamService: Current coach count: " + team.getCoachCount());
+                return team.getCoachCount();
+                
+            } catch (Exception e) {
+                System.err.println("❌ TeamService: Error getting coach count: " + e.getMessage());
+                e.printStackTrace();
+                return 0;
             }
         });
     }

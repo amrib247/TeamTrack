@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.TeamTrack_backend.dto.ErrorResponse;
 import com.example.TeamTrack_backend.dto.LoginRequest;
 import com.example.TeamTrack_backend.dto.RegisterRequest;
 import com.example.TeamTrack_backend.dto.UpdateUserRequest;
@@ -63,14 +64,14 @@ public class AuthController {
         try {
             boolean deleted = authService.deleteAccount(deleteRequest.getEmail(), deleteRequest.getPassword());
             if (deleted) {
-                return ResponseEntity.ok().body("{\"message\": \"Account deleted successfully\"}");
+                return ResponseEntity.ok().body(new ErrorResponse("Account deleted successfully"));
             } else {
-                return ResponseEntity.badRequest().body("{\"error\": \"Failed to delete account\"}");
+                return ResponseEntity.badRequest().body(new ErrorResponse("Failed to delete account"));
             }
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("{\"error\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("{\"error\": \"Internal server error: " + e.getMessage() + "\"}");
+            return ResponseEntity.internalServerError().body(new ErrorResponse("Internal server error: " + e.getMessage()));
         }
     }
 

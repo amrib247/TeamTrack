@@ -144,6 +144,19 @@ public class AuthService {
             String uid = userProfile.getUid();
             System.out.println("🚨 AuthService.deleteAccount() found user with UID: " + uid);
             
+            // Check if this user can safely delete their account (coach safety check)
+            try {
+                var safetyCheck = userTeamService.checkCoachSafety(uid, "DELETE_ACCOUNT").get();
+                if (!safetyCheck.isCanProceed()) {
+                    throw new RuntimeException("Cannot delete account: " + safetyCheck.getMessage());
+                }
+            } catch (Exception e) {
+                if (e.getMessage().contains("Cannot delete account:")) {
+                    throw e; // Re-throw our custom error
+                }
+                System.out.println("⚠️ Coach safety check failed, proceeding with deletion: " + e.getMessage());
+            }
+            
             // TODO: Verify password here if needed (Firebase Auth handles this)
             
             // Delete the user account from Firebase Auth and Firestore

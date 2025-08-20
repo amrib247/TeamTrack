@@ -115,4 +115,23 @@ public class TeamController {
                     return ResponseEntity.<Void>badRequest().build();
                 });
     }
+
+    /**
+     * Get coach count for a team
+     */
+    @GetMapping("/{teamId}/coach-count")
+    public CompletableFuture<ResponseEntity<Integer>> getCoachCount(@PathVariable String teamId) {
+        System.out.println("👥 TeamController.getCoachCount called with teamId: " + teamId);
+        
+        return teamService.getCoachCount(teamId)
+                .thenApply(count -> {
+                    System.out.println("✅ TeamController: Coach count retrieved successfully: " + count);
+                    return ResponseEntity.ok(count);
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("❌ TeamController: Error getting coach count: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return ResponseEntity.<Integer>badRequest().build();
+                });
+    }
 }

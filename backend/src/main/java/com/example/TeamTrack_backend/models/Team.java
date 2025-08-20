@@ -11,6 +11,7 @@ public class Team {
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
+    private int coachCount;
 
     // Default constructor
     public Team() {
@@ -25,6 +26,7 @@ public class Team {
         this.createdAt = java.time.LocalDateTime.now().toString();
         this.updatedAt = java.time.LocalDateTime.now().toString();
         this.isActive = true;
+        this.coachCount = 1; // Default to 1 coach (the creator)
     }
 
     // Getters and Setters
@@ -106,5 +108,13 @@ public class Team {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public int getCoachCount() {
+        return coachCount;
+    }
+
+    public void setCoachCount(int coachCount) {
+        this.coachCount = coachCount;
     }
 }

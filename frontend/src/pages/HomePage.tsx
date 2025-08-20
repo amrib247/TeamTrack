@@ -225,7 +225,22 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       onLogout();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to terminate account');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to terminate account';
+      console.log('🔍 Account termination error:', errorMessage);
+      
+      // Check if this is a coach safety error
+      if (errorMessage.includes("You are the only coach")) {
+        console.log('✅ Coach safety error detected, showing modal');
+        // Show the coach safety modal instead of error message
+        setShowCoachSafetyModal(true);
+        // Clear any existing error message
+        setError('');
+      } else {
+        console.log('❌ Not a coach safety error, showing error message');
+        console.log('❌ Error message was:', errorMessage);
+        // Only show error message if it's not a coach safety issue
+        setError(errorMessage);
+      }
     }
   };
 
@@ -338,6 +353,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
   // Pending invite modal state
   const [pendingInvite, setPendingInvite] = useState<{ userTeamId: string; teamName: string } | null>(null);
+  const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
 
   // Handle team card click
   const handleTeamClick = (userTeamId: string) => {
@@ -922,6 +938,63 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                   {error}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coach Safety Modal */}
+      {showCoachSafetyModal && (
+        <div className="modal-overlay" onClick={() => setShowCoachSafetyModal(false)}>
+          <div className="modal coach-safety-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>⚠️ Coach Safety Check</h3>
+            <p>You are the only coach of a team. You must take action before you can delete your account.</p>
+            
+            <div className="coach-safety-options">
+              <div className="option-card">
+                <h4>👑 Promote Someone to Coach</h4>
+                <p>Promote another team member to coach so you can delete your account safely.</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setShowCoachSafetyModal(false);
+                    // Navigate to the first team where user is coach
+                    const coachTeam = currentUser.teams.find(team => team.role === 'COACH');
+                    if (coachTeam) {
+                      navigate(`/team/${coachTeam.id}`);
+                    }
+                  }}
+                >
+                  Go to Team Roster
+                </button>
+              </div>
+              
+              <div className="option-card">
+                <h4>🗑️ Delete Team</h4>
+                <p>Delete the entire team if you no longer want to manage it.</p>
+                <button 
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setShowCoachSafetyModal(false);
+                    // Navigate to the first team where user is coach
+                    const coachTeam = currentUser.teams.find(team => team.role === 'COACH');
+                    if (coachTeam) {
+                      navigate(`/team/${coachTeam.id}`);
+                    }
+                  }}
+                >
+                  Go to Team Settings
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowCoachSafetyModal(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.TeamTrack_backend.dto.ErrorResponse;
 import com.example.TeamTrack_backend.dto.InviteUserRequest;
 import com.example.TeamTrack_backend.dto.UpdateRoleRequest;
 import com.example.TeamTrack_backend.dto.UserTeamWithUserDto;
@@ -154,10 +155,10 @@ public class UserTeamController {
 
     // Leave a team (delete the relationship)
     @DeleteMapping("/leave-team/{userTeamId}")
-    public CompletableFuture<ResponseEntity<Void>> leaveTeam(@PathVariable String userTeamId) {
+    public CompletableFuture<ResponseEntity<ErrorResponse>> leaveTeam(@PathVariable String userTeamId) {
         return userTeamService.leaveTeam(userTeamId)
-            .thenApply(v -> ResponseEntity.ok().<Void>build())
-            .exceptionally(throwable -> ResponseEntity.badRequest().build());
+            .thenApply(v -> ResponseEntity.ok().body(new ErrorResponse("Successfully left team")))
+            .exceptionally(throwable -> ResponseEntity.badRequest().body(new ErrorResponse(throwable.getMessage())));
     }
 
     // Update user role in team
@@ -192,5 +193,25 @@ public class UserTeamController {
         return userTeamService.fixTeamCreatorsInviteStatus()
             .thenApply(v -> ResponseEntity.ok("Successfully fixed team creators invite status"))
             .exceptionally(throwable -> ResponseEntity.badRequest().body("Failed to fix team creators: " + throwable.getMessage()));
+    }
+    
+    // Check if a coach can safely leave a team or delete their account
+    @GetMapping("/check-coach-safety")
+    public CompletableFuture<ResponseEntity<com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse>> checkCoachSafety(
+            @RequestParam String userId,
+            @RequestParam String action) {
+        
+        System.out.println("🎯 UserTeamController.checkCoachSafety called with userId: " + userId + ", action: " + action);
+        
+        return userTeamService.checkCoachSafety(userId, action)
+            .thenApply(safetyResponse -> {
+                System.out.println("✅ UserTeamController: Coach safety check completed - can proceed: " + safetyResponse.isCanProceed());
+                return ResponseEntity.ok(safetyResponse);
+            })
+            .exceptionally(throwable -> {
+                System.err.println("❌ UserTeamController: Error checking coach safety: " + throwable.getMessage());
+                throwable.printStackTrace();
+                return ResponseEntity.<com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse>badRequest().build();
+            });
     }
 }
