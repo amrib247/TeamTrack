@@ -226,7 +226,7 @@ public class TeamService {
     }
     
     /**
-     * Terminates a team (deactivates and removes all user associations)
+     * Terminates a team (deactivates and removes all user associations and events)
      */
     public CompletableFuture<Void> terminateTeam(String teamId) {
         Firestore firestore = getFirestore();
@@ -240,7 +240,55 @@ public class TeamService {
             try {
                 System.out.println("🗑️ TeamService: Terminating team with ID: " + teamId);
                 
-                // First, remove all user associations for this team
+                // First, delete all events associated with this team
+                System.out.println("📅 TeamService: Deleting all events for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all events for this team
+                        var eventsFuture = firestore.collection("events")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var eventsSnapshot = eventsFuture.get();
+                        System.out.println("🔍 TeamService: Found " + eventsSnapshot.size() + " events to delete");
+                        
+                        // Delete all events for this team
+                        for (var eventDoc : eventsSnapshot.getDocuments()) {
+                            firestore.collection("events").document(eventDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted event: " + eventDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All events deleted for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete events: " + e.getMessage());
+                    // Don't fail team termination if event deletion fails
+                }
+                
+                // Second, delete all availability entries associated with this team
+                System.out.println("📋 TeamService: Deleting all availability entries for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all availability entries for this team
+                        var availabilitiesFuture = firestore.collection("availabilities")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var availabilitiesSnapshot = availabilitiesFuture.get();
+                        System.out.println("🔍 TeamService: Found " + availabilitiesSnapshot.size() + " availability entries to delete");
+                        
+                        // Delete all availability entries for this team
+                        for (var availabilityDoc : availabilitiesSnapshot.getDocuments()) {
+                            firestore.collection("availabilities").document(availabilityDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted availability entry: " + availabilityDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All availability entries deleted for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete availability entries: " + e.getMessage());
+                    // Don't fail team termination if availability deletion fails
+                }
+                
+                // Third, remove all user associations for this team
                 System.out.println("👥 TeamService: Removing all users from team...");
                 try {
                     if (firestore != null) {
@@ -264,7 +312,7 @@ public class TeamService {
                     // Don't fail team termination if user removal fails
                 }
                 
-                // Then delete the actual team document
+                // Finally, delete the actual team document
                 System.out.println("🗑️ TeamService: Deleting team document...");
                 firestore.collection("teams").document(teamId).delete().get();
                 System.out.println("✅ TeamService: Team document deleted");

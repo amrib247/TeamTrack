@@ -729,6 +729,7 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
               teamId={userTeam.teamId}
               userRole={userTeam.role}
               teamName={teamDetails?.teamName || 'Loading...'}
+              currentUserId={currentUser.id}
             />
           </div>
         );

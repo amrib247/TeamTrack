@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, CreateEventRequest } from '../types/Event';
 import { eventService } from '../services/eventService';
+import AvailabilityModal from './AvailabilityModal';
 import './Schedule.css';
 
 // Calendar helper functions
@@ -21,17 +22,34 @@ const getEventsForDate = (events: Event[], date: string) => {
   return events.filter(event => formatDateForCalendar(event.date) === date);
 };
 
+// Event sorting helper function
+// Sorts events by date and time in ascending order (oldest first)
+const sortEventsByDateTime = (events: Event[]): Event[] => {
+  return events.sort((a, b) => {
+    try {
+      const dateTimeA = new Date(a.date + 'T' + a.startTime);
+      const dateTimeB = new Date(b.date + 'T' + b.startTime);
+      return dateTimeA.getTime() - dateTimeB.getTime(); // Ascending order (oldest first)
+    } catch (error) {
+      // If parsing fails, keep original order
+      return 0;
+    }
+  });
+};
+
 interface ScheduleProps {
   teamId: string;
   userRole: string;
   teamName: string;
+  currentUserId: string;
 }
 
-const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
+const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, currentUserId }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -71,7 +89,8 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
     setError('');
     try {
       const teamEvents = await eventService.getEventsByTeamId(teamId);
-      setEvents(teamEvents);
+      // Ensure events are properly sorted by date and time
+      setEvents(sortEventsByDateTime(teamEvents));
     } catch (err) {
       setError('Failed to load events');
       console.error('Error loading events:', err);
@@ -94,7 +113,8 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
 
     try {
       const newEvent = await eventService.createEvent(formData);
-      setEvents(prev => [...prev, newEvent]);
+      // Add new event and sort by date and time (oldest first)
+      setEvents(prev => sortEventsByDateTime([...prev, newEvent]));
       setShowCreateModal(false);
       resetForm();
     } catch (err) {
@@ -120,9 +140,13 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
 
     try {
       const updatedEvent = await eventService.updateEvent(selectedEvent.id, formData);
-      setEvents(prev => prev.map(event => 
-        event.id === selectedEvent.id ? updatedEvent : event
-      ));
+      // Update event and sort by date and time (oldest first)
+      setEvents(prev => {
+        const updatedEvents = prev.map(event => 
+          event.id === selectedEvent.id ? updatedEvent : event
+        );
+        return sortEventsByDateTime(updatedEvents);
+      });
       setShowEditModal(false);
       setSelectedEvent(null);
       resetForm();
@@ -289,22 +313,33 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
                   <div key={event.id} className="event-card">
                     <div className="event-header">
                       <h4>{event.name}</h4>
-                      {canManageEvents() && (
-                        <div className="event-actions">
-                          <button 
-                            className="btn btn-small btn-secondary"
-                            onClick={() => openEditModal(event)}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            className="btn btn-small btn-danger"
-                            onClick={() => handleDeleteEvent(event.id)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
+                      <div className="event-actions">
+                        <button 
+                          className="btn btn-small btn-primary"
+                          onClick={() => {
+                            setSelectedEvent(event);
+                            setShowAvailabilityModal(true);
+                          }}
+                        >
+                          Availability
+                        </button>
+                        {canManageEvents() && (
+                          <>
+                            <button 
+                              className="btn btn-small btn-secondary"
+                              onClick={() => openEditModal(event)}
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              className="btn btn-small btn-danger"
+                              onClick={() => handleDeleteEvent(event.id)}
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="event-content">
@@ -400,10 +435,25 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
                               <div
                                 key={event.id}
                                 className="calendar-event-card"
-                                onClick={() => openEventDetails(event)}
                               >
-                                <div className="calendar-event-name">{event.name}</div>
-                                <div className="calendar-event-time">{formatTime(event.startTime)}</div>
+                                <div 
+                                  className="calendar-event-info"
+                                  onClick={() => openEventDetails(event)}
+                                >
+                                  <div className="calendar-event-name">{event.name}</div>
+                                  <div className="calendar-event-time">{formatTime(event.startTime)}</div>
+                                </div>
+                                <button
+                                  className="calendar-availability-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedEvent(event);
+                                    setShowAvailabilityModal(true);
+                                  }}
+                                  title="View Availability"
+                                >
+                                  👥
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -756,6 +806,21 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Availability Modal */}
+      {showAvailabilityModal && selectedEvent && (
+        <AvailabilityModal
+          isOpen={showAvailabilityModal}
+          onClose={() => {
+            setShowAvailabilityModal(false);
+            setSelectedEvent(null);
+          }}
+          eventId={selectedEvent.id}
+          teamId={teamId}
+          currentUserId={currentUserId}
+          userRole={userRole}
+        />
       )}
     </div>
   );
