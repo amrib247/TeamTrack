@@ -455,6 +455,8 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
            })()}
          </div>
 
+
+
         <div className="team-actions">
           <h3>Team Management</h3>
           <div className="action-buttons">

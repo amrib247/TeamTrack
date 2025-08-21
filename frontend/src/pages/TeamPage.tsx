@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { UserTeam } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
+import Schedule from '../components/Schedule';
 import './TeamPage.css';
 
 interface TeamPageProps {
@@ -724,8 +725,11 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       case 'schedule':
         return (
           <div className="content-schedule">
-            <h2>Team Schedule</h2>
-            <p>Schedule management coming soon...</p>
+            <Schedule 
+              teamId={userTeam.teamId}
+              userRole={userTeam.role}
+              teamName={teamDetails?.teamName || 'Loading...'}
+            />
           </div>
         );
       case 'tasks':
