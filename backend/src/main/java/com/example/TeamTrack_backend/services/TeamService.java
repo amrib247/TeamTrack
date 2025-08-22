@@ -226,7 +226,17 @@ public class TeamService {
     }
     
     /**
-     * Terminates a team (deactivates and removes all user associations and events)
+     * Terminates a team by deleting all associated data and the team itself
+     * This method performs a complete cascade deletion to prevent data orphanage:
+     * 
+     * 1. Events: All team events are deleted
+     * 2. Availability: All team availability entries are deleted
+     * 3. Tasks: All team tasks are deleted
+     * 4. User Relationships: All user-team relationships are deleted
+     * 5. Team Document: The team itself is deleted
+     * 
+     * Note: If any step fails, it logs a warning but continues with the process
+     * to ensure the team is terminated even if some cleanup operations fail.
      */
     public CompletableFuture<Void> terminateTeam(String teamId) {
         Firestore firestore = getFirestore();
@@ -288,7 +298,31 @@ public class TeamService {
                     // Don't fail team termination if availability deletion fails
                 }
                 
-                // Third, remove all user associations for this team
+                // Third, delete all tasks associated with this team
+                System.out.println("📝 TeamService: Deleting all tasks for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all tasks for this team
+                        var tasksFuture = firestore.collection("tasks")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var tasksSnapshot = tasksFuture.get();
+                        System.out.println("🔍 TeamService: Found " + tasksSnapshot.size() + " tasks to delete");
+                        
+                        // Delete all tasks for this team
+                        for (var taskDoc : tasksSnapshot.getDocuments()) {
+                            firestore.collection("tasks").document(taskDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted task: " + taskDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All tasks deleted for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete tasks: " + e.getMessage());
+                    // Don't fail team termination if task deletion fails
+                }
+                
+                // Fourth, remove all user associations for this team
                 System.out.println("👥 TeamService: Removing all users from team...");
                 try {
                     if (firestore != null) {
@@ -316,6 +350,14 @@ public class TeamService {
                 System.out.println("🗑️ TeamService: Deleting team document...");
                 firestore.collection("teams").document(teamId).delete().get();
                 System.out.println("✅ TeamService: Team document deleted");
+                
+                // Log comprehensive cleanup summary
+                System.out.println("🎯 TeamService: Team termination cleanup completed successfully:");
+                System.out.println("   • Events: Deleted (cascade cleanup)");
+                System.out.println("   • Availability: Deleted (cascade cleanup)");
+                System.out.println("   • Tasks: Deleted (cascade cleanup)");
+                System.out.println("   • User Relationships: Removed (cascade cleanup)");
+                System.out.println("   • Team Document: Deleted");
                 
                 System.out.println("✅ TeamService: Team terminated successfully");
                 

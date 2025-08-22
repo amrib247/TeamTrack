@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type { UserTeam } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
 import Schedule from '../components/Schedule';
+import TaskList from '../components/TaskList';
 import './TeamPage.css';
 
 interface TeamPageProps {
@@ -736,8 +737,12 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       case 'tasks':
         return (
           <div className="content-tasks">
-            <h2>Team Tasks</h2>
-            <p>Task management coming soon...</p>
+            <TaskList 
+              teamId={userTeam.teamId}
+              userRole={userTeam.role}
+              teamName={teamDetails?.teamName || 'Loading...'}
+              currentUserId={currentUser.id}
+            />
           </div>
         );
       case 'chat':
