@@ -25,7 +25,7 @@ import com.google.firebase.cloud.FirestoreClient;
 @Service
 public class UserService {
 
-    private static final String COLLECTION_NAME = "users";
+    private static final String COLLECTION_NAME = "userProfiles";
     private Firestore firestore;
     private List<User> inMemoryUsers = new ArrayList<>(); // Fallback storage
     private boolean useFirebase = true;
@@ -144,20 +144,33 @@ public class UserService {
     }
 
     private UserDto getUserByIdFromFirestore(String id) {
+        System.out.println("🔍 UserService.getUserByIdFromFirestore called with id: " + id);
         try {
             DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
+            System.out.println("🔍 UserService: Document reference created for collection: " + COLLECTION_NAME + ", document: " + id);
+            
             ApiFuture<DocumentSnapshot> future = docRef.get();
             DocumentSnapshot document = future.get();
             
+            System.out.println("🔍 UserService: Document exists: " + document.exists());
             if (document.exists()) {
                 User user = document.toObject(User.class);
+                System.out.println("🔍 UserService: User object created: " + user);
                 if (user != null) {
                     user.setId(document.getId());
-                    return new UserDto(user);
+                    UserDto userDto = new UserDto(user);
+                    System.out.println("✅ UserService: Successfully created UserDto: " + userDto.getFirstName() + " " + userDto.getLastName());
+                    return userDto;
+                } else {
+                    System.out.println("❌ UserService: User object is null after toObject()");
                 }
+            } else {
+                System.out.println("❌ UserService: Document does not exist for id: " + id);
             }
             return null;
         } catch (InterruptedException | ExecutionException e) {
+            System.err.println("❌ UserService: Exception occurred while fetching user: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Error fetching user from Firestore", e);
         }
     }

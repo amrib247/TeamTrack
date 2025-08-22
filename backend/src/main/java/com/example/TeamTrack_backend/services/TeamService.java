@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.example.TeamTrack_backend.dto.CreateTeamRequest;
 import com.example.TeamTrack_backend.dto.UpdateTeamRequest;
 import com.example.TeamTrack_backend.models.Team;
+import com.example.TeamTrack_backend.services.FileUploadService;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
@@ -15,7 +16,10 @@ import com.google.firebase.cloud.FirestoreClient;
 @Service
 public class TeamService {
     
-    public TeamService() {
+    private final FileUploadService fileUploadService;
+    
+    public TeamService(FileUploadService fileUploadService) {
+        this.fileUploadService = fileUploadService;
         System.out.println("🔧 TeamService constructor called");
         System.out.println("🔧 TeamService constructor completed");
     }
@@ -322,7 +326,73 @@ public class TeamService {
                     // Don't fail team termination if task deletion fails
                 }
                 
-                // Fourth, remove all user associations for this team
+                // Fourth, delete all chat messages associated with this team
+                System.out.println("💬 TeamService: Deleting all chat messages for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all chat messages for this team
+                        var chatMessagesFuture = firestore.collection("chat_messages")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var chatMessagesSnapshot = chatMessagesFuture.get();
+                        System.out.println("🔍 TeamService: Found " + chatMessagesSnapshot.size() + " chat messages to delete");
+                        
+                        // Delete all chat messages for this team
+                        for (var messageDoc : chatMessagesSnapshot.getDocuments()) {
+                            firestore.collection("chat_messages").document(messageDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted chat message: " + messageDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All chat messages deleted for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete chat messages: " + e.getMessage());
+                    // Don't fail team termination if chat message deletion fails
+                }
+                
+                // Fifth, delete all chat rooms associated with this team
+                System.out.println("🏠 TeamService: Deleting all chat rooms for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all chat rooms for this team
+                        var chatRoomsFuture = firestore.collection("chat_rooms")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var chatRoomsSnapshot = chatRoomsFuture.get();
+                        System.out.println("🔍 TeamService: Found " + chatRoomsSnapshot.size() + " chat rooms to delete");
+                        
+                        // Delete all chat rooms for this team
+                        for (var roomDoc : chatRoomsSnapshot.getDocuments()) {
+                            firestore.collection("chat_rooms").document(roomDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted chat room: " + roomDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All chat rooms deleted for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete chat rooms: " + e.getMessage());
+                    // Don't fail team termination if chat room deletion fails
+                }
+                
+                // Sixth, delete all files associated with this team
+                System.out.println("📁 TeamService: Deleting all files for team...");
+                try {
+                    if (fileUploadService != null) {
+                        boolean filesDeleted = fileUploadService.deleteAllTeamFiles(teamId);
+                        if (filesDeleted) {
+                            System.out.println("✅ TeamService: All files deleted for team");
+                        } else {
+                            System.out.println("⚠️ TeamService: Some files may not have been deleted");
+                        }
+                    } else {
+                        System.out.println("⚠️ TeamService: FileUploadService not available, skipping file cleanup");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not delete files: " + e.getMessage());
+                    // Don't fail team termination if file deletion fails
+                }
+                
+                // Seventh, remove all user associations for this team
                 System.out.println("👥 TeamService: Removing all users from team...");
                 try {
                     if (firestore != null) {
@@ -356,6 +426,9 @@ public class TeamService {
                 System.out.println("   • Events: Deleted (cascade cleanup)");
                 System.out.println("   • Availability: Deleted (cascade cleanup)");
                 System.out.println("   • Tasks: Deleted (cascade cleanup)");
+                System.out.println("   • Chat Messages: Deleted (cascade cleanup)");
+                System.out.println("   • Chat Rooms: Deleted (cascade cleanup)");
+                System.out.println("   • Files: Deleted (cascade cleanup)");
                 System.out.println("   • User Relationships: Removed (cascade cleanup)");
                 System.out.println("   • Team Document: Deleted");
                 

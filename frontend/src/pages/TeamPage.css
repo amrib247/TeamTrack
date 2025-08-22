@@ -1100,3 +1100,17 @@
     min-height: 180px;
   }
 }
+
+/* Chat Content Styles */
+.content-chat {
+  height: 100%;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-chat .chat-container {
+  flex: 1;
+  height: 100%;
+  min-height: 600px;
+}

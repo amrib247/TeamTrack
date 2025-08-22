@@ -4,6 +4,7 @@ import type { UserTeam } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
 import Schedule from '../components/Schedule';
 import TaskList from '../components/TaskList';
+import Chat from '../components/Chat';
 import './TeamPage.css';
 
 interface TeamPageProps {
@@ -748,8 +749,11 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       case 'chat':
         return (
           <div className="content-chat">
-            <h2>Team Chat</h2>
-            <p>Team chat coming soon...</p>
+            <Chat
+                    teamId={userTeam.teamId}
+                    currentUserId={currentUser.id}
+                    teamName={teamDetails?.teamName || 'Loading...'}
+                />
           </div>
         );
       case 'settings':
