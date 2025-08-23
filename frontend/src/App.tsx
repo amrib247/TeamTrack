@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import HomePage from './pages/HomePage';
 import TeamPage from './pages/TeamPage';
+import TournamentPage from './pages/TournamentPage';
 import type { AuthResponse } from './types/Auth';
 import './App.css';
 
@@ -116,6 +117,18 @@ function App() {
                   currentUser={currentUser} 
                   onLogout={handleLogout}
                 />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            } 
+          />
+          
+          {/* Tournament page - only accessible when logged in */}
+          <Route 
+            path="/tournament/:tournamentId" 
+            element={
+              currentUser ? (
+                <TournamentPage currentUser={currentUser} />
               ) : (
                 <Navigate to="/auth" replace />
               )

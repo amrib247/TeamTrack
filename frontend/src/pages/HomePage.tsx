@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamService, type CreateTeamRequest } from '../services/teamService';
-import type { AuthResponse, UserTeam } from '../types/Auth';
+import { tournamentService } from '../services/tournamentService';
+import type { AuthResponse, UserTeam, Tournament, CreateTournamentRequest } from '../types/Auth';
+// Tournament component will be loaded dynamically
 import './HomePage.css';
 
 interface HomePageProps {
@@ -44,6 +46,17 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
      // Team details state
    const [teamDetails, setTeamDetails] = useState<Record<string, { teamName: string; sport: string; ageGroup: string; description?: string; profilePhotoUrl?: string } | null>>({});
   const [loadingTeams, setLoadingTeams] = useState(false);
+
+  // Tournament states
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [showCreateTournament, setShowCreateTournament] = useState(false);
+  const [createTournamentForm, setCreateTournamentForm] = useState<CreateTournamentRequest>({
+    name: '',
+    maxSize: 4,
+    description: ''
+  });
+  const [creatingTournament, setCreatingTournament] = useState(false);
+  const [TournamentComponent, setTournamentComponent] = useState<any>(null);
 
   // Settings modal functions (restored)
   const openSettings = () => {
@@ -120,11 +133,40 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       setLoadingTeams(false);
     }
   };
+
+  // Fetch tournaments organized by current user
+  const loadTournaments = async () => {
+    try {
+      const tournamentsData = await tournamentService.getTournamentsByOrganizer(currentUser.id);
+      setTournaments(tournamentsData);
+    } catch (error) {
+      console.error('Failed to load tournaments:', error);
+      setError('Failed to load tournaments');
+    }
+  };
   
   // Fetch team details when component mounts or teams change
   useEffect(() => {
     fetchTeamDetails();
   }, [currentUser.teams]);
+
+  // Load tournaments when component mounts
+  useEffect(() => {
+    loadTournaments();
+  }, []);
+
+  // Dynamically load Tournament component
+  useEffect(() => {
+    const loadTournamentComponent = async () => {
+      try {
+        const module = await import('../components/Tournament');
+        setTournamentComponent(() => module.default);
+      } catch (error) {
+        console.error('Failed to load Tournament component:', error);
+      }
+    };
+    loadTournamentComponent();
+  }, []);
 
   // Debug profile photo URL
   useEffect(() => {
@@ -322,6 +364,69 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     }
   };
 
+  // Tournament modal functions
+  const openCreateTournament = () => {
+    setShowCreateTournament(true);
+    setCreateTournamentForm({
+      name: '',
+      maxSize: 4,
+      description: ''
+    });
+    setError('');
+  };
+
+  const closeCreateTournament = () => {
+    setShowCreateTournament(false);
+    setCreatingTournament(false);
+    setError('');
+  };
+
+  const handleCreateTournamentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setCreateTournamentForm(prev => ({
+      ...prev,
+      [name]: name === 'maxSize' ? parseInt(value) || 0 : value
+    }));
+  };
+
+  const handleCreateTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!createTournamentForm.name.trim() || createTournamentForm.maxSize < 4) {
+      setError('Please provide a tournament name and minimum 4 teams');
+      return;
+    }
+
+    try {
+      setCreatingTournament(true);
+      setError('');
+      
+      // Create tournament request
+      const createTournamentRequest: CreateTournamentRequest = {
+        name: createTournamentForm.name.trim(),
+        maxSize: createTournamentForm.maxSize,
+        description: createTournamentForm.description?.trim() || undefined
+      };
+
+      // Call API to create tournament
+      const newTournament = await tournamentService.createTournament(createTournamentRequest, currentUser.id);
+      
+      // Close modal and show success
+      closeCreateTournament();
+      
+      // Refresh tournaments list
+      await loadTournaments();
+      
+      // Show success message
+      alert(`Tournament "${newTournament.name}" created successfully!`);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create tournament');
+    } finally {
+      setCreatingTournament(false);
+    }
+  };
+
   // Helper function to get role display name (restored)
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -467,6 +572,41 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               ➕ Create a Team
             </button>
           </div>
+        </div>
+
+        {/* Tournaments Section */}
+        <div className="tournaments-section">
+          <h3>🏆 Your Tournaments</h3>
+          <div className="tournaments-header">
+            <p>Create and organize tournaments for other teams!</p>
+            <button className="btn btn-primary" onClick={openCreateTournament}>
+              ➕ Create Tournament
+            </button>
+          </div>
+          
+          {tournaments.length > 0 ? (
+            <div className="tournaments-grid">
+              {tournaments.map((tournament) => 
+                TournamentComponent ? (
+                  <TournamentComponent
+                    key={tournament.id}
+                    tournament={tournament}
+                    userTeamIds={currentUser.teams.map(team => team.teamId)}
+                    onTournamentUpdated={loadTournaments}
+                  />
+                ) : (
+                  <div key={tournament.id} className="tournament-loading">
+                    Loading tournament component...
+                  </div>
+                )
+              )}
+            </div>
+          ) : (
+            <div className="no-tournaments">
+              <p>No tournaments available yet.</p>
+              <p>Create the first tournament to get started!</p>
+            </div>
+          )}
         </div>
 
         <div className="actions">
@@ -616,6 +756,91 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                     disabled={creatingTeam}
                   >
                     {creatingTeam ? 'Creating...' : 'Create Team'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Tournament Modal */}
+      {showCreateTournament && (
+        <div className="modal-overlay" onClick={closeCreateTournament}>
+          <div className="modal create-tournament-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Create New Tournament</h2>
+              <button className="close-button" onClick={closeCreateTournament}>
+                ×
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <form onSubmit={handleCreateTournament} className="create-tournament-form">
+                {/* Tournament Name */}
+                <div className="form-group">
+                  <label htmlFor="tournamentName">Tournament Name *</label>
+                  <input
+                    type="text"
+                    id="tournamentName"
+                    name="name"
+                    value={createTournamentForm.name}
+                    onChange={handleCreateTournamentInputChange}
+                    placeholder="Enter tournament name"
+                    required
+                  />
+                </div>
+
+                {/* Max Size */}
+                <div className="form-group">
+                  <label htmlFor="maxSize">Maximum Teams *</label>
+                  <select
+                    id="maxSize"
+                    name="maxSize"
+                    value={createTournamentForm.maxSize}
+                    onChange={handleCreateTournamentInputChange}
+                    required
+                  >
+                    {Array.from({ length: 61 }, (_, i) => i + 4).map(size => (
+                      <option key={size} value={size}>{size} teams</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Description */}
+                <div className="form-group">
+                  <label htmlFor="tournamentDescription">Description</label>
+                  <textarea
+                    id="tournamentDescription"
+                    name="description"
+                    value={createTournamentForm.description}
+                    onChange={handleCreateTournamentInputChange}
+                    placeholder="Optional tournament description"
+                    rows={3}
+                  />
+                </div>
+
+                {error && (
+                  <div className="error-message">
+                    {error}
+                  </div>
+                )}
+
+                <div className="modal-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={closeCreateTournament}
+                    disabled={creatingTournament}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={creatingTournament}
+                  >
+                    {creatingTournament ? 'Creating...' : 'Create Tournament'}
                   </button>
                 </div>
               </form>

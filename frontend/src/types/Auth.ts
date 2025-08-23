@@ -96,3 +96,25 @@ export interface ChatRoom {
   unreadCount: number;
   lastActivity: string;
 }
+
+export interface Tournament {
+  id: string;
+  name: string;
+  maxSize: number;
+  teamIds: string[];
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface CreateTournamentRequest {
+  name: string;
+  maxSize: number;
+  description?: string;
+}
+
+export interface UpdateTournamentRequest {
+  name: string;
+  description?: string;
+}

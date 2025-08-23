@@ -1,0 +1,149 @@
+import type { Tournament, CreateTournamentRequest, UpdateTournamentRequest } from '../types/Auth';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+export class TournamentService {
+  private baseUrl = `${API_BASE_URL}/tournaments`;
+
+  async getAllTournaments(): Promise<Tournament[]> {
+    try {
+      const response = await fetch(this.baseUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get tournaments: ${response.status}`);
+      }
+      
+      const tournaments = await response.json();
+      return tournaments;
+    } catch (error) {
+      console.error('Failed to get tournaments:', error);
+      throw error;
+    }
+  }
+
+  async getTournamentsByOrganizer(userId: string): Promise<Tournament[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/organizer/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get tournaments by organizer: ${response.status}`);
+      }
+      
+      const tournaments = await response.json();
+      return tournaments;
+    } catch (error) {
+      console.error('Failed to get tournaments by organizer:', error);
+      throw error;
+    }
+  }
+
+  async getTournamentById(tournamentId: string): Promise<Tournament | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Failed to get tournament: ${response.status}`);
+      }
+      
+      const tournament = await response.json();
+      return tournament;
+    } catch (error) {
+      console.error('Failed to get tournament:', error);
+      throw error;
+    }
+  }
+
+  async createTournament(request: CreateTournamentRequest, userId: string): Promise<Tournament> {
+    try {
+      const response = await fetch(`${this.baseUrl}?userId=${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create tournament: ${response.status}`);
+      }
+      
+      const tournament = await response.json();
+      return tournament;
+    } catch (error) {
+      console.error('Failed to create tournament:', error);
+      throw error;
+    }
+  }
+
+  async addTeamToTournament(tournamentId: string, teamId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/${teamId}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to add team to tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to add team to tournament:', error);
+      throw error;
+    }
+  }
+
+  async removeTeamFromTournament(tournamentId: string, teamId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/${teamId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to remove team from tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to remove team from tournament:', error);
+      throw error;
+    }
+  }
+
+  async updateTournament(tournamentId: string, request: UpdateTournamentRequest): Promise<Tournament> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update tournament: ${response.status}`);
+      }
+      
+      const tournament = await response.json();
+      return tournament;
+    } catch (error) {
+      console.error('Failed to update tournament:', error);
+      throw error;
+    }
+  }
+
+  async deleteTournament(tournamentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete tournament:', error);
+      throw error;
+    }
+  }
+}
+
+export const tournamentService = new TournamentService();

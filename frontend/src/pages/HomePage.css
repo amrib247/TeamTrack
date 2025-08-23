@@ -916,3 +916,140 @@
     min-height: 180px;
   }
 }
+
+/* Tournaments Section */
+.tournaments-section {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e8ed;
+}
+
+
+
+.tournaments-section h3 {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.tournaments-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e8f4fd;
+}
+
+.tournaments-header p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.tournaments-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+}
+
+.no-tournaments {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.no-tournaments p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.no-tournaments p:first-child {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #555;
+}
+
+/* Create Tournament Modal styles */
+.create-tournament-modal {
+  max-width: 600px;
+  width: 90vw;
+}
+
+.create-tournament-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.create-tournament-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.create-tournament-form label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.create-tournament-form input,
+.create-tournament-form select,
+.create-tournament-form textarea {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.create-tournament-form input:focus,
+.create-tournament-form select:focus,
+.create-tournament-form textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.create-tournament-form textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.create-tournament-form select {
+  background-color: white;
+  cursor: pointer;
+}
+
+/* Responsive design for tournaments */
+@media (max-width: 768px) {
+  .tournaments-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .tournaments-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .create-tournament-modal {
+    width: 95vw;
+    margin: 1rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .modal-actions .btn {
+    width: 100%;
+  }
+}
