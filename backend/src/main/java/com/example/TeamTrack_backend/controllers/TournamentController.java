@@ -1,6 +1,7 @@
 package com.example.TeamTrack_backend.controllers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.TeamTrack_backend.dto.CreateTournamentRequest;
 import com.example.TeamTrack_backend.dto.TournamentDto;
 import com.example.TeamTrack_backend.dto.UpdateTournamentRequest;
+import com.example.TeamTrack_backend.services.OrganizerTournamentService;
 import com.example.TeamTrack_backend.services.TournamentService;
 
 @RestController
@@ -29,6 +31,9 @@ public class TournamentController {
     
     @Autowired
     private TournamentService tournamentService;
+    
+    @Autowired
+    private OrganizerTournamentService organizerTournamentService;
     
     /**
      * Create a new tournament
@@ -80,6 +85,60 @@ public class TournamentController {
                         return ResponseEntity.notFound().build();
                     }
                 });
+    }
+    
+    /**
+     * Get tournament organizers
+     */
+    @GetMapping("/{tournamentId}/organizers")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getTournamentOrganizers(@PathVariable String tournamentId) {
+        return tournamentService.getTournamentOrganizers(tournamentId)
+                .thenApply(organizers -> ResponseEntity.ok(organizers));
+    }
+    
+    /**
+     * Invite a user to be an organizer of a tournament
+     */
+    @PostMapping("/{tournamentId}/organizers/invite")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> inviteUserToTournament(
+            @PathVariable String tournamentId,
+            @RequestBody Map<String, String> inviteRequest) {
+        String userEmail = inviteRequest.get("email");
+        if (userEmail == null || userEmail.trim().isEmpty()) {
+            return CompletableFuture.completedFuture(
+                ResponseEntity.badRequest().body(Map.of("error", "Email is required"))
+            );
+        }
+        
+        return tournamentService.inviteUserToTournament(tournamentId, userEmail.trim())
+                .thenApply(result -> ResponseEntity.ok(Map.of("message", "User invited successfully")));
+    }
+    
+    /**
+     * Get pending organizer invites for a user
+     */
+    @GetMapping("/organizers/invites/{userId}")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getPendingOrganizerInvites(@PathVariable String userId) {
+        return tournamentService.getPendingOrganizerInvites(userId)
+                .thenApply(invites -> ResponseEntity.ok(invites));
+    }
+    
+    /**
+     * Accept an organizer invite
+     */
+    @PostMapping("/organizers/invites/{organizerTournamentId}/accept")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> acceptOrganizerInvite(@PathVariable String organizerTournamentId) {
+        return organizerTournamentService.acceptOrganizerInvite(organizerTournamentId)
+                .thenApply(result -> ResponseEntity.ok(Map.of("message", "Invite accepted successfully")));
+    }
+    
+    /**
+     * Decline an organizer invite
+     */
+    @PostMapping("/organizers/invites/{organizerTournamentId}/decline")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> declineOrganizerInvite(@PathVariable String organizerTournamentId) {
+        return organizerTournamentService.declineOrganizerInvite(organizerTournamentId)
+                .thenApply(result -> ResponseEntity.ok(Map.of("message", "Invite declined successfully")));
     }
     
     /**

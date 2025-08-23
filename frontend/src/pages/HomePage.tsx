@@ -49,6 +49,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
   // Tournament states
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [pendingTournamentInvites, setPendingTournamentInvites] = useState<any[]>([]);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [createTournamentForm, setCreateTournamentForm] = useState<CreateTournamentRequest>({
     name: '',
@@ -154,6 +155,20 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   useEffect(() => {
     loadTournaments();
   }, []);
+  
+  // Load pending tournament organizer invites on mount
+  useEffect(() => {
+    const loadPendingTournamentInvites = async () => {
+      try {
+        const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
+        setPendingTournamentInvites(pendingInvites);
+      } catch (error) {
+        console.error('Failed to load pending tournament invites:', error);
+      }
+    };
+    
+    loadPendingTournamentInvites();
+  }, [currentUser.id]);
 
   // Dynamically load Tournament component
   useEffect(() => {
@@ -458,6 +473,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
   // Pending invite modal state
   const [pendingInvite, setPendingInvite] = useState<{ userTeamId: string; teamName: string } | null>(null);
+  const [pendingTournamentInvite, setPendingTournamentInvite] = useState<{ organizerTournamentId: string; tournamentName: string } | null>(null);
   const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
 
   // Handle team card click
@@ -487,6 +503,61 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invite');
     }
+  };
+  
+  // Handle accepting tournament organizer invite
+  const handleAcceptTournamentInvite = async (organizerTournamentId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent tournament card click
+    
+    try {
+      await tournamentService.acceptOrganizerInvite(organizerTournamentId);
+      
+      // Refresh user data to update invite status
+      await onRefreshUserData();
+      
+      // Refresh pending invites list
+      const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
+      setPendingTournamentInvites(pendingInvites);
+      
+      // Refresh tournaments list to show the newly accepted tournament
+      await loadTournaments();
+      
+      // Show success message
+      alert('Tournament organizer invite accepted successfully!');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to accept tournament invite');
+    }
+  };
+  
+  // Handle declining tournament organizer invite
+  const handleDeclineTournamentInvite = async (organizerTournamentId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent tournament card click
+    
+    try {
+      await tournamentService.declineOrganizerInvite(organizerTournamentId);
+      
+      // Refresh user data to update invite status
+      await onRefreshUserData();
+      
+      // Refresh pending invites list
+      const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
+      setPendingTournamentInvites(pendingInvites);
+      
+      // Show success message
+      alert('Tournament organizer invite declined successfully!');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to decline tournament invite');
+    }
+  };
+  
+  // Handle clicking on pending tournament invite card
+  const handlePendingTournamentInviteClick = (invite: any) => {
+    setPendingTournamentInvite({
+      organizerTournamentId: invite.organizerTournamentId,
+      tournamentName: invite.tournamentName
+    });
   };
 
   return (
@@ -584,8 +655,40 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
             </button>
           </div>
           
-          {tournaments.length > 0 ? (
+          {(tournaments.length > 0 || pendingTournamentInvites.length > 0) ? (
             <div className="tournaments-grid">
+              {/* Pending Tournament Invites */}
+              {pendingTournamentInvites.map((invite) => (
+                <div 
+                  key={invite.organizerTournamentId} 
+                  className="tournament-card tournament-invite clickable"
+                  onClick={() => handlePendingTournamentInviteClick(invite)}
+                >
+                  <div className="tournament-header">
+                    <h3 className="tournament-name">{invite.tournamentName}</h3>
+                    <div className="tournament-status">
+                      <span className="status-invite">📨 Invite</span>
+                    </div>
+                  </div>
+                  <div className="tournament-details">
+                    <div className="tournament-info">
+                      <div className="info-item">
+                        <strong>Type:</strong> Tournament Organizer Invite
+                      </div>
+                      {invite.tournamentDescription && (
+                        <div className="info-item">
+                          <strong>Description:</strong> {invite.tournamentDescription}
+                        </div>
+                      )}
+                    </div>
+                    <div className="invite-status invite-pending">
+                      ⚠️ Tap to accept or decline this organizer invite
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Regular Tournaments */}
               {tournaments.map((tournament) => 
                 TournamentComponent ? (
                   <TournamentComponent
@@ -891,6 +994,69 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                     await onRefreshUserData();
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'Failed to accept invite');
+                  }
+                }}
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Pending Tournament Organizer Invite Modal */}
+      {pendingTournamentInvite && (
+        <div className="modal-overlay" onClick={() => setPendingTournamentInvite(null)}>
+          <div className="modal pending-invite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Tournament Organizer Invitation</h2>
+              <button className="close-button" onClick={() => setPendingTournamentInvite(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>You have been invited to be an organizer of <strong>{pendingTournamentInvite.tournamentName}</strong>.</p>
+              <p>Would you like to accept this invitation?</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setPendingTournamentInvite(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    await tournamentService.declineOrganizerInvite(pendingTournamentInvite.organizerTournamentId);
+                    setPendingTournamentInvite(null);
+                    await onRefreshUserData();
+                    
+                    // Refresh pending invites list
+                    const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
+                    setPendingTournamentInvites(pendingInvites);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to decline tournament invite');
+                  }
+                }}
+              >
+                Decline
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await tournamentService.acceptOrganizerInvite(pendingTournamentInvite.organizerTournamentId);
+                    setPendingTournamentInvite(null);
+                    await onRefreshUserData();
+                    
+                    // Refresh pending invites list
+                    const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
+                    setPendingTournamentInvites(pendingInvites);
+                    
+                    // Refresh tournaments list to show the newly accepted tournament
+                    await loadTournaments();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to accept tournament invite');
                   }
                 }}
               >

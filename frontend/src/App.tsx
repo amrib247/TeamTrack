@@ -128,7 +128,7 @@ function App() {
             path="/tournament/:tournamentId" 
             element={
               currentUser ? (
-                <TournamentPage currentUser={currentUser} />
+                <TournamentPage currentUser={currentUser} onLogout={handleLogout} />
               ) : (
                 <Navigate to="/auth" replace />
               )

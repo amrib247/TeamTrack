@@ -56,6 +56,87 @@ export class TournamentService {
     }
   }
 
+  async getTournamentOrganizers(tournamentId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/organizers`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get tournament organizers: ${response.status}`);
+      }
+      
+      const organizers = await response.json();
+      return organizers;
+    } catch (error) {
+      console.error('Failed to get tournament organizers:', error);
+      throw error;
+    }
+  }
+  
+  async inviteUserToTournament(tournamentId: string, email: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/organizers/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to invite user to tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to invite user to tournament:', error);
+      throw error;
+    }
+  }
+  
+  async getPendingOrganizerInvites(userId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/organizers/invites/${userId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get pending organizer invites: ${response.status}`);
+      }
+      
+      const invites = await response.json();
+      return invites;
+    } catch (error) {
+      console.error('Failed to get pending organizer invites:', error);
+      throw error;
+    }
+  }
+  
+  async acceptOrganizerInvite(organizerTournamentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/organizers/invites/${organizerTournamentId}/accept`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to accept organizer invite: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to accept organizer invite:', error);
+      throw error;
+    }
+  }
+  
+  async declineOrganizerInvite(organizerTournamentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/organizers/invites/${organizerTournamentId}/decline`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to decline organizer invite: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to decline organizer invite:', error);
+      throw error;
+    }
+  }
+
   async createTournament(request: CreateTournamentRequest, userId: string): Promise<Tournament> {
     try {
       const response = await fetch(`${this.baseUrl}?userId=${userId}`, {

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import com.example.TeamTrack_backend.dto.CreateTournamentRequest;
 import com.example.TeamTrack_backend.dto.UpdateTournamentRequest;
 import com.example.TeamTrack_backend.models.Tournament;
+import com.example.TeamTrack_backend.models.OrganizerTournament;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
@@ -372,6 +373,27 @@ public class TournamentService {
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList()));
             });
+    }
+    
+    /**
+     * Gets detailed organizer information for a tournament
+     */
+    public CompletableFuture<List<Map<String, Object>>> getTournamentOrganizers(String tournamentId) {
+        return organizerTournamentService.getOrganizerDetailsByTournament(tournamentId);
+    }
+    
+    /**
+     * Invites a user to be an organizer of a tournament
+     */
+    public CompletableFuture<OrganizerTournament> inviteUserToTournament(String tournamentId, String userEmail) {
+        return organizerTournamentService.inviteUserToTournament(tournamentId, userEmail);
+    }
+    
+    /**
+     * Gets pending organizer invites for a user
+     */
+    public CompletableFuture<List<Map<String, Object>>> getPendingOrganizerInvites(String userId) {
+        return organizerTournamentService.getPendingOrganizerInvites(userId);
     }
     
     /**

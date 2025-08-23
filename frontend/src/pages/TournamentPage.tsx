@@ -6,15 +6,28 @@ import './TournamentPage.css';
 
 interface TournamentPageProps {
   currentUser: AuthResponse;
+  onLogout: () => void;
 }
 
-function TournamentPage({ currentUser }: TournamentPageProps) {
+function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   const { tournamentId } = useParams<{ tournamentId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'organizers' | 'teams' | 'scheduling' | 'settings'>('organizers');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  
+  // Organizers state
+  const [organizers, setOrganizers] = useState<any[]>([]);
+  const [loadingOrganizers, setLoadingOrganizers] = useState(false);
+  
+  // Invite state
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    email: ''
+  });
+  const [invitingUser, setInvitingUser] = useState(false);
+  const [inviteError, setInviteError] = useState<string>('');
   
   // Settings state
   const [isEditMode, setIsEditMode] = useState(false);
@@ -53,6 +66,60 @@ function TournamentPage({ currentUser }: TournamentPageProps) {
 
     loadTournament();
   }, [tournamentId]);
+
+  // Fetch organizers when organizers tab is active
+  useEffect(() => {
+    const loadOrganizers = async () => {
+      if (activeTab === 'organizers' && tournamentId) {
+        try {
+          setLoadingOrganizers(true);
+          const organizersData = await tournamentService.getTournamentOrganizers(tournamentId);
+          setOrganizers(organizersData);
+        } catch (error) {
+          console.error('Failed to load organizers:', error);
+          setError('Failed to load organizers');
+        } finally {
+          setLoadingOrganizers(false);
+        }
+      }
+    };
+    
+    loadOrganizers();
+  }, [activeTab, tournamentId]);
+  
+  // Invite functions
+  const handleInviteUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!inviteForm.email.trim()) {
+      setInviteError('Please enter an email address');
+      return;
+    }
+    
+    if (!tournamentId) return;
+    
+    try {
+      setInvitingUser(true);
+      setInviteError('');
+      
+      await tournamentService.inviteUserToTournament(tournamentId, inviteForm.email.trim());
+      
+      alert('User invited successfully!');
+      setInviteForm({ email: '' });
+      setShowInviteForm(false);
+      
+      // Refresh organizers to show the new invite
+      if (activeTab === 'organizers') {
+        const organizersData = await tournamentService.getTournamentOrganizers(tournamentId);
+        setOrganizers(organizersData);
+      }
+      
+    } catch (err) {
+      setInviteError(err instanceof Error ? err.message : 'Failed to invite user');
+    } finally {
+      setInvitingUser(false);
+    }
+  };
 
   // Settings functions
   const handleEditToggle = () => {
@@ -164,43 +231,114 @@ function TournamentPage({ currentUser }: TournamentPageProps) {
       case 'organizers':
         return (
           <div className="tab-content">
-            <h2>Tournament Organizers</h2>
+            <div className="organizers-header">
+              <h2>Tournament Organizers</h2>
+              <button 
+                className="btn btn-invite"
+                onClick={() => setShowInviteForm(true)}
+              >
+                ✉️ Invite Organizer
+              </button>
+            </div>
             <div className="organizers-content">
-              <div className="organizer-info">
-                <h3>Tournament Information</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label>Name:</label>
-                    <span>{tournament.name}</span>
+              {/* Organizers List */}
+              <div className="organizers-list-section">
+                <h3>Tournament Organizers ({organizers.length})</h3>
+                
+                {loadingOrganizers ? (
+                  <div className="loading-message">
+                    <p>Loading organizers...</p>
                   </div>
-                  <div className="info-item">
-                    <label>Size:</label>
-                    <span>{tournament.teamIds.length}/{tournament.maxSize} teams</span>
+                ) : organizers.length > 0 ? (
+                  <div className="organizers-container">
+                    {organizers.map((organizer) => (
+                      <div key={organizer.organizerId} className="organizer-member">
+                        <div className="member-avatar">
+                          <div className="profile-photo">
+                            {organizer.profilePhotoUrl ? (
+                              <img src={organizer.profilePhotoUrl} alt={`${organizer.firstName} ${organizer.lastName}`} />
+                            ) : (
+                              <div className="profile-initials">
+                                {organizer.firstName.charAt(0)}{organizer.lastName.charAt(0)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="member-info">
+                          <div className="member-name">
+                            {organizer.firstName} {organizer.lastName}
+                          </div>
+                          <div className="member-role">
+                            Tournament Organizer
+                          </div>
+                          <div className="member-details">
+                            <span className="member-email">{organizer.email}</span>
+                            {organizer.phoneNumber && (
+                              <span className="member-phone">Phone: {organizer.phoneNumber}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="info-item">
-                    <label>Created:</label>
-                    <span>{new Date(tournament.createdAt).toLocaleDateString()}</span>
+                ) : (
+                  <div className="empty-organizers">
+                    <p>No organizers found for this tournament.</p>
                   </div>
-                  {tournament.description && (
-                    <div className="info-item">
-                      <label>Description:</label>
-                      <span>{tournament.description}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="organizer-info">
-                <h3>Status</h3>
-                <div className="status-info">
-                  {tournament.teamIds.length >= tournament.maxSize ? (
-                    <span className="status-full">🏆 Tournament is Full</span>
-                  ) : (
-                    <span className="status-open">📝 Open for Registration</span>
-                  )}
-                </div>
+                )}
               </div>
             </div>
+            
+            {/* Invite Form Modal */}
+            {showInviteForm && (
+              <div className="invite-form-modal">
+                <div className="invite-form-content">
+                  <h3>Invite User to Tournament</h3>
+                  <form onSubmit={handleInviteUser}>
+                    <div className="form-group">
+                      <label htmlFor="inviteEmail">Email Address</label>
+                      <input
+                        type="email"
+                        id="inviteEmail"
+                        name="email"
+                        value={inviteForm.email}
+                        onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter user's email address"
+                        required
+                      />
+                    </div>
+                    
+                    {inviteError && (
+                      <div className="error-message">
+                        {inviteError}
+                      </div>
+                    )}
+                    
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowInviteForm(false);
+                          setInviteForm({ email: '' });
+                          setInviteError('');
+                        }}
+                        disabled={invitingUser}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        disabled={invitingUser}
+                      >
+                        {invitingUser ? 'Inviting...' : 'Send Invite'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -412,7 +550,15 @@ function TournamentPage({ currentUser }: TournamentPageProps) {
 
   return (
     <div className="tournament-page">
-      <div className="tournament-sidebar">
+      {/* Header with logout button */}
+      <div className="tournament-page-header">
+        <button className="btn btn-logout" onClick={onLogout}>
+          Logout
+        </button>
+      </div>
+      
+      <div className="tournament-content">
+        <div className="tournament-sidebar">
         <div className="sidebar-header">
           <h2>{tournament.name}</h2>
           <p className="tournament-subtitle">Tournament Management</p>
@@ -446,14 +592,15 @@ function TournamentPage({ currentUser }: TournamentPageProps) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="btn btn-secondary" onClick={() => navigate('/')}>
+          <button className="btn btn-secondary" onClick={() => navigate('/home')}>
             ← Back to Home
           </button>
         </div>
       </div>
 
-      <div className="tournament-main">
-        {renderTabContent()}
+        <div className="tournament-main">
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );
