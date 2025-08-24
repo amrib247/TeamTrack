@@ -1,5 +1,6 @@
 package com.example.TeamTrack_backend.services;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -560,6 +561,43 @@ public class TeamService {
                 System.err.println("❌ TeamService: Error getting coach count: " + e.getMessage());
                 e.printStackTrace();
                 return 0;
+            }
+        });
+    }
+
+    /**
+     * Search teams by name (partial match)
+     */
+    public CompletableFuture<List<Team>> searchTeamsByName(String teamName) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🔍 TeamService: Searching teams by name: " + teamName);
+                
+                // Get all teams and filter by name (case-insensitive partial match)
+                var querySnapshot = firestore.collection("teams").get().get();
+                List<Team> matchingTeams = new java.util.ArrayList<>();
+                
+                for (var document : querySnapshot.getDocuments()) {
+                    Team team = document.toObject(Team.class);
+                    if (team != null && team.getTeamName().toLowerCase().contains(teamName.toLowerCase())) {
+                        matchingTeams.add(team);
+                    }
+                }
+                
+                System.out.println("✅ TeamService: Found " + matchingTeams.size() + " matching teams");
+                return matchingTeams;
+                
+            } catch (Exception e) {
+                System.err.println("❌ TeamService: Error searching teams by name: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to search teams by name: " + e.getMessage());
             }
         });
     }

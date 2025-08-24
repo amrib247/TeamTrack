@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { UserTeam } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
+import { tournamentService } from '../services/tournamentService';
 import Schedule from '../components/Schedule';
 import TaskList from '../components/TaskList';
 import Chat from '../components/Chat';
@@ -86,6 +87,19 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const [loadingCoachCount, setLoadingCoachCount] = useState(false);
   const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
   const [coachSafetyData, setCoachSafetyData] = useState<any>(null);
+
+  // State for tournament invites
+  const [tournamentInvites, setTournamentInvites] = useState<any[]>([]);
+  const [loadingTournamentInvites, setLoadingTournamentInvites] = useState(false);
+  const [processingInvite, setProcessingInvite] = useState<string | null>(null);
+  const [tournamentDetails, setTournamentDetails] = useState<{[key: string]: any}>({});
+  
+  // State for enrolled tournaments
+  const [enrolledTournaments, setEnrolledTournaments] = useState<any[]>([]);
+  const [loadingEnrolledTournaments, setLoadingEnrolledTournaments] = useState(false);
+
+  // State for leaving tournaments
+  const [leavingTournament, setLeavingTournament] = useState<string | null>(null);
 
   // Debug logging
   console.log('🔍 TeamPage Debug:', {
@@ -185,7 +199,86 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     fetchCoachCount();
   }, [activeTab, userTeam]);
 
+  // Fetch tournament invites when tournaments tab is active
+  useEffect(() => {
+    const fetchTournamentInvites = async () => {
+      if (activeTab === 'tournaments' && userTeam?.teamId) {
+        try {
+          setLoadingTournamentInvites(true);
+          console.log('🏆 Fetching tournament invites for teamId:', userTeam.teamId);
+          const invites = await teamService.getTournamentInvites(userTeam.teamId);
+          setTournamentInvites(invites);
+          console.log('✅ Tournament invites fetched:', invites);
+          
+          // Fetch tournament details for each invite
+          const tournamentDetailsMap: {[key: string]: any} = {};
+          for (const invite of invites) {
+            try {
+              const tournament = await tournamentService.getTournamentById(invite.tournamentId);
+              if (tournament) {
+                tournamentDetailsMap[invite.tournamentId] = tournament;
+              }
+            } catch (error) {
+              console.error('❌ Failed to fetch tournament details for:', invite.tournamentId, error);
+            }
+          }
+          setTournamentDetails(tournamentDetailsMap);
+        } catch (error) {
+          console.error('❌ Failed to fetch tournament invites:', error);
+          setError('Failed to load tournament invites');
+        } finally {
+          setLoadingTournamentInvites(false);
+        }
+      }
+    };
+    
+    fetchTournamentInvites();
+  }, [activeTab, userTeam]);
+
+  // Fetch enrolled tournaments when tournaments tab is active
+  const fetchEnrolledTournaments = async () => {
+    console.log('🔄 fetchEnrolledTournaments called with:', { activeTab, userTeamId: userTeam?.teamId });
+    
+    if (userTeam?.teamId) {
+      try {
+        setLoadingEnrolledTournaments(true);
+        console.log('🏆 Fetching enrolled tournaments for teamId:', userTeam.teamId);
+        const tournaments = await teamService.getAcceptedTournamentInvites(userTeam.teamId);
+        console.log('✅ Enrolled tournaments fetched:', tournaments);
+        setEnrolledTournaments(tournaments);
+        
+        // Fetch tournament details for each enrolled tournament
+        const tournamentDetailsMap: {[key: string]: any} = {};
+        for (const tournamentInvite of tournaments) {
+          try {
+            const tournament = await tournamentService.getTournamentById(tournamentInvite.tournamentId);
+            if (tournament) {
+              tournamentDetailsMap[tournamentInvite.tournamentId] = tournament;
+            }
+          } catch (error) {
+            console.error('❌ Failed to fetch tournament details for:', tournamentInvite.tournamentId, error);
+          }
+        }
+        console.log('📊 Tournament details map updated:', tournamentDetailsMap);
+        setTournamentDetails(prev => ({ ...prev, ...tournamentDetailsMap }));
+      } catch (error) {
+        console.error('❌ Failed to fetch enrolled tournaments:', error);
+        setError('Failed to load enrolled tournaments');
+      } finally {
+        setLoadingEnrolledTournaments(false);
+      }
+    } else {
+      console.log('⚠️ fetchEnrolledTournaments skipped - no userTeam.teamId');
+    }
+  };
+
+  useEffect(() => {
+    console.log('🔄 useEffect triggered for fetchEnrolledTournaments:', { activeTab, userTeamId: userTeam?.teamId });
+    fetchEnrolledTournaments();
+  }, [activeTab, userTeam]);
+
   const handleTabChange = (tab: string) => {
+    console.log('🔄 Tab changing from', activeTab, 'to', tab);
     setActiveTab(tab);
   };
 
@@ -404,6 +497,110 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
       setInviteError(err instanceof Error ? err.message : 'Failed to invite user');
     } finally {
       setInvitingUser(false);
+    }
+  };
+
+  // Tournament invite handlers
+  const handleAcceptTournamentInvite = async (inviteId: string) => {
+    console.log('🎯 handleAcceptTournamentInvite called with inviteId:', inviteId);
+    console.log('🔍 Current state:', { userTeamId: userTeam?.teamId, activeTab });
+    
+    if (!userTeam?.teamId) {
+      console.log('❌ No userTeam.teamId, returning early');
+      return;
+    }
+    
+    try {
+      setProcessingInvite(inviteId);
+      setError('');
+      
+      // Import tournamentService dynamically to avoid circular dependencies
+      const { tournamentService } = await import('../services/tournamentService');
+      console.log('✅ tournamentService imported successfully');
+      
+      await tournamentService.acceptTournamentInvite(inviteId);
+      console.log('✅ Tournament invite accepted successfully');
+      
+      // Show success message
+      alert('Tournament invite accepted successfully!');
+      
+      // Remove the accepted invite from the list
+      setTournamentInvites(prev => prev.filter(invite => invite.id !== inviteId));
+      console.log('✅ Tournament invite removed from invites list');
+      
+      // Refresh enrolled tournaments to show the newly accepted tournament
+      console.log('🔄 About to call fetchEnrolledTournaments...');
+      await fetchEnrolledTournaments();
+      console.log('✅ fetchEnrolledTournaments completed');
+      
+    } catch (err) {
+      console.error('❌ Error in handleAcceptTournamentInvite:', err);
+      setError(err instanceof Error ? err.message : 'Failed to accept tournament invite');
+    } finally {
+      setProcessingInvite(null);
+    }
+  };
+
+  const handleDeclineTournamentInvite = async (inviteId: string) => {
+    try {
+      setProcessingInvite(inviteId);
+      setError('');
+      
+      // Import tournamentService dynamically to avoid circular dependencies
+      const { tournamentService } = await import('../services/tournamentService');
+      await tournamentService.declineTournamentInvite(inviteId);
+      
+      // Show success message
+      alert('Tournament invite declined successfully!');
+      
+      // Remove the declined invite from the list
+      setTournamentInvites(prev => prev.filter(invite => invite.id !== inviteId));
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to decline tournament invite');
+    } finally {
+      setProcessingInvite(null);
+    }
+  };
+
+  const handleLeaveTournament = async (tournamentInviteId: string, tournamentId: string) => {
+    console.log('🚪 handleLeaveTournament called with:', { tournamentInviteId, tournamentId });
+    console.log('🔍 Current state:', { userTeamId: userTeam?.teamId, activeTab });
+    
+    if (!userTeam?.teamId) {
+      console.log('❌ No userTeam.teamId, returning early');
+      return;
+    }
+    
+    if (!window.confirm('Are you sure you want to leave this tournament?')) {
+      console.log('❌ User cancelled leaving tournament');
+      return;
+    }
+    
+    try {
+      setLeavingTournament(tournamentInviteId);
+      setError('');
+      
+      // Import teamService dynamically to avoid circular dependencies
+      const { teamService } = await import('../services/teamService');
+      console.log('✅ teamService imported successfully');
+      
+      await teamService.leaveTournament(userTeam.teamId, tournamentId);
+      console.log('✅ Successfully left tournament');
+      
+      // Show success message
+      alert('Successfully left the tournament!');
+      
+      // Refresh enrolled tournaments from server to ensure data consistency
+      console.log('🔄 About to call fetchEnrolledTournaments...');
+      await fetchEnrolledTournaments();
+      console.log('✅ fetchEnrolledTournaments completed');
+      
+    } catch (err) {
+      console.error('❌ Error in handleLeaveTournament:', err);
+      setError(err instanceof Error ? err.message : 'Failed to leave tournament');
+    } finally {
+      setLeavingTournament(null);
     }
   };
 
@@ -754,6 +951,98 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
                     currentUserId={currentUser.id}
                     teamName={teamDetails?.teamName || 'Loading...'}
                 />
+          </div>
+        );
+      case 'tournaments':
+        return (
+          <div className="content-tournaments">
+            <h2>Team Tournaments</h2>
+            
+            {/* Tournament Invites */}
+            <div className="tournament-invites">
+              <h3>Tournament Invites</h3>
+              {loadingTournamentInvites ? (
+                <p>Loading tournament invites...</p>
+              ) : tournamentInvites.length > 0 ? (
+                <div className="invite-list">
+                  {tournamentInvites.map((invite) => (
+                    <div key={invite.id} className="tournament-invite-card">
+                      <div className="invite-info">
+                        <div className="invite-tournament">
+                          <strong>{tournamentDetails[invite.tournamentId]?.name || `Tournament ID: ${invite.tournamentId.substring(0, 8)}...`}</strong>
+                        </div>
+                        {tournamentDetails[invite.tournamentId] && (
+                          <div className="tournament-info">
+                            <span>Max Teams: {tournamentDetails[invite.tournamentId].maxSize}</span>
+                            <span>Current Teams: {tournamentDetails[invite.tournamentId].teamCount}</span>
+                          </div>
+                        )}
+                        <div className="invite-date">Invited: {new Date(invite.createdAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="invite-actions">
+                        <button 
+                          className="btn btn-primary"
+                          onClick={() => handleAcceptTournamentInvite(invite.id)}
+                          disabled={processingInvite === invite.id}
+                        >
+                          {processingInvite === invite.id ? 'Accepting...' : 'Accept'}
+                        </button>
+                        <button 
+                          className="btn btn-secondary"
+                          onClick={() => handleDeclineTournamentInvite(invite.id)}
+                          disabled={processingInvite === invite.id}
+                        >
+                          {processingInvite === invite.id ? 'Declining...' : 'Decline'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No pending tournament invites.</p>
+              )}
+            </div>
+
+            {/* Enrolled Tournaments */}
+            <div className="enrolled-tournaments">
+              <h3>Enrolled Tournaments</h3>
+              {loadingEnrolledTournaments ? (
+                <p>Loading enrolled tournaments...</p>
+              ) : enrolledTournaments.length > 0 ? (
+                <div className="enrolled-list">
+                  {enrolledTournaments.map((tournamentInvite) => (
+                    <div key={tournamentInvite.id} className="enrolled-tournament-card">
+                      <div className="tournament-info">
+                        <div className="tournament-name">
+                          <strong>{tournamentDetails[tournamentInvite.tournamentId]?.name || `Tournament ID: ${tournamentInvite.tournamentId.substring(0, 8)}...`}</strong>
+                        </div>
+                        {tournamentDetails[tournamentInvite.tournamentId] && (
+                          <div className="tournament-details">
+                            <span>Max Teams: {tournamentDetails[tournamentInvite.tournamentId].maxSize}</span>
+                            <span>Current Teams: {tournamentDetails[tournamentInvite.tournamentId].teamCount}</span>
+                            <span>Organizers: {tournamentDetails[tournamentInvite.tournamentId].organizerCount}</span>
+                          </div>
+                        )}
+                        <div className="enrolled-date">Joined: {new Date(tournamentInvite.createdAt).toLocaleDateString()}</div>
+                      </div>
+                      <div className="enrolled-actions">
+                        <button 
+                          className="btn btn-danger"
+                          onClick={() => handleLeaveTournament(tournamentInvite.id, tournamentInvite.tournamentId)}
+                          disabled={leavingTournament === tournamentInvite.id}
+                        >
+                          {leavingTournament === tournamentInvite.id ? 'Leaving...' : 'Leave Tournament'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No enrolled tournaments.</p>
+              )}
+            </div>
+
+
           </div>
         );
       case 'settings':
@@ -1154,6 +1443,16 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
               <span className="sidebar-icon">💬</span>
               <span className="sidebar-text">Chat</span>
             </button>
+            
+            {userTeam.role === 'COACH' && (
+              <button
+                className={`sidebar-item ${activeTab === 'tournaments' ? 'active' : ''}`}
+                onClick={() => handleTabChange('tournaments')}
+              >
+                <span className="sidebar-icon">🏆</span>
+                <span className="sidebar-text">Tournaments</span>
+              </button>
+            )}
             
             <button
               className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}

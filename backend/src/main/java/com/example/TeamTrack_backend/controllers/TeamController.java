@@ -1,5 +1,6 @@
 package com.example.TeamTrack_backend.controllers;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -132,6 +133,25 @@ public class TeamController {
                     System.err.println("❌ TeamController: Error getting coach count: " + throwable.getMessage());
                     throwable.printStackTrace();
                     return ResponseEntity.<Integer>badRequest().build();
+                });
+    }
+
+    /**
+     * Search teams by name
+     */
+    @GetMapping("/search")
+    public CompletableFuture<ResponseEntity<List<Team>>> searchTeamsByName(@RequestParam String name) {
+        System.out.println("🔍 TeamController.searchTeamsByName called with name: " + name);
+        
+        return teamService.searchTeamsByName(name)
+                .thenApply(teams -> {
+                    System.out.println("✅ TeamController: Found " + teams.size() + " teams matching name: " + name);
+                    return ResponseEntity.ok(teams);
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("❌ TeamController: Error searching teams by name: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return ResponseEntity.<List<Team>>badRequest().build();
                 });
     }
 }

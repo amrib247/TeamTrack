@@ -1,7 +1,6 @@
 package com.example.TeamTrack_backend.dto;
 
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 import org.springframework.stereotype.Component;
 
@@ -12,7 +11,7 @@ public class TournamentDto {
     private String id;
     private String name;
     private int maxSize;
-    private List<String> teamIds;
+    private int teamCount;
     private String description;
     private String createdAt;
     private String updatedAt;
@@ -26,7 +25,7 @@ public class TournamentDto {
         this.id = tournament.getId();
         this.name = tournament.getName();
         this.maxSize = tournament.getMaxSize();
-        this.teamIds = tournament.getTeamIds();
+        this.teamCount = tournament.getTeamCount();
         this.description = tournament.getDescription();
         this.createdAt = tournament.getCreatedAt() != null ? 
             tournament.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
@@ -61,12 +60,12 @@ public class TournamentDto {
         this.maxSize = maxSize;
     }
 
-    public List<String> getTeamIds() {
-        return teamIds;
+    public int getTeamCount() {
+        return teamCount;
     }
 
-    public void setTeamIds(List<String> teamIds) {
-        this.teamIds = teamIds;
+    public void setTeamCount(int teamCount) {
+        this.teamCount = teamCount;
     }
 
     public String getDescription() {

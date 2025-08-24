@@ -1,5 +1,6 @@
 package com.example.TeamTrack_backend.controllers;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +23,7 @@ import com.example.TeamTrack_backend.dto.CreateTournamentRequest;
 import com.example.TeamTrack_backend.dto.TournamentDto;
 import com.example.TeamTrack_backend.dto.UpdateTournamentRequest;
 import com.example.TeamTrack_backend.services.OrganizerTournamentService;
+import com.example.TeamTrack_backend.services.TournamentInviteService;
 import com.example.TeamTrack_backend.services.TournamentService;
 
 @RestController
@@ -34,6 +36,9 @@ public class TournamentController {
     
     @Autowired
     private OrganizerTournamentService organizerTournamentService;
+    
+    @Autowired
+    private TournamentInviteService tournamentInviteService;
     
     /**
      * Create a new tournament
@@ -156,11 +161,17 @@ public class TournamentController {
      * Remove a team from a tournament
      */
     @DeleteMapping("/{tournamentId}/teams/{teamId}")
-    public CompletableFuture<ResponseEntity<Void>> removeTeamFromTournament(
+    public CompletableFuture<ResponseEntity<Map<String, String>>> removeTeamFromTournament(
             @PathVariable String tournamentId,
             @PathVariable String teamId) {
-        return tournamentService.removeTeamFromTournament(tournamentId, teamId)
-                .thenApply(success -> ResponseEntity.ok().build());
+        return tournamentInviteService.removeTeamFromTournament(teamId, tournamentId)
+                .thenApply(result -> ResponseEntity.ok(Map.of(
+                    "message", "Team removed from tournament successfully"
+                )))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to remove team from tournament",
+                    "message", throwable.getMessage()
+                )));
     }
     
     /**
@@ -258,5 +269,187 @@ public class TournamentController {
     @GetMapping("/test")
     public ResponseEntity<String> testEndpoint() {
         return ResponseEntity.ok("Tournament controller is working!");
+    }
+
+    // Tournament Team Invite Endpoints
+
+    /**
+     * Invite a team to a tournament
+     */
+    @PostMapping("/{tournamentId}/teams/invite")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> inviteTeamToTournament(
+            @PathVariable String tournamentId,
+            @RequestParam String teamId) {
+        return tournamentInviteService.createTournamentInvite(teamId, tournamentId)
+                .thenApply(invite -> ResponseEntity.ok(Map.of(
+                    "message", "Team invited successfully",
+                    "inviteId", invite.getId()
+                )))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to invite team",
+                    "message", throwable.getMessage()
+                )));
+    }
+
+    /**
+     * Get all tournament invites for a specific tournament
+     */
+    @GetMapping("/{tournamentId}/teams/invites")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getTournamentTeamInvites(
+            @PathVariable String tournamentId) {
+        return tournamentInviteService.getTournamentInvitesByTournament(tournamentId)
+                .thenApply(invites -> ResponseEntity.ok(
+                    invites.stream()
+                        .map(invite -> {
+                            Map<String, Object> inviteMap = new HashMap<>();
+                            inviteMap.put("id", invite.getId());
+                            inviteMap.put("teamId", invite.getTeamId());
+                            inviteMap.put("tournamentId", invite.getTournamentId());
+                            inviteMap.put("createdAt", invite.getCreatedAt().toString());
+                            inviteMap.put("isActive", invite.isActive());
+                            return inviteMap;
+                        })
+                        .collect(Collectors.toList())
+                ))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(List.of()));
+    }
+
+    /**
+     * Get accepted tournament invites for a specific tournament (enrolled teams)
+     */
+    @GetMapping("/{tournamentId}/teams/enrolled")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getAcceptedTournamentTeamInvites(
+            @PathVariable String tournamentId) {
+        return tournamentInviteService.getAcceptedTournamentInvitesByTournament(tournamentId)
+                .thenApply(invites -> ResponseEntity.ok(
+                    invites.stream()
+                        .map(invite -> {
+                            Map<String, Object> inviteMap = new HashMap<>();
+                            inviteMap.put("id", invite.getId());
+                            inviteMap.put("teamId", invite.getTeamId());
+                            inviteMap.put("tournamentId", invite.getTournamentId());
+                            inviteMap.put("createdAt", invite.getCreatedAt().toString());
+                            inviteMap.put("isActive", invite.isActive());
+                            return inviteMap;
+                        })
+                        .collect(Collectors.toList())
+                ))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(List.of()));
+    }
+
+    /**
+     * Accept a tournament invite
+     */
+    @PostMapping("/teams/invites/{inviteId}/accept")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> acceptTournamentInvite(
+            @PathVariable String inviteId) {
+        return tournamentInviteService.acceptTournamentInvite(inviteId)
+                .thenApply(result -> ResponseEntity.ok(Map.of(
+                    "message", "Tournament invite accepted successfully"
+                )))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to accept invite",
+                    "message", throwable.getMessage()
+                )));
+    }
+
+    /**
+     * Decline a tournament invite
+     */
+    @PostMapping("/teams/invites/{inviteId}/decline")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> declineTournamentInvite(
+            @PathVariable String inviteId) {
+        return tournamentInviteService.declineTournamentInvite(inviteId)
+                .thenApply(result -> ResponseEntity.ok(Map.of(
+                    "message", "Tournament invite declined successfully"
+                )))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to decline invite",
+                    "message", throwable.getMessage()
+                )));
+    }
+
+    /**
+     * Get tournament invites for a specific team
+     */
+    @GetMapping("/teams/invites/{teamId}")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getTournamentInvitesByTeam(
+            @PathVariable String teamId) {
+        return tournamentInviteService.getTournamentInvitesByTeam(teamId)
+                .thenApply(invites -> ResponseEntity.ok(
+                    invites.stream()
+                        .map(invite -> {
+                            Map<String, Object> inviteMap = new HashMap<>();
+                            inviteMap.put("id", invite.getId());
+                            inviteMap.put("teamId", invite.getTeamId());
+                            inviteMap.put("tournamentId", invite.getTournamentId());
+                            inviteMap.put("createdAt", invite.getCreatedAt().toString());
+                            inviteMap.put("isActive", invite.isActive());
+                            return inviteMap;
+                        })
+                        .collect(Collectors.toList())
+                ))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(List.of()));
+    }
+
+    /**
+     * Get accepted tournament invites for a specific team (enrolled tournaments)
+     */
+    @GetMapping("/teams/{teamId}/enrolled")
+    public CompletableFuture<ResponseEntity<List<Map<String, Object>>>> getAcceptedTournamentInvitesByTeam(
+            @PathVariable String teamId) {
+        return tournamentInviteService.getAcceptedTournamentInvitesByTeam(teamId)
+                .thenApply(invites -> ResponseEntity.ok(
+                    invites.stream()
+                        .map(invite -> {
+                            Map<String, Object> inviteMap = new HashMap<>();
+                            inviteMap.put("id", invite.getId());
+                            inviteMap.put("teamId", invite.getTeamId());
+                            inviteMap.put("tournamentId", invite.getTournamentId());
+                            inviteMap.put("createdAt", invite.getCreatedAt().toString());
+                            inviteMap.put("isActive", invite.isActive());
+                            return inviteMap;
+                        })
+                        .collect(Collectors.toList())
+                ))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(List.of()));
+    }
+
+    /**
+     * Check if a team already has an invite or is enrolled in a tournament
+     */
+    @GetMapping("/{tournamentId}/teams/{teamId}/check")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> checkExistingInvite(
+            @PathVariable String tournamentId,
+            @PathVariable String teamId) {
+        return tournamentInviteService.checkExistingInvite(teamId, tournamentId)
+                .thenApply(exists -> {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("exists", exists);
+                    return ResponseEntity.ok(response);
+                })
+                .exceptionally(throwable -> {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("error", "Failed to check existing invite");
+                    errorResponse.put("message", throwable.getMessage());
+                    return ResponseEntity.badRequest().body(errorResponse);
+                });
+    }
+
+    /**
+     * Leave a tournament (for teams)
+     */
+    @DeleteMapping("/teams/{teamId}/tournaments/{tournamentId}/leave")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> leaveTournament(
+            @PathVariable String teamId,
+            @PathVariable String tournamentId) {
+        return tournamentInviteService.removeTeamFromTournament(teamId, tournamentId)
+                .thenApply(result -> ResponseEntity.ok(Map.of(
+                    "message", "Left tournament successfully"
+                )))
+                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to leave tournament",
+                    "message", throwable.getMessage()
+                )));
     }
 }

@@ -101,7 +101,7 @@ export interface Tournament {
   id: string;
   name: string;
   maxSize: number;
-  teamIds: string[];
+  teamCount: number;
   description?: string;
   createdAt: string;
   updatedAt: string;

@@ -1,13 +1,12 @@
 package com.example.TeamTrack_backend.models;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public class Tournament {
     private String id;
     private String name;
     private int maxSize;
-    private List<String> teamIds;
+    private int teamCount;
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -26,6 +25,7 @@ public class Tournament {
         this.name = name;
         this.maxSize = maxSize;
         this.description = description;
+        this.teamCount = 0; // Start with 0 teams
     }
 
     // Getters and Setters
@@ -53,12 +53,12 @@ public class Tournament {
         this.maxSize = maxSize;
     }
 
-    public List<String> getTeamIds() {
-        return teamIds;
+    public int getTeamCount() {
+        return teamCount;
     }
 
-    public void setTeamIds(List<String> teamIds) {
-        this.teamIds = teamIds;
+    public void setTeamCount(int teamCount) {
+        this.teamCount = teamCount;
     }
 
     public String getDescription() {

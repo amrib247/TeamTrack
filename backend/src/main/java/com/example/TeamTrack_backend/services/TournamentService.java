@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 
 import com.example.TeamTrack_backend.dto.CreateTournamentRequest;
 import com.example.TeamTrack_backend.dto.UpdateTournamentRequest;
-import com.example.TeamTrack_backend.models.Tournament;
 import com.example.TeamTrack_backend.models.OrganizerTournament;
+import com.example.TeamTrack_backend.models.Tournament;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
@@ -83,7 +83,7 @@ public class TournamentService {
                     request.getDescription()
                 );
                 tournament.setId(tournamentId);
-                tournament.setTeamIds(new ArrayList<>()); // Start with empty team list
+                tournament.setTeamCount(0); // Start with 0 teams
                 
                 System.out.println("🏗️ TournamentService: Tournament object created, saving to Firestore...");
                 
@@ -92,7 +92,7 @@ public class TournamentService {
                 tournamentData.put("id", tournament.getId());
                 tournamentData.put("name", tournament.getName());
                 tournamentData.put("maxSize", tournament.getMaxSize());
-                tournamentData.put("teamIds", tournament.getTeamIds());
+                tournamentData.put("teamCount", tournament.getTeamCount());
                 tournamentData.put("description", tournament.getDescription());
                 tournamentData.put("createdAt", tournament.getCreatedAt().toString());
                 tournamentData.put("updatedAt", tournament.getUpdatedAt().toString());
@@ -157,8 +157,8 @@ public class TournamentService {
                         tournament.setName(document.getString("name"));
                         tournament.setMaxSize(document.getLong("maxSize") != null ? 
                             document.getLong("maxSize").intValue() : 0);
-                        tournament.setTeamIds(document.get("teamIds") != null ? 
-                            (List<String>) document.get("teamIds") : new ArrayList<>());
+                        tournament.setTeamCount(document.get("teamCount") != null ? 
+                            ((Number) document.get("teamCount")).intValue() : 0);
                         tournament.setDescription(document.getString("description"));
                         
                         // Parse timestamps
@@ -227,8 +227,8 @@ public class TournamentService {
                 tournament.setName(document.getString("name"));
                 tournament.setMaxSize(document.getLong("maxSize") != null ? 
                     document.getLong("maxSize").intValue() : 0);
-                tournament.setTeamIds(document.get("teamIds") != null ? 
-                    (List<String>) document.get("teamIds") : new ArrayList<>());
+                tournament.setTeamCount(document.get("teamCount") != null ? 
+                    ((Number) document.get("teamCount")).intValue() : 0);
                 tournament.setDescription(document.getString("description"));
                 
                 // Parse timestamps
@@ -282,22 +282,16 @@ public class TournamentService {
                 }
                 
                 // Check if tournament is full
-                if (tournament.getTeamIds().size() >= tournament.getMaxSize()) {
+                if (tournament.getTeamCount() >= tournament.getMaxSize()) {
                     throw new RuntimeException("Tournament is full");
                 }
                 
-                // Check if team is already in tournament
-                if (tournament.getTeamIds().contains(teamId)) {
-                    throw new RuntimeException("Team is already in tournament");
-                }
-                
-                // Add team to tournament
-                List<String> updatedTeamIds = new ArrayList<>(tournament.getTeamIds());
-                updatedTeamIds.add(teamId);
+                // Increment team count
+                int newTeamCount = tournament.getTeamCount() + 1;
                 
                 // Update in Firestore
                 Map<String, Object> updates = new HashMap<>();
-                updates.put("teamIds", updatedTeamIds);
+                updates.put("teamCount", newTeamCount);
                 updates.put("updatedAt", LocalDateTime.now().toString());
                 
                 firestore.collection("tournaments").document(tournamentId).update(updates).get();
@@ -334,18 +328,12 @@ public class TournamentService {
                     throw new RuntimeException("Tournament not found");
                 }
                 
-                // Check if team is in tournament
-                if (!tournament.getTeamIds().contains(teamId)) {
-                    throw new RuntimeException("Team is not in tournament");
-                }
-                
-                // Remove team from tournament
-                List<String> updatedTeamIds = new ArrayList<>(tournament.getTeamIds());
-                updatedTeamIds.remove(teamId);
+                // Decrement team count
+                int newTeamCount = Math.max(0, tournament.getTeamCount() - 1);
                 
                 // Update in Firestore
                 Map<String, Object> updates = new HashMap<>();
-                updates.put("teamIds", updatedTeamIds);
+                updates.put("teamCount", newTeamCount);
                 updates.put("updatedAt", LocalDateTime.now().toString());
                 
                 firestore.collection("tournaments").document(tournamentId).update(updates).get();
@@ -449,9 +437,8 @@ public class TournamentService {
                 updatedTournament.setDescription((String) updateData.getOrDefault("description", tournamentData.get("description")));
                 updatedTournament.setMaxSize(((Long) tournamentData.get("maxSize")).intValue());
                 
-                @SuppressWarnings("unchecked")
-                List<String> teamIds = (List<String>) tournamentData.get("teamIds");
-                updatedTournament.setTeamIds(teamIds != null ? teamIds : new ArrayList<>());
+                updatedTournament.setTeamCount(tournamentData.get("teamCount") != null ?
+                    ((Number) tournamentData.get("teamCount")).intValue() : 0);
                 
                 // Parse dates
                 String createdAtStr = (String) tournamentData.get("createdAt");
@@ -510,55 +497,29 @@ public class TournamentService {
                     // Don't fail tournament deletion if organizer cleanup fails
                 }
                 
-                // Second, remove all team registrations for this tournament
-                System.out.println("👥 TournamentService: Removing all team registrations...");
+                // Second, cleanup all tournament invites for this tournament
+                System.out.println("📨 TournamentService: Cleaning up all tournament invites...");
                 try {
                     if (firestore != null) {
-                        // Get the tournament to see which teams are registered
-                        var tournamentDoc = firestore.collection("tournaments").document(tournamentId).get().get();
-                        if (tournamentDoc.exists()) {
-                            var tournamentData = tournamentDoc.getData();
-                            if (tournamentData != null && tournamentData.containsKey("teamIds")) {
-                                @SuppressWarnings("unchecked")
-                                var teamIds = (List<String>) tournamentData.get("teamIds");
-                                if (teamIds != null && !teamIds.isEmpty()) {
-                                    System.out.println("🔍 TournamentService: Found " + teamIds.size() + " teams to remove from tournament");
-                                    
-                                    // Update each team to remove this tournament from their tournament list
-                                    for (String teamId : teamIds) {
-                                        try {
-                                            var teamDoc = firestore.collection("teams").document(teamId).get().get();
-                                            if (teamDoc.exists()) {
-                                                var teamData = teamDoc.getData();
-                                                if (teamData != null && teamData.containsKey("tournamentIds")) {
-                                                    @SuppressWarnings("unchecked")
-                                                    var teamTournamentIds = (List<String>) teamData.get("tournamentIds");
-                                                    if (teamTournamentIds != null) {
-                                                        teamTournamentIds.remove(tournamentId);
-                                                        
-                                                        // Update the team document
-                                                        var updateData = new HashMap<String, Object>();
-                                                        updateData.put("tournamentIds", teamTournamentIds);
-                                                        updateData.put("updatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                                                        
-                                                        firestore.collection("teams").document(teamId).update(updateData).get();
-                                                        System.out.println("🗑️ TournamentService: Removed tournament from team: " + teamId);
-                                                    }
-                                                }
-                                            }
-                                        } catch (Exception e) {
-                                            System.err.println("⚠️ TournamentService: Warning - could not remove tournament from team " + teamId + ": " + e.getMessage());
-                                            // Continue with other teams even if one fails
-                                        }
-                                    }
-                                }
+                        // Delete all tournament invites for this tournament
+                        var inviteQuery = firestore.collection("tournamentInvites")
+                            .whereEqualTo("tournamentId", tournamentId);
+                        var inviteDocs = inviteQuery.get().get().getDocuments();
+                        
+                        for (var inviteDoc : inviteDocs) {
+                            try {
+                                inviteDoc.getReference().delete().get();
+                                System.out.println("🗑️ TournamentService: Deleted tournament invite: " + inviteDoc.getId());
+                            } catch (Exception e) {
+                                System.err.println("⚠️ TournamentService: Warning - could not delete tournament invite " + inviteDoc.getId() + ": " + e.getMessage());
+                                // Continue with other invites even if one fails
                             }
                         }
-                        System.out.println("✅ TournamentService: All team registrations removed");
+                        System.out.println("✅ TournamentService: All tournament invites cleaned up");
                     }
                 } catch (Exception e) {
-                    System.err.println("⚠️ TournamentService: Warning - could not remove team registrations: " + e.getMessage());
-                    // Don't fail tournament deletion if team removal fails
+                    System.err.println("⚠️ TournamentService: Warning - could not cleanup tournament invites: " + e.getMessage());
+                    // Don't fail tournament deletion if invite cleanup fails
                 }
                 
                 // Finally, delete the actual tournament document

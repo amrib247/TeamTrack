@@ -204,21 +204,6 @@ export class TournamentService {
     }
   }
 
-  async removeTeamFromTournament(tournamentId: string, teamId: string): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/${teamId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to remove team from tournament: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Failed to remove team from tournament:', error);
-      throw error;
-    }
-  }
-
   async updateTournament(tournamentId: string, request: UpdateTournamentRequest): Promise<Tournament> {
     try {
       const response = await fetch(`${this.baseUrl}/${tournamentId}`, {
@@ -268,6 +253,131 @@ export class TournamentService {
       return result;
     } catch (error) {
       console.error('Failed to check organizer safety:', error);
+      throw error;
+    }
+  }
+
+  // Tournament Team Invite Methods
+
+  async inviteTeamToTournament(tournamentId: string, teamId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/invite?teamId=${teamId}`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to invite team to tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to invite team to tournament:', error);
+      throw error;
+    }
+  }
+
+  async getTournamentTeamInvites(tournamentId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/invites`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get tournament team invites: ${response.status}`);
+      }
+      
+      const invites = await response.json();
+      return invites;
+    } catch (error) {
+      console.error('Failed to get tournament team invites:', error);
+      throw error;
+    }
+  }
+
+  async getAcceptedTournamentTeamInvites(tournamentId: string): Promise<any[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/enrolled`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get accepted tournament team invites: ${response.status}`);
+      }
+      
+      const invites = await response.json();
+      return invites;
+    } catch (error) {
+      console.error('Failed to get accepted tournament team invites:', error);
+      throw error;
+    }
+  }
+
+  async acceptTournamentInvite(inviteId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/teams/invites/${inviteId}/accept`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to accept tournament invite: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to accept tournament invite:', error);
+      throw error;
+    }
+  }
+
+  async declineTournamentInvite(inviteId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/teams/invites/${inviteId}/decline`, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to decline tournament invite: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to decline tournament invite:', error);
+      throw error;
+    }
+  }
+
+  async checkExistingInvite(tournamentId: string, teamId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/${teamId}/check`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to check existing invite: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.exists;
+    } catch (error) {
+      console.error('Failed to check existing invite:', error);
+      throw error;
+    }
+  }
+
+  async removeTeamFromTournament(tournamentId: string, teamId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/teams/${teamId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to remove team from tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to remove team from tournament:', error);
+      throw error;
+    }
+  }
+
+  async leaveTournament(teamId: string, tournamentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/teams/${teamId}/tournaments/${tournamentId}/leave`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to leave tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to leave tournament:', error);
       throw error;
     }
   }

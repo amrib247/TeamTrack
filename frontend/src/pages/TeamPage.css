@@ -536,6 +536,190 @@
   padding: 2rem;
 }
 
+/* Tournaments Styles */
+.content-tournaments {
+  padding: 2rem;
+}
+
+.content-tournaments h2 {
+  color: #333;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.content-tournaments h3 {
+  color: #333;
+  margin: 1.5rem 0 1rem 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.content-tournaments p {
+  color: #666;
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+}
+
+.content-tournaments ul {
+  color: #666;
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.content-tournaments li {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+/* Tournament Invites */
+.tournament-invites {
+  margin-bottom: 2rem;
+}
+
+.invite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tournament-invite-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.invite-info {
+  flex: 1;
+}
+
+.invite-tournament {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.tournament-info {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tournament-info span {
+  background: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: #495057;
+  border: 1px solid #e9ecef;
+}
+
+.invite-date {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.invite-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Enrolled Tournaments */
+.enrolled-tournaments {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.enrolled-tournaments h3 {
+  color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.enrolled-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.enrolled-tournament-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tournament-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.tournament-details {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tournament-details span {
+  background: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  color: #495057;
+  border: 1px solid #e9ecef;
+}
+
+.enrolled-date {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.enrolled-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.enrolled-actions .btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.enrolled-actions .btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.enrolled-actions .btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.enrolled-actions .btn-danger:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+
 .roster-header {
   display: flex;
   justify-content: space-between;

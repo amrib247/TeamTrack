@@ -702,8 +702,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                   <TournamentComponent
                     key={tournament.id}
                     tournament={tournament}
-                    userTeamIds={currentUser.teams.map(team => team.teamId)}
-                    onTournamentUpdated={loadTournaments}
                   />
                 ) : (
                   <div key={tournament.id} className="tournament-loading">

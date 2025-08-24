@@ -359,6 +359,90 @@ class TeamService {
       throw error;
     }
   }
+
+  // Search teams by name
+  async searchTeamsByName(name: string): Promise<Team[]> {
+    try {
+      console.log('🔍 Searching teams by name:', name);
+      
+      const response = await fetch(`${API_BASE_URL}/teams/search?name=${encodeURIComponent(name)}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to search teams:', response.status, errorText);
+        throw new Error(`Failed to search teams: ${response.status} ${errorText}`);
+      }
+
+      const teams = await response.json();
+      console.log('✅ Teams search completed:', teams);
+      return teams;
+    } catch (error) {
+      console.error('Failed to search teams:', error);
+      throw error;
+    }
+  }
+
+  // Get tournament invites for a team
+  async getTournamentInvites(teamId: string): Promise<any[]> {
+    try {
+      console.log('🏆 Getting tournament invites for team:', teamId);
+      
+      const response = await fetch(`${API_BASE_URL}/tournaments/teams/invites/${teamId}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to get tournament invites:', response.status, errorText);
+        throw new Error(`Failed to get tournament invites: ${response.status} ${errorText}`);
+      }
+
+      const invites = await response.json();
+      console.log('✅ Tournament invites retrieved successfully:', invites);
+      return invites;
+    } catch (error) {
+      console.error('Failed to get tournament invites:', error);
+      throw error;
+    }
+  }
+
+  // Get accepted tournament invites for a team (enrolled tournaments)
+  async getAcceptedTournamentInvites(teamId: string): Promise<any[]> {
+    try {
+      console.log('🏆 Getting accepted tournament invites for team:', teamId);
+      const response = await fetch(`${API_BASE_URL}/tournaments/teams/${teamId}/enrolled`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to get accepted tournament invites:', response.status, errorText);
+        throw new Error(`Failed to get accepted tournament invites: ${response.status} ${errorText}`);
+      }
+      const invites = await response.json();
+      console.log('✅ Accepted tournament invites retrieved successfully:', invites);
+      return invites;
+    } catch (error) {
+      console.error('Failed to get accepted tournament invites:', error);
+      throw error;
+    }
+  }
+
+  // Leave a tournament
+  async leaveTournament(teamId: string, tournamentId: string): Promise<void> {
+    try {
+      console.log('🏆 Leaving tournament:', tournamentId, 'for team:', teamId);
+      const response = await fetch(`${API_BASE_URL}/tournaments/teams/${teamId}/tournaments/${tournamentId}/leave`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to leave tournament:', response.status, errorText);
+        throw new Error(`Failed to leave tournament: ${response.status} ${errorText}`);
+      }
+      
+      console.log('✅ Successfully left tournament');
+    } catch (error) {
+      console.error('Failed to leave tournament:', error);
+      throw error;
+    }
+  }
 }
 
 export const teamService = new TeamService();
