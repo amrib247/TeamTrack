@@ -591,6 +591,59 @@
   min-width: 120px;
 }
 
+/* Leave Tournament Styles */
+.leave-warning {
+  background: #fff3cd;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #ffeaa7;
+}
+
+.leave-warning p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.leave-confirm {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.leave-confirm p {
+  color: #856404;
+  margin: 0;
+  font-weight: 600;
+}
+
+.leave-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+}
+
+.leave-input:focus {
+  outline: none;
+  border-color: #e0a800;
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.2);
+}
+
+.leave-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.leave-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
 .error-message {
   background: #f8d7da;
   color: #721c24;
@@ -738,6 +791,26 @@
 
 .btn-secondary:hover {
   background: #7f8c8d;
+  transform: translateY(-1px);
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
   transform: translateY(-1px);
 }
 

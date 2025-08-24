@@ -102,6 +102,9 @@ function Tournament({ tournament, userTeamIds, onTournamentUpdated }: Tournament
             <strong>Size:</strong> {tournament.teamIds.length}/{tournament.maxSize} teams
           </div>
           <div className="info-item">
+            <strong>Organizers:</strong> {tournament.organizerCount}
+          </div>
+          <div className="info-item">
             <strong>Created:</strong> {formatDate(tournament.createdAt)}
           </div>
         </div>

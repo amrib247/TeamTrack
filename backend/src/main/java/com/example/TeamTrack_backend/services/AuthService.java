@@ -19,6 +19,9 @@ public class AuthService {
     
     @Autowired
     private UserTeamService userTeamService;
+    
+    @Autowired
+    private OrganizerTournamentService organizerTournamentService;
 
     // Email validation pattern
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
@@ -155,6 +158,19 @@ public class AuthService {
                     throw e; // Re-throw our custom error
                 }
                 System.out.println("⚠️ Coach safety check failed, proceeding with deletion: " + e.getMessage());
+            }
+            
+            // Check if this user can safely be removed from all tournaments (organizer safety check)
+            try {
+                boolean canRemoveFromTournaments = organizerTournamentService.checkUserCanBeRemovedFromAllTournaments(uid).get();
+                if (!canRemoveFromTournaments) {
+                    throw new RuntimeException("Cannot delete account - you are the last organizer of one or more tournaments. Please invite other organizers or delete the tournaments first.");
+                }
+            } catch (Exception e) {
+                if (e.getMessage().contains("Cannot delete account")) {
+                    throw e; // Re-throw our custom error
+                }
+                System.out.println("⚠️ Tournament organizer safety check failed, proceeding with deletion: " + e.getMessage());
             }
             
             // TODO: Verify password here if needed (Firebase Auth handles this)

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/tournamentService';
 import type { Tournament, AuthResponse, UpdateTournamentRequest } from '../types/Auth';
+import TournamentSafetyPrompt from '../components/TournamentSafetyPrompt';
 import './TournamentPage.css';
 
 interface TournamentPageProps {
@@ -39,6 +40,15 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Leave tournament state
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState('');
+  const [isLeaving, setIsLeaving] = useState(false);
+  
+  // Safety prompt state
+  const [showSafetyPrompt, setShowSafetyPrompt] = useState(false);
+  const [safetyPromptAction, setSafetyPromptAction] = useState<'LEAVE_TOURNAMENT' | 'DELETE_ACCOUNT'>('LEAVE_TOURNAMENT');
 
   useEffect(() => {
     if (!tournamentId) {
@@ -202,6 +212,60 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleLeaveTournament = async () => {
+    if (!tournamentId) return;
+    
+    if (leaveConfirm !== 'LEAVE') {
+      setError('Please type LEAVE to confirm leaving the tournament');
+      return;
+    }
+
+    try {
+      setIsLeaving(true);
+      setError('');
+      
+      // First check if it's safe to leave the tournament
+      const safetyCheck = await tournamentService.checkOrganizerSafety(
+        currentUser.id, 
+        tournamentId, 
+        'LEAVE_TOURNAMENT'
+      );
+      
+      if (!safetyCheck.canProceed) {
+        // Show safety prompt instead of error
+        setSafetyPromptAction('LEAVE_TOURNAMENT');
+        setShowSafetyPrompt(true);
+        setIsLeaving(false);
+        setShowLeaveConfirm(false);
+        setLeaveConfirm('');
+        return;
+      }
+      
+      // Safe to proceed with leaving
+      await tournamentService.removeOrganizerFromTournament(tournamentId, currentUser.id);
+      
+      alert('You have left the tournament successfully!');
+      navigate('/home');
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to leave tournament');
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
+  // Safety prompt handlers
+  const handleAddOrganizer = () => {
+    setShowSafetyPrompt(false);
+    setActiveTab('organizers');
+  };
+
+  const handleDeleteTournamentFromPrompt = () => {
+    setShowSafetyPrompt(false);
+    setActiveTab('settings');
+    setShowDeleteConfirm(true);
   };
 
   if (loading) {
@@ -410,6 +474,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                     <span>{tournament.teamIds.length}</span>
                   </div>
                   <div className="info-item">
+                    <label>Organizers:</label>
+                    <span>{tournament.organizerCount}</span>
+                  </div>
+                  <div className="info-item">
                     <label>Created:</label>
                     <span>{new Date(tournament.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -534,6 +602,57 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                 )}
               </div>
 
+              {/* Leave Tournament */}
+              <div className="settings-section">
+                <h4>Leave Tournament</h4>
+                <div className="leave-warning">
+                  <p>🚪 <strong>Leave Tournament:</strong> You will no longer be an organizer of this tournament. You can rejoin if invited again.</p>
+                </div>
+                
+                {!showLeaveConfirm ? (
+                  <button
+                    type="button"
+                    className="btn btn-warning"
+                    onClick={() => setShowLeaveConfirm(true)}
+                  >
+                    🚪 Leave Tournament
+                  </button>
+                ) : (
+                  <div className="leave-confirm">
+                    <p>Type "LEAVE" to confirm leaving the tournament:</p>
+                    <input
+                      type="text"
+                      value={leaveConfirm}
+                      onChange={(e) => setLeaveConfirm(e.target.value)}
+                      placeholder="Type LEAVE"
+                      className="leave-input"
+                    />
+                    <div className="leave-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowLeaveConfirm(false);
+                          setLeaveConfirm('');
+                          setError('');
+                        }}
+                        disabled={isLeaving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-warning"
+                        onClick={handleLeaveTournament}
+                        disabled={isLeaving}
+                      >
+                        {isLeaving ? 'Leaving...' : 'Confirm Leave'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {error && (
                 <div className="error-message">
                   {error}
@@ -602,6 +721,16 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
           {renderTabContent()}
         </div>
       </div>
+      
+      {/* Tournament Safety Prompt */}
+      <TournamentSafetyPrompt
+        isOpen={showSafetyPrompt}
+        onClose={() => setShowSafetyPrompt(false)}
+        onAddOrganizer={handleAddOrganizer}
+        onDeleteTournament={handleDeleteTournamentFromPrompt}
+        tournamentName={tournament?.name}
+        action={safetyPromptAction}
+      />
     </div>
   );
 }

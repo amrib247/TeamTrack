@@ -17,6 +17,7 @@ public class TournamentDto {
     private String createdAt;
     private String updatedAt;
     private boolean isActive;
+    private int organizerCount;
 
     public TournamentDto() {
     }
@@ -32,6 +33,7 @@ public class TournamentDto {
         this.updatedAt = tournament.getUpdatedAt() != null ? 
             tournament.getUpdatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null;
         this.isActive = tournament.isActive();
+        this.organizerCount = tournament.getOrganizerCount();
     }
 
     // Getters and Setters
@@ -97,5 +99,13 @@ public class TournamentDto {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public int getOrganizerCount() {
+        return organizerCount;
+    }
+
+    public void setOrganizerCount(int organizerCount) {
+        this.organizerCount = organizerCount;
     }
 }

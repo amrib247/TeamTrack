@@ -137,6 +137,36 @@ export class TournamentService {
     }
   }
 
+  async removeOrganizerFromTournament(tournamentId: string, userId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/${tournamentId}/organizers/${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to remove organizer from tournament: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to remove organizer from tournament:', error);
+      throw error;
+    }
+  }
+
+  async cleanupUserOrganizerRelationships(userId: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/organizers/cleanup/${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to cleanup user organizer relationships: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to cleanup user organizer relationships:', error);
+      throw error;
+    }
+  }
+
   async createTournament(request: CreateTournamentRequest, userId: string): Promise<Tournament> {
     try {
       const response = await fetch(`${this.baseUrl}?userId=${userId}`, {
@@ -222,6 +252,22 @@ export class TournamentService {
       }
     } catch (error) {
       console.error('Failed to delete tournament:', error);
+      throw error;
+    }
+  }
+
+  async checkOrganizerSafety(userId: string, tournamentId: string, action: string): Promise<{ canProceed: boolean; message: string }> {
+    try {
+      const response = await fetch(`${this.baseUrl}/check-organizer-safety?userId=${userId}&tournamentId=${tournamentId}&action=${action}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to check organizer safety: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Failed to check organizer safety:', error);
       throw error;
     }
   }

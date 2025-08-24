@@ -65,17 +65,28 @@ class AuthService {
   }
 
   async deleteAccount(credentials: LoginRequest): Promise<string> {
-    const response = await this.request<{message?: string, error?: string}>('/auth/delete-account', {
-      method: 'DELETE',
-      body: JSON.stringify(credentials),
-    });
-    
-    if (response?.message) {
-      return response.message;
-    } else if (response?.error) {
-      throw new Error(response.error);
-    } else {
-      return 'Account deleted successfully';
+    try {
+      const response = await this.request<{message?: string, error?: string}>('/auth/delete-account', {
+        method: 'DELETE',
+        body: JSON.stringify(credentials),
+      });
+      
+      if (response?.message) {
+        return response.message;
+      } else if (response?.error) {
+        throw new Error(response.error);
+      } else {
+        return 'Account deleted successfully';
+      }
+    } catch (error) {
+      // Handle safety check errors specifically
+      if (error instanceof Error) {
+        if (error.message.includes('Cannot delete account')) {
+          throw new Error('Cannot delete account - you are the last organizer of one or more tournaments. Please invite other organizers or delete the tournaments first.');
+        }
+        throw error;
+      }
+      throw new Error('Failed to delete account');
     }
   }
 

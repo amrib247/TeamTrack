@@ -12,11 +12,13 @@ public class Tournament {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isActive;
+    private int organizerCount;
 
     public Tournament() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
         this.isActive = true;
+        this.organizerCount = 1; // Start with 1 organizer (the creator)
     }
 
     public Tournament(String name, int maxSize, String description) {
@@ -89,5 +91,13 @@ public class Tournament {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public int getOrganizerCount() {
+        return organizerCount;
+    }
+
+    public void setOrganizerCount(int organizerCount) {
+        this.organizerCount = organizerCount;
     }
 }

@@ -24,14 +24,20 @@ public class FirebaseAuthService {
     private final FirebaseAuth firebaseAuth;
     private final Firestore firestore;
     private final UserTeamService userTeamService;
+    private final OrganizerTournamentService organizerTournamentService;
     
-    public FirebaseAuthService(FirebaseAuth firebaseAuth, Firestore firestore, UserTeamService userTeamService) {
+    public FirebaseAuthService(FirebaseAuth firebaseAuth, Firestore firestore, UserTeamService userTeamService, OrganizerTournamentService organizerTournamentService) {
         this.firebaseAuth = firebaseAuth;
         this.firestore = firestore;
         this.userTeamService = userTeamService;
+        this.organizerTournamentService = organizerTournamentService;
         System.out.println("🚀 FirebaseAuthService: userTeamService injected: " + (userTeamService != null));
         if (userTeamService != null) {
             System.out.println("🚀 FirebaseAuthService: userTeamService class: " + userTeamService.getClass().getName());
+        }
+        System.out.println("🚀 FirebaseAuthService: organizerTournamentService injected: " + (organizerTournamentService != null));
+        if (organizerTournamentService != null) {
+            System.out.println("🚀 FirebaseAuthService: organizerTournamentService class: " + organizerTournamentService.getClass().getName());
         }
     }
 
@@ -136,6 +142,11 @@ public class FirebaseAuthService {
             System.out.println("🗑️ FirebaseAuthService: Removing all UserTeam documents for user: " + uid);
             userTeamService.removeAllTeamsForUser(uid).get(); // Wait for cascade deletion to complete
             System.out.println("✅ FirebaseAuthService: Successfully removed all UserTeam documents for user: " + uid);
+            
+            // Then, cleanup all organizer relationships for this user
+            System.out.println("🗑️ FirebaseAuthService: Cleaning up organizer relationships for user: " + uid);
+            organizerTournamentService.cleanupUserOrganizerRelationships(uid).get(); // Wait for cleanup to complete
+            System.out.println("✅ FirebaseAuthService: Successfully cleaned up organizer relationships for user: " + uid);
             
             // Delete from Firebase Authentication
             firebaseAuth.deleteUser(uid);

@@ -106,6 +106,7 @@ export interface Tournament {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  organizerCount: number;
 }
 
 export interface CreateTournamentRequest {

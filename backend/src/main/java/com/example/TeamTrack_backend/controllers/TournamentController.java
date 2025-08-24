@@ -184,6 +184,75 @@ public class TournamentController {
     }
     
     /**
+     * Remove an organizer from a tournament
+     */
+    @DeleteMapping("/{tournamentId}/organizers/{userId}")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> removeOrganizerFromTournament(
+            @PathVariable String tournamentId,
+            @PathVariable String userId) {
+        // First check if it's safe to remove this organizer
+        return organizerTournamentService.checkOrganizerSafety(userId, tournamentId, "LEAVE_TOURNAMENT")
+                .thenCompose(canProceed -> {
+                    if (!canProceed) {
+                        return CompletableFuture.completedFuture(
+                            ResponseEntity.badRequest().body(Map.of(
+                                "error", "Cannot remove organizer",
+                                "message", "Cannot remove the last organizer. Please invite other organizers or delete the tournament first."
+                            ))
+                        );
+                    }
+                    
+                    // Safe to proceed with removal
+                    return organizerTournamentService.removeOrganizerFromTournament(userId, tournamentId)
+                            .thenApply(result -> ResponseEntity.ok(Map.of("message", "Organizer removed successfully")));
+                });
+    }
+    
+    /**
+     * Clean up organizer relationships when a user deletes their account
+     */
+    @DeleteMapping("/organizers/cleanup/{userId}")
+    public CompletableFuture<ResponseEntity<Map<String, String>>> cleanupUserOrganizerRelationships(
+            @PathVariable String userId) {
+        // First check if it's safe to remove this user from all tournaments
+        return organizerTournamentService.checkUserCanBeRemovedFromAllTournaments(userId)
+                .thenCompose(canProceed -> {
+                    if (!canProceed) {
+                        return CompletableFuture.completedFuture(
+                            ResponseEntity.badRequest().body(Map.of(
+                                "error", "Cannot delete account",
+                                "message", "Cannot delete account - you are the last organizer of one or more tournaments. Please invite other organizers or delete the tournaments first."
+                            ))
+                        );
+                    }
+                    
+                    // Safe to proceed with cleanup
+                    return organizerTournamentService.cleanupUserOrganizerRelationships(userId)
+                            .thenApply(result -> ResponseEntity.ok(Map.of("message", "User organizer relationships cleaned up successfully")));
+                });
+    }
+    
+    /**
+     * Check if a user can safely leave a tournament without leaving it with no organizers
+     */
+    @GetMapping("/check-organizer-safety")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> checkOrganizerSafety(
+            @RequestParam String userId,
+            @RequestParam String tournamentId,
+            @RequestParam String action) {
+        return organizerTournamentService.checkOrganizerSafety(userId, tournamentId, action)
+                .thenApply(canProceed -> {
+                    Map<String, Object> response = Map.of(
+                        "canProceed", canProceed,
+                        "message", canProceed ? 
+                            "Safe to proceed" : 
+                            "Cannot proceed - would leave tournament with no organizers"
+                    );
+                    return ResponseEntity.ok(response);
+                });
+    }
+
+    /**
      * Test endpoint to verify the controller is working
      */
     @GetMapping("/test")

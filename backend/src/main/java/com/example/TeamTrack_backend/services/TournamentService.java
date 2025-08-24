@@ -97,6 +97,7 @@ public class TournamentService {
                 tournamentData.put("createdAt", tournament.getCreatedAt().toString());
                 tournamentData.put("updatedAt", tournament.getUpdatedAt().toString());
                 tournamentData.put("isActive", tournament.isActive());
+                tournamentData.put("organizerCount", tournament.getOrganizerCount());
                 
                 // Save tournament to Firestore
                 firestore.collection("tournaments").document(tournamentId).set(tournamentData).get();
@@ -174,6 +175,10 @@ public class TournamentService {
                         tournament.setActive(document.getBoolean("isActive") != null ? 
                             document.getBoolean("isActive") : true);
                         
+                        // Set organizer count
+                        tournament.setOrganizerCount(document.get("organizerCount") != null ? 
+                            ((Number) document.get("organizerCount")).intValue() : 1);
+                        
                         tournaments.add(tournament);
                         
                     } catch (Exception e) {
@@ -239,6 +244,10 @@ public class TournamentService {
                 
                 tournament.setActive(document.getBoolean("isActive") != null ? 
                     document.getBoolean("isActive") : true);
+                
+                // Set organizer count
+                tournament.setOrganizerCount(document.get("organizerCount") != null ? 
+                    ((Number) document.get("organizerCount")).intValue() : 1);
                 
                 System.out.println("✅ TournamentService: Tournament retrieved successfully: " + tournament.getName());
                 return tournament;

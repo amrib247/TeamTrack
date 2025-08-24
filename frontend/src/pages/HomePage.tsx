@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamService, type CreateTeamRequest } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
+import { authService } from '../services/authService';
 import type { AuthResponse, UserTeam, Tournament, CreateTournamentRequest } from '../types/Auth';
 // Tournament component will be loaded dynamically
 import './HomePage.css';
@@ -272,11 +273,11 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     try {
       setError('');
       
-      // Import firebaseAuthService at the top of the file
-      const { firebaseAuthService } = await import('../services/firebaseAuthService');
-      
-      // Delete the account
-      await firebaseAuthService.deleteAccount(terminatePassword);
+      // Use authService instead of firebaseAuthService to get proper error handling
+      await authService.deleteAccount({
+        email: currentUser.email,
+        password: terminatePassword
+      });
       
       // Logout and redirect
       onLogout();
@@ -292,10 +293,16 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
         setShowCoachSafetyModal(true);
         // Clear any existing error message
         setError('');
+      } else if (errorMessage.includes("Cannot delete account - you are the last organizer")) {
+        console.log('✅ Tournament organizer safety error detected, showing modal');
+        // Show the tournament safety modal instead of error message
+        setShowTournamentSafetyModal(true);
+        // Clear any existing error message
+        setError('');
       } else {
-        console.log('❌ Not a coach safety error, showing error message');
+        console.log('❌ Not a safety error, showing error message');
         console.log('❌ Error message was:', errorMessage);
-        // Only show error message if it's not a coach safety issue
+        // Only show error message if it's not a safety issue
         setError(errorMessage);
       }
     }
@@ -475,6 +482,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const [pendingInvite, setPendingInvite] = useState<{ userTeamId: string; teamName: string } | null>(null);
   const [pendingTournamentInvite, setPendingTournamentInvite] = useState<{ organizerTournamentId: string; tournamentName: string } | null>(null);
   const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
+  const [showTournamentSafetyModal, setShowTournamentSafetyModal] = useState(false);
 
   // Handle team card click
   const handleTeamClick = (userTeamId: string) => {
@@ -1385,6 +1393,61 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               <button 
                 className="btn btn-secondary"
                 onClick={() => setShowCoachSafetyModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tournament Safety Modal */}
+      {showTournamentSafetyModal && (
+        <div className="modal-overlay" onClick={() => setShowTournamentSafetyModal(false)}>
+          <div className="modal tournament-safety-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>⚠️ Tournament Organizer Safety Check</h3>
+            <p>You are the last organizer of one or more tournaments. You must take action before you can delete your account.</p>
+            
+            <div className="tournament-safety-options">
+              <div className="option-card">
+                <h4>✉️ Add Another Organizer</h4>
+                <p>Invite someone else to be an organizer of your tournaments so you can delete your account safely.</p>
+                <button 
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setShowTournamentSafetyModal(false);
+                    // Navigate to the first tournament where user is organizer
+                    if (tournaments && tournaments.length > 0) {
+                      navigate(`/tournament/${tournaments[0].id}`);
+                    }
+                  }}
+                >
+                  Go to Tournament Organizers
+                </button>
+              </div>
+              
+              <div className="option-card">
+                <h4>🗑️ Delete Tournaments</h4>
+                <p>Delete the tournaments if you no longer want to manage them.</p>
+                <button 
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setShowTournamentSafetyModal(false);
+                    // Navigate to the first tournament where user is organizer
+                    if (tournaments && tournaments.length > 0) {
+                      navigate(`/tournament/${tournaments[0].id}`);
+                    }
+                  }}
+                >
+                  Go to Tournament Settings
+                </button>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowTournamentSafetyModal(false)}
               >
                 Cancel
               </button>

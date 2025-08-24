@@ -31,9 +31,11 @@ public class UserService {
     private boolean useFirebase = true;
     
     private final UserTeamService userTeamService;
+    private final OrganizerTournamentService organizerTournamentService;
     
-    public UserService(UserTeamService userTeamService) {
+    public UserService(UserTeamService userTeamService, OrganizerTournamentService organizerTournamentService) {
         this.userTeamService = userTeamService;
+        this.organizerTournamentService = organizerTournamentService;
         // Initialize Firestore when needed, not in constructor
     }
 
@@ -43,6 +45,10 @@ public class UserService {
         System.out.println("🚀 UserService: userTeamService injected: " + (userTeamService != null));
         if (userTeamService != null) {
             System.out.println("🚀 UserService: userTeamService class: " + userTeamService.getClass().getName());
+        }
+        System.out.println("🚀 UserService: organizerTournamentService injected: " + (organizerTournamentService != null));
+        if (organizerTournamentService != null) {
+            System.out.println("🚀 UserService: organizerTournamentService class: " + organizerTournamentService.getClass().getName());
         }
         System.out.println("🚀 UserService startup complete. Will check Firebase status dynamically.");
     }
@@ -357,7 +363,12 @@ public class UserService {
             userTeamService.removeAllTeamsForUser(id).get(); // Wait for cascade deletion to complete
             System.out.println("✅ UserService: Successfully removed all UserTeam documents for user: " + id);
             
-            // Then delete the user document
+            // Then, cleanup all organizer relationships for this user
+            System.out.println("🗑️ UserService: Cleaning up organizer relationships for user: " + id);
+            organizerTournamentService.cleanupUserOrganizerRelationships(id).get(); // Wait for cleanup to complete
+            System.out.println("✅ UserService: Successfully cleaned up organizer relationships for user: " + id);
+            
+            // Finally delete the user document
             DocumentReference docRef = getFirestore().collection(COLLECTION_NAME).document(id);
             ApiFuture<WriteResult> future = docRef.delete();
             future.get(); // Wait for the delete to complete

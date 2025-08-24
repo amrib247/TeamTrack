@@ -456,6 +456,28 @@ public class OrganizerTournamentService {
                 // Update the document
                 docRef.update(updateData).get();
                 
+                // Increment the tournament's organizer count
+                String tournamentId = organizerTournament.getTournamentId();
+                try {
+                    // Get current tournament
+                    var tournamentDoc = firestore.collection("tournaments").document(tournamentId).get().get();
+                    if (tournamentDoc.exists()) {
+                        var tournamentData = tournamentDoc.getData();
+                        if (tournamentData != null) {
+                            int currentCount = tournamentData.get("organizerCount") != null ? 
+                                ((Number) tournamentData.get("organizerCount")).intValue() : 1;
+                            
+                            // Update the organizer count
+                            firestore.collection("tournaments").document(tournamentId)
+                                .update("organizerCount", currentCount + 1).get();
+                            
+                            System.out.println("✅ OrganizerTournamentService: Tournament organizer count incremented to " + (currentCount + 1));
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ OrganizerTournamentService: Warning - could not update tournament organizer count: " + e.getMessage());
+                }
+                
                 System.out.println("✅ OrganizerTournamentService: Organizer invite accepted successfully");
                 return organizerTournament;
                 
@@ -550,6 +572,279 @@ public class OrganizerTournamentService {
                 System.err.println("❌ OrganizerTournamentService: Error getting pending organizer invites: " + e.getMessage());
                 e.printStackTrace();
                 throw new RuntimeException("Failed to get pending organizer invites: " + e.getMessage());
+            }
+        });
+    }
+    
+    /**
+     * Removes an organizer from a tournament by deleting their organizerTournament object
+     */
+    public CompletableFuture<Void> removeOrganizerFromTournament(String userId, String tournamentId) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+        
+        return CompletableFuture.runAsync(() -> {
+            try {
+                System.out.println("🚪 OrganizerTournamentService: Removing organizer from tournament");
+                System.out.println("👤 User ID: " + userId + ", Tournament ID: " + tournamentId);
+                
+                // Query to find the organizerTournament document for this user and tournament
+                var querySnapshot = firestore.collection("organizerTournaments")
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("tournamentId", tournamentId)
+                    .get()
+                    .get();
+                
+                if (querySnapshot.isEmpty()) {
+                    System.out.println("⚠️ OrganizerTournamentService: No organizerTournament found for user " + userId + " and tournament " + tournamentId);
+                    return;
+                }
+                
+                // Delete the organizerTournament document
+                var document = querySnapshot.getDocuments().get(0);
+                firestore.collection("organizerTournaments").document(document.getId()).delete().get();
+                
+                // Decrement the tournament's organizer count
+                try {
+                    // Get current tournament
+                    var tournamentDoc = firestore.collection("tournaments").document(tournamentId).get().get();
+                    if (tournamentDoc.exists()) {
+                        var tournamentData = tournamentDoc.getData();
+                        if (tournamentData != null) {
+                            int currentCount = tournamentData.get("organizerCount") != null ? 
+                                ((Number) tournamentData.get("organizerCount")).intValue() : 1;
+                            
+                            // Ensure count doesn't go below 1 (at least one organizer should remain)
+                            int newCount = Math.max(1, currentCount - 1);
+                            
+                            // Update the organizer count
+                            firestore.collection("tournaments").document(tournamentId)
+                                .update("organizerCount", newCount).get();
+                            
+                            System.out.println("✅ OrganizerTournamentService: Tournament organizer count decremented to " + newCount);
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ OrganizerTournamentService: Warning - could not update tournament organizer count: " + e.getMessage());
+                }
+                
+                System.out.println("✅ OrganizerTournamentService: Organizer removed from tournament successfully");
+                
+            } catch (Exception e) {
+                System.err.println("❌ OrganizerTournamentService: Error removing organizer from tournament: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to remove organizer from tournament: " + e.getMessage());
+            }
+        });
+    }
+    
+    /**
+     * Handles cleanup when a user deletes their account
+     * Deletes all organizerTournament objects for the user and updates tournament organizer counts
+     */
+    public CompletableFuture<Void> cleanupUserOrganizerRelationships(String userId) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+        
+        return CompletableFuture.runAsync(() -> {
+            try {
+                System.out.println("🗑️ OrganizerTournamentService: Cleaning up organizer relationships for deleted user: " + userId);
+                
+                // Find all organizerTournament documents for this user
+                var querySnapshot = firestore.collection("organizerTournaments")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .get();
+                
+                if (querySnapshot.isEmpty()) {
+                    System.out.println("ℹ️ OrganizerTournamentService: No organizer relationships found for user: " + userId);
+                    return;
+                }
+                
+                System.out.println("🔍 OrganizerTournamentService: Found " + querySnapshot.size() + " organizer relationships to clean up");
+                
+                // Group by tournament ID to update organizer counts efficiently
+                Map<String, Integer> tournamentDecrements = new HashMap<>();
+                
+                for (var document : querySnapshot.getDocuments()) {
+                    try {
+                        String tournamentId = document.getString("tournamentId");
+                        if (tournamentId != null) {
+                            // Count how many relationships we're removing for each tournament
+                            tournamentDecrements.merge(tournamentId, 1, Integer::sum);
+                            
+                            // Delete the organizerTournament document
+                            firestore.collection("organizerTournaments").document(document.getId()).delete().get();
+                            System.out.println("🗑️ OrganizerTournamentService: Deleted organizer relationship: " + document.getId());
+                        }
+                    } catch (Exception e) {
+                        System.err.println("⚠️ OrganizerTournamentService: Warning - could not delete organizer relationship " + document.getId() + ": " + e.getMessage());
+                    }
+                }
+                
+                // Update organizer counts for affected tournaments
+                for (Map.Entry<String, Integer> entry : tournamentDecrements.entrySet()) {
+                    String tournamentId = entry.getKey();
+                    int decrementAmount = entry.getValue();
+                    
+                    try {
+                        // Get current tournament
+                        var tournamentDoc = firestore.collection("tournaments").document(tournamentId).get().get();
+                        if (tournamentDoc.exists()) {
+                            var tournamentData = tournamentDoc.getData();
+                            if (tournamentData != null) {
+                                int currentCount = tournamentData.get("organizerCount") != null ? 
+                                    ((Number) tournamentData.get("organizerCount")).intValue() : 1;
+                                
+                                // Ensure count doesn't go below 1 (at least one organizer should remain)
+                                int newCount = Math.max(1, currentCount - decrementAmount);
+                                
+                                // Update the organizer count
+                                firestore.collection("tournaments").document(tournamentId)
+                                    .update("organizerCount", newCount).get();
+                                
+                                System.out.println("✅ OrganizerTournamentService: Tournament " + tournamentId + " organizer count updated from " + currentCount + " to " + newCount);
+                            }
+                        }
+                    } catch (Exception e) {
+                        System.err.println("⚠️ OrganizerTournamentService: Warning - could not update tournament " + tournamentId + " organizer count: " + e.getMessage());
+                    }
+                }
+                
+                System.out.println("✅ OrganizerTournamentService: Successfully cleaned up " + querySnapshot.size() + " organizer relationships for user: " + userId);
+                
+            } catch (Exception e) {
+                System.err.println("❌ OrganizerTournamentService: Error cleaning up user organizer relationships: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to cleanup user organizer relationships: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Check if a user can safely leave a tournament without leaving it with no organizers
+     * @param userId The user ID trying to leave
+     * @param tournamentId The tournament ID
+     * @param action The action being performed (LEAVE_TOURNAMENT, DELETE_ACCOUNT)
+     * @return true if safe to proceed, false if it would leave tournament with no organizers
+     */
+    public CompletableFuture<Boolean> checkOrganizerSafety(String userId, String tournamentId, String action) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🔒 OrganizerTournamentService: Checking organizer safety for user: " + userId + 
+                                 ", tournament: " + tournamentId + ", action: " + action);
+                
+                // Count active organizers for this tournament
+                var organizerQuery = firestore.collection("organizerTournaments")
+                    .whereEqualTo("tournamentId", tournamentId)
+                    .whereEqualTo("isActive", true)
+                    .get();
+                
+                var organizerDocs = organizerQuery.get().getDocuments();
+                int activeOrganizerCount = organizerDocs.size();
+                
+                System.out.println("🔒 OrganizerTournamentService: Found " + activeOrganizerCount + " active organizers for tournament: " + tournamentId);
+                
+                // Check if this user is an active organizer
+                boolean isUserActiveOrganizer = organizerDocs.stream()
+                    .anyMatch(doc -> doc.getString("userId").equals(userId) && doc.getBoolean("isActive"));
+                
+                if (!isUserActiveOrganizer) {
+                    System.out.println("🔒 OrganizerTournamentService: User is not an active organizer - safe to proceed");
+                    return true; // User is not an organizer, so safe to proceed
+                }
+                
+                // If user is the only organizer, prevent the action
+                if (activeOrganizerCount <= 1) {
+                    System.out.println("❌ OrganizerTournamentService: User is the last organizer - action blocked for safety");
+                    return false; // Would leave tournament with no organizers
+                }
+                
+                System.out.println("✅ OrganizerTournamentService: Multiple organizers exist - safe to proceed");
+                return true; // Multiple organizers exist, safe to proceed
+                
+            } catch (Exception e) {
+                System.err.println("❌ OrganizerTournamentService: Error checking organizer safety: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to check organizer safety: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    /**
+     * Check if a user can be safely removed from all tournaments without leaving any with no organizers
+     * @param userId The user ID trying to be removed
+     * @return true if safe to proceed, false if any tournament would be left with no organizers
+     */
+    public CompletableFuture<Boolean> checkUserCanBeRemovedFromAllTournaments(String userId) {
+        Firestore firestore = getFirestore();
+        if (firestore == null) {
+            return CompletableFuture.failedFuture(
+                new RuntimeException("Firebase Firestore not available")
+            );
+        }
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🔒 OrganizerTournamentService: Checking if user can be removed from all tournaments: " + userId);
+                
+                // Find all tournaments where this user is an active organizer
+                var userOrganizerQuery = firestore.collection("organizerTournaments")
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("isActive", true)
+                    .get();
+                
+                var userOrganizerDocs = userOrganizerQuery.get().getDocuments();
+                
+                if (userOrganizerDocs.isEmpty()) {
+                    System.out.println("🔒 OrganizerTournamentService: User is not an organizer of any tournaments - safe to proceed");
+                    return true; // User is not an organizer of any tournaments
+                }
+                
+                // Check each tournament to see if user is the last organizer
+                for (var userOrganizerDoc : userOrganizerDocs) {
+                    String tournamentId = userOrganizerDoc.getString("tournamentId");
+                    
+                    // Count active organizers for this tournament
+                    var tournamentOrganizerQuery = firestore.collection("organizerTournaments")
+                        .whereEqualTo("tournamentId", tournamentId)
+                        .whereEqualTo("isActive", true)
+                        .get();
+                    
+                    var tournamentOrganizerDocs = tournamentOrganizerQuery.get().getDocuments();
+                    int activeOrganizerCount = tournamentOrganizerDocs.size();
+                    
+                    System.out.println("🔒 OrganizerTournamentService: Tournament " + tournamentId + " has " + activeOrganizerCount + " active organizers");
+                    
+                    // If user is the only organizer, prevent the action
+                    if (activeOrganizerCount <= 1) {
+                        System.out.println("❌ OrganizerTournamentService: User is the last organizer of tournament " + tournamentId + " - action blocked");
+                        return false; // Would leave tournament with no organizers
+                    }
+                }
+                
+                System.out.println("✅ OrganizerTournamentService: User can be safely removed from all tournaments");
+                return true; // Safe to proceed
+                
+            } catch (Exception e) {
+                System.err.println("❌ OrganizerTournamentService: Error checking user removal safety: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to check user removal safety: " + e.getMessage(), e);
             }
         });
     }
