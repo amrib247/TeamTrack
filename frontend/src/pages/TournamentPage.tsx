@@ -211,7 +211,13 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   };
 
   const handleInviteTeam = async (teamId: string) => {
-    if (!tournamentId) return;
+    if (!tournamentId || !tournament) return;
+    
+    // Frontend safety check: prevent invites to full tournaments
+    if (tournament.teamCount >= tournament.maxSize) {
+      setTeamInviteError('Cannot invite team - tournament is already at maximum capacity');
+      return;
+    }
     
     try {
       setInvitingTeam(true);
@@ -569,12 +575,25 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
             <div className="teams-content">
               <div className="teams-header">
                 <h3>Tournament Teams</h3>
-                <button 
-                  className="btn btn-invite"
-                  onClick={() => setShowTeamInviteForm(true)}
-                >
-                  Invite Team
-                </button>
+                {tournament && tournament.teamCount >= tournament.maxSize ? (
+                  <div className="tournament-full-notice">
+                    <span className="full-indicator">🏆 Tournament Full ({tournament.teamCount}/{tournament.maxSize})</span>
+                    <button 
+                      className="btn btn-invite"
+                      disabled
+                      title="Tournament is at maximum capacity"
+                    >
+                      Invite Team
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    className="btn btn-invite"
+                    onClick={() => setShowTeamInviteForm(true)}
+                  >
+                    Invite Team
+                  </button>
+                )}
               </div>
 
               {/* Team Invite Form Modal */}

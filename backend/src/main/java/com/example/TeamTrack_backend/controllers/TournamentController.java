@@ -280,15 +280,39 @@ public class TournamentController {
     public CompletableFuture<ResponseEntity<Map<String, String>>> inviteTeamToTournament(
             @PathVariable String tournamentId,
             @RequestParam String teamId) {
-        return tournamentInviteService.createTournamentInvite(teamId, tournamentId)
-                .thenApply(invite -> ResponseEntity.ok(Map.of(
-                    "message", "Team invited successfully",
-                    "inviteId", invite.getId()
-                )))
-                .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
-                    "error", "Failed to invite team",
-                    "message", throwable.getMessage()
-                )));
+        // First check if the tournament is full
+        return tournamentService.getTournamentById(tournamentId)
+                .thenCompose(tournament -> {
+                    if (tournament == null) {
+                        return CompletableFuture.completedFuture(
+                            ResponseEntity.badRequest().body(Map.of(
+                                "error", "Tournament not found",
+                                "message", "Tournament does not exist"
+                            ))
+                        );
+                    }
+                    
+                    // Check if tournament is full
+                    if (tournament.getTeamCount() >= tournament.getMaxSize()) {
+                        return CompletableFuture.completedFuture(
+                            ResponseEntity.badRequest().body(Map.of(
+                                "error", "Tournament is full",
+                                "message", "Cannot invite team - tournament is already at maximum capacity (" + tournament.getTeamCount() + "/" + tournament.getMaxSize() + " teams)"
+                            ))
+                        );
+                    }
+                    
+                    // Tournament has space, proceed with invite
+                    return tournamentInviteService.createTournamentInvite(teamId, tournamentId)
+                            .thenApply(invite -> ResponseEntity.ok(Map.of(
+                                "message", "Team invited successfully",
+                                "inviteId", invite.getId()
+                            )))
+                            .exceptionally(throwable -> ResponseEntity.badRequest().body(Map.of(
+                                "error", "Failed to invite team",
+                                "message", throwable.getMessage()
+                            )));
+                });
     }
 
     /**

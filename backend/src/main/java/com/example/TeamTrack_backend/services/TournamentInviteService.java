@@ -52,6 +52,43 @@ public class TournamentInviteService {
                     throw new RuntimeException("Firebase Firestore not available");
                 }
                 
+                // Secondary safety check: Verify tournament isn't full before creating invite
+                DocumentReference tournamentRef = db.collection("tournaments").document(tournamentId);
+                ApiFuture<DocumentSnapshot> tournamentFuture = tournamentRef.get();
+                DocumentSnapshot tournamentDoc = tournamentFuture.get();
+                
+                if (!tournamentDoc.exists()) {
+                    throw new RuntimeException("Tournament not found");
+                }
+                
+                Map<String, Object> tournamentData = tournamentDoc.getData();
+                Object teamCountObj = tournamentData.get("teamCount");
+                Object maxSizeObj = tournamentData.get("maxSize");
+                
+                Integer currentTeamCount = null;
+                Integer maxSize = null;
+                
+                // Handle different numeric types that Firestore might return
+                if (teamCountObj instanceof Long) {
+                    currentTeamCount = ((Long) teamCountObj).intValue();
+                } else if (teamCountObj instanceof Integer) {
+                    currentTeamCount = (Integer) teamCountObj;
+                } else if (teamCountObj instanceof Number) {
+                    currentTeamCount = ((Number) teamCountObj).intValue();
+                }
+                
+                if (maxSizeObj instanceof Long) {
+                    maxSize = ((Long) maxSizeObj).intValue();
+                } else if (maxSizeObj instanceof Integer) {
+                    maxSize = (Integer) maxSizeObj;
+                } else if (maxSizeObj instanceof Number) {
+                    maxSize = ((Number) maxSizeObj).intValue();
+                }
+                
+                if (currentTeamCount != null && maxSize != null && currentTeamCount >= maxSize) {
+                    throw new RuntimeException("Tournament is already at maximum capacity (" + currentTeamCount + "/" + maxSize + " teams)");
+                }
+                
                 TournamentInvite invite = new TournamentInvite(teamId, tournamentId);
                 
                 // Create a new document with auto-generated ID
@@ -315,15 +352,27 @@ public class TournamentInviteService {
                     throw new RuntimeException("Firebase Firestore not available");
                 }
                 
+                System.out.println("🗑️ TournamentInviteService: Cleaning up tournament invites for tournament: " + tournamentId);
+                
                 Query query = db.collection("tournamentInvites")
                     .whereEqualTo("tournamentId", tournamentId);
                 
                 ApiFuture<QuerySnapshot> querySnapshot = query.get();
                 List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
                 
+                System.out.println("🔍 TournamentInviteService: Found " + documents.size() + " tournament invites to cleanup");
+                
                 for (QueryDocumentSnapshot document : documents) {
-                    document.getReference().delete().get();
+                    try {
+                        document.getReference().delete().get();
+                        System.out.println("🗑️ TournamentInviteService: Deleted tournament invite: " + document.getId());
+                    } catch (Exception e) {
+                        System.err.println("⚠️ TournamentInviteService: Warning - could not delete tournament invite " + document.getId() + ": " + e.getMessage());
+                        // Continue with other invites even if one fails
+                    }
                 }
+                
+                System.out.println("✅ TournamentInviteService: All tournament invites cleaned up for tournament: " + tournamentId);
                 
             } catch (Exception e) {
                 throw new RuntimeException("Failed to cleanup tournament invites: " + e.getMessage(), e);

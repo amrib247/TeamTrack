@@ -3,6 +3,8 @@ package com.example.TeamTrack_backend.services;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.springframework.stereotype.Service;
 
@@ -10,6 +12,9 @@ import com.example.TeamTrack_backend.dto.CreateTeamRequest;
 import com.example.TeamTrack_backend.dto.UpdateTeamRequest;
 import com.example.TeamTrack_backend.models.Team;
 import com.example.TeamTrack_backend.services.FileUploadService;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.cloud.FirestoreClient;
@@ -393,7 +398,71 @@ public class TeamService {
                     // Don't fail team termination if file deletion fails
                 }
                 
-                // Seventh, remove all user associations for this team
+                // Seventh, cleanup all tournament invites and update team counts
+                System.out.println("🏆 TeamService: Cleaning up tournament invites for team...");
+                try {
+                    if (firestore != null) {
+                        // Query for all tournament invites for this team (both pending and accepted)
+                        var tournamentInvitesFuture = firestore.collection("tournamentInvites")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var tournamentInvitesSnapshot = tournamentInvitesFuture.get();
+                        System.out.println("🔍 TeamService: Found " + tournamentInvitesSnapshot.size() + " tournament invites to cleanup");
+                        
+                        // Process each tournament invite
+                        for (var inviteDoc : tournamentInvitesSnapshot.getDocuments()) {
+                            Map<String, Object> inviteData = inviteDoc.getData();
+                            String tournamentId = (String) inviteData.get("tournamentId");
+                            Boolean isActive = (Boolean) inviteData.get("isActive");
+                            
+                            // If the invite was accepted (isActive = true), decrement team count in tournament
+                            if (Boolean.TRUE.equals(isActive)) {
+                                try {
+                                    DocumentReference tournamentRef = firestore.collection("tournaments").document(tournamentId);
+                                    ApiFuture<DocumentSnapshot> tournamentFuture = tournamentRef.get();
+                                    DocumentSnapshot tournamentDoc = tournamentFuture.get();
+                                    
+                                    if (tournamentDoc.exists()) {
+                                        Map<String, Object> tournamentData = tournamentDoc.getData();
+                                        Object teamCountObj = tournamentData.get("teamCount");
+                                        Integer currentTeamCount = null;
+                                        
+                                        // Handle different numeric types that Firestore might return
+                                        if (teamCountObj instanceof Long) {
+                                            currentTeamCount = ((Long) teamCountObj).intValue();
+                                        } else if (teamCountObj instanceof Integer) {
+                                            currentTeamCount = (Integer) teamCountObj;
+                                        } else if (teamCountObj instanceof Number) {
+                                            currentTeamCount = ((Number) teamCountObj).intValue();
+                                        }
+                                        
+                                        if (currentTeamCount != null && currentTeamCount > 0) {
+                                            int newTeamCount = Math.max(0, currentTeamCount - 1);
+                                            Map<String, Object> tournamentUpdates = new HashMap<>();
+                                            tournamentUpdates.put("teamCount", newTeamCount);
+                                            tournamentRef.update(tournamentUpdates).get();
+                                            System.out.println("📊 TeamService: Updated tournament " + tournamentId + " team count from " + currentTeamCount + " to " + newTeamCount);
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    System.err.println("⚠️ TeamService: Warning - could not update tournament " + tournamentId + " team count: " + e.getMessage());
+                                    // Don't fail team termination if tournament update fails
+                                }
+                            }
+                            
+                            // Delete the tournament invite
+                            firestore.collection("tournamentInvites").document(inviteDoc.getId()).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted tournament invite: " + inviteDoc.getId());
+                        }
+                        System.out.println("✅ TeamService: All tournament invites cleaned up for team");
+                    }
+                } catch (Exception e) {
+                    System.err.println("⚠️ TeamService: Warning - could not cleanup tournament invites: " + e.getMessage());
+                    // Don't fail team termination if tournament cleanup fails
+                }
+                
+                // Eighth, remove all user associations for this team
                 System.out.println("👥 TeamService: Removing all users from team...");
                 try {
                     if (firestore != null) {
@@ -430,6 +499,7 @@ public class TeamService {
                 System.out.println("   • Chat Messages: Deleted (cascade cleanup)");
                 System.out.println("   • Chat Rooms: Deleted (cascade cleanup)");
                 System.out.println("   • Files: Deleted (cascade cleanup)");
+                System.out.println("   • Tournament Invites: Cleaned up and team counts updated");
                 System.out.println("   • User Relationships: Removed (cascade cleanup)");
                 System.out.println("   • Team Document: Deleted");
                 

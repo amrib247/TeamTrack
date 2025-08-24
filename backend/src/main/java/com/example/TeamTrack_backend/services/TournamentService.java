@@ -25,9 +25,11 @@ import com.google.firebase.cloud.FirestoreClient;
 public class TournamentService {
     
     private final OrganizerTournamentService organizerTournamentService;
+    private final TournamentInviteService tournamentInviteService;
     
-    public TournamentService(OrganizerTournamentService organizerTournamentService) {
+    public TournamentService(OrganizerTournamentService organizerTournamentService, TournamentInviteService tournamentInviteService) {
         this.organizerTournamentService = organizerTournamentService;
+        this.tournamentInviteService = tournamentInviteService;
         System.out.println("🔧 TournamentService constructor called");
         System.out.println("🔧 TournamentService constructor completed");
     }
@@ -500,23 +502,8 @@ public class TournamentService {
                 // Second, cleanup all tournament invites for this tournament
                 System.out.println("📨 TournamentService: Cleaning up all tournament invites...");
                 try {
-                    if (firestore != null) {
-                        // Delete all tournament invites for this tournament
-                        var inviteQuery = firestore.collection("tournamentInvites")
-                            .whereEqualTo("tournamentId", tournamentId);
-                        var inviteDocs = inviteQuery.get().get().getDocuments();
-                        
-                        for (var inviteDoc : inviteDocs) {
-                            try {
-                                inviteDoc.getReference().delete().get();
-                                System.out.println("🗑️ TournamentService: Deleted tournament invite: " + inviteDoc.getId());
-                            } catch (Exception e) {
-                                System.err.println("⚠️ TournamentService: Warning - could not delete tournament invite " + inviteDoc.getId() + ": " + e.getMessage());
-                                // Continue with other invites even if one fails
-                            }
-                        }
-                        System.out.println("✅ TournamentService: All tournament invites cleaned up");
-                    }
+                    tournamentInviteService.cleanupTournamentInvites(tournamentId).get();
+                    System.out.println("✅ TournamentService: All tournament invites cleaned up");
                 } catch (Exception e) {
                     System.err.println("⚠️ TournamentService: Warning - could not cleanup tournament invites: " + e.getMessage());
                     // Don't fail tournament deletion if invite cleanup fails
@@ -530,7 +517,7 @@ public class TournamentService {
                 // Log comprehensive cleanup summary
                 System.out.println("🎯 TournamentService: Tournament deletion cleanup completed successfully:");
                 System.out.println("   • Organizer Relationships: Deleted (cascade cleanup)");
-                System.out.println("   • Team Registrations: Removed (cascade cleanup)");
+                System.out.println("   • Tournament Invites: Cleaned up (cascade cleanup)");
                 System.out.println("   • Tournament Document: Deleted");
                 
                 System.out.println("✅ TournamentService: Tournament deleted successfully");
