@@ -1,0 +1,300 @@
+/* Tournament Schedule Styles - Extends Schedule.css */
+
+.tournament-schedule-section {
+  width: 100%;
+}
+
+/* Modal Actions Layout */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.modal-actions-left {
+  flex: 1;
+}
+
+.modal-actions-right {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Error message styling in modal actions */
+.modal-actions-left .error-message {
+  margin: 0;
+  color: #e74c3c;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Responsive design for modal actions */
+@media (max-width: 768px) {
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .modal-actions-left {
+    order: 2;
+  }
+  
+  .modal-actions-right {
+    order: 1;
+    justify-content: center;
+  }
+  
+  .modal-actions-right .btn {
+    min-width: 120px;
+  }
+}
+
+/* Game card styling */
+.game-card {
+  border-left: 4px solid #28a745;
+  background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+}
+
+.game-card .event-header h4 {
+  color: #155724;
+  font-weight: 600;
+}
+
+.game-card .event-info .event-value {
+  font-weight: 500;
+}
+
+/* Calendar game event styling */
+.calendar-event-card.game-event {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.calendar-event-card.game-event .calendar-event-name {
+  color: #155724;
+  font-weight: 600;
+}
+
+.calendar-event-card.game-event .calendar-event-time {
+  color: #0f5132;
+}
+
+/* Weekly Calendar View Styles */
+.calendar-grid.weekly {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background-color: #e0e0e0;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-weekdays.weekly {
+  display: contents;
+}
+
+.calendar-weekday.weekly {
+  background-color: #f8f9fa;
+  padding: 12px 8px;
+  text-align: center;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+}
+
+.weekday-name {
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+  color: #6c757d;
+}
+
+.weekday-date {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #212529;
+}
+
+.calendar-days.weekly {
+  display: contents;
+}
+
+.calendar-day.weekly {
+  background-color: white;
+  min-height: 300px; /* Extended height to fit more events */
+  padding: 8px;
+  border-right: 1px solid #dee2e6;
+  position: relative;
+}
+
+.calendar-day.weekly:last-child {
+  border-right: none;
+}
+
+.calendar-day.weekly.today {
+  background-color: #e3f2fd;
+  border: 2px solid #2196f3;
+}
+
+.calendar-day-events.weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 100%;
+}
+
+.calendar-event-card.weekly {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.calendar-event-card.weekly:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calendar-event-info.weekly {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-event-name.weekly {
+  font-weight: 600;
+  color: #212529;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event-time.weekly {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+/* Team Selection Styles */
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Tournament-specific event card styles */
+.event-card.tournament {
+  border-left: 4px solid #28a745;
+}
+
+.event-card.tournament .event-header h4 {
+  color: #28a745;
+}
+
+/* Responsive adjustments for weekly view */
+@media (max-width: 768px) {
+  .calendar-grid.weekly {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  .calendar-weekday.weekly {
+    padding: 8px 4px;
+  }
+  
+  .weekday-name {
+    font-size: 0.8rem;
+  }
+  
+  .weekday-date {
+    font-size: 1rem;
+  }
+  
+  .calendar-day.weekly {
+    min-height: 150px; /* Extended mobile height to fit more events */
+    padding: 6px;
+  }
+  
+  .calendar-event-card.weekly {
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+  
+  /* Mobile adjustments for extended schedule list */
+  .schedule-content {
+    min-height: 600px;
+  }
+  
+  .events-list {
+    min-height: 500px;
+    padding: 15px 0;
+  }
+  
+  .event-card {
+    margin-bottom: 15px;
+    min-height: 100px;
+  }
+  
+  .game-card {
+    margin-bottom: 20px;
+  }
+}
+
+/* Enhanced weekly navigation */
+.calendar-header .calendar-nav-btn {
+  padding: 8px 12px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.calendar-header .calendar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Weekly calendar event overflow handling */
+.calendar-day.weekly {
+  overflow: hidden;
+}
+
+.calendar-day-events.weekly {
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+/* Custom scrollbar for weekly view */
+.calendar-day-events.weekly::-webkit-scrollbar {
+  width: 4px;
+}
+
+.calendar-day-events.weekly::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.calendar-day-events.weekly::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.calendar-day-events.weekly::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

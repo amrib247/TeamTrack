@@ -708,3 +708,23 @@
   }
 }
 
+/* Tournament event note styling */
+.tournament-event-note {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 10px;
+  color: #856404;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.tournament-event-note p {
+  margin: 4px 0;
+}
+
+.tournament-event-note p:first-child {
+  font-weight: 600;
+}
+

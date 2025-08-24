@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, CreateEventRequest } from '../types/Event';
+import type { Tournament } from '../types/Auth';
 import { eventService } from '../services/eventService';
+import { tournamentService } from '../services/tournamentService';
 import AvailabilityModal from './AvailabilityModal';
 import './Schedule.css';
 
@@ -57,12 +59,15 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showEventDetails, setShowEventDetails] = useState(false);
+  
+  // Tournament names state
+  const [tournamentNames, setTournamentNames] = useState<Record<string, string>>({});
 
   // Form state for creating/editing events
   const [formData, setFormData] = useState<CreateEventRequest>({
     teamId: teamId,
     name: '',
-    tournamentLeague: '',
+    tournamentId: '',
     date: '',
     startTime: '',
     lengthMinutes: 60,
@@ -91,11 +96,44 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
       const teamEvents = await eventService.getEventsByTeamId(teamId);
       // Ensure events are properly sorted by date and time
       setEvents(sortEventsByDateTime(teamEvents));
+      
+      // Load tournament names for events that have tournament IDs
+      await loadTournamentNames(teamEvents);
     } catch (err) {
       setError('Failed to load events');
       console.error('Error loading events:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTournamentNames = async (events: Event[]) => {
+    const tournamentIds = events
+      .map(event => event.tournamentId)
+      .filter(id => id && id !== '') as string[];
+    
+    const uniqueTournamentIds = [...new Set(tournamentIds)];
+    
+    if (uniqueTournamentIds.length === 0) return;
+    
+    try {
+      const tournamentNamesMap: Record<string, string> = {};
+      
+      for (const tournamentId of uniqueTournamentIds) {
+        try {
+          const tournament = await tournamentService.getTournamentById(tournamentId);
+          if (tournament) {
+            tournamentNamesMap[tournamentId] = tournament.name;
+          }
+        } catch (error) {
+          console.warn(`Failed to load tournament name for ID: ${tournamentId}`, error);
+          tournamentNamesMap[tournamentId] = `Tournament ID: ${tournamentId.substring(0, 8)}...`;
+        }
+      }
+      
+      setTournamentNames(tournamentNamesMap);
+    } catch (error) {
+      console.error('Failed to load tournament names:', error);
     }
   };
 
@@ -174,7 +212,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setFormData({
       teamId: teamId,
       name: '',
-      tournamentLeague: '',
+      tournamentId: '',
       date: '',
       startTime: '',
       lengthMinutes: 60,
@@ -189,7 +227,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setFormData({
       teamId: event.teamId,
       name: event.name,
-      tournamentLeague: event.tournamentLeague,
+      tournamentId: event.tournamentId || '',
       date: event.date.split('T')[0], // Convert ISO date to YYYY-MM-DD
       startTime: event.startTime,
       lengthMinutes: event.lengthMinutes,
@@ -236,7 +274,11 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     return `${hours}h ${mins}m`;
   };
 
-  const canManageEvents = () => {
+  const canManageEvents = (event?: Event) => {
+    // Coaches cannot manage events that were created by tournaments
+    if (event && event.tournamentId && event.tournamentId !== '') {
+      return false;
+    }
     return userRole === 'COACH';
   };
 
@@ -323,7 +365,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                         >
                           Availability
                         </button>
-                        {canManageEvents() && (
+                        {canManageEvents(event) ? (
                           <>
                             <button 
                               className="btn btn-small btn-secondary"
@@ -338,7 +380,11 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                               Delete
                             </button>
                           </>
-                        )}
+                        ) : event.tournamentId && event.tournamentId !== '' ? (
+                          <span className="tournament-event-note">
+                            Tournament event - cannot edit/delete
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     
@@ -346,8 +392,13 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                       <div className="event-details">
                         <div className="event-column">
                           <div className="event-info">
-                            <span className="event-label">Tournament/League</span>
-                            <span className="event-value">{event.tournamentLeague}</span>
+                            <span className="event-label">Tournament</span>
+                            <span className="event-value">
+                              {event.tournamentId 
+                                ? (tournamentNames[event.tournamentId] || `Tournament ID: ${event.tournamentId.substring(0, 8)}...`)
+                                : 'No tournament'
+                              }
+                            </span>
                           </div>
                           <div className="event-info">
                             <span className="event-label">Date</span>
@@ -495,15 +546,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                 />
               </div>
               
-              <div className="form-group">
-                <label htmlFor="tournamentLeague">Tournament/League</label>
-                <input
-                  type="text"
-                  id="tournamentLeague"
-                  value={formData.tournamentLeague}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tournamentLeague: e.target.value }))}
-                />
-              </div>
+
               
               <div className="form-row">
                 <div className="form-group">
@@ -627,15 +670,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                 />
               </div>
               
-              <div className="form-group">
-                <label htmlFor="edit-tournamentLeague">Tournament/League</label>
-                <input
-                  type="text"
-                  id="edit-tournamentLeague"
-                  value={formData.tournamentLeague}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tournamentLeague: e.target.value }))}
-                />
-              </div>
+
               
               <div className="form-row">
                 <div className="form-group">
@@ -750,8 +785,13 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
             <div className="event-details-content">
               <div className="event-details-grid">
                 <div className="event-detail-item">
-                  <span className="detail-label">Tournament/League</span>
-                  <span className="detail-value">{selectedEvent.tournamentLeague}</span>
+                  <span className="detail-label">Tournament</span>
+                  <span className="detail-value">
+                    {selectedEvent.tournamentId 
+                      ? (tournamentNames[selectedEvent.tournamentId] || `Tournament ID: ${selectedEvent.tournamentId.substring(0, 8)}...`)
+                      : 'No tournament'
+                    }
+                  </span>
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Date</span>
@@ -779,7 +819,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                 )}
               </div>
               
-              {canManageEvents() && (
+              {canManageEvents(selectedEvent) ? (
                 <div className="event-details-actions">
                   <button 
                     className="btn btn-secondary"
@@ -802,7 +842,12 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                     Delete Event
                   </button>
                 </div>
-              )}
+              ) : selectedEvent.tournamentId && selectedEvent.tournamentId !== '' ? (
+                <div className="tournament-event-note">
+                  <p>This is a tournament event and cannot be edited or deleted by team coaches.</p>
+                  <p>Please contact the tournament organizer if changes are needed.</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

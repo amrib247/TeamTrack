@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/tournamentService';
 import type { Tournament, AuthResponse, UpdateTournamentRequest } from '../types/Auth';
 import TournamentSafetyPrompt from '../components/TournamentSafetyPrompt';
+import TournamentSchedule from '../components/TournamentSchedule';
 import './TournamentPage.css';
 
 interface TournamentPageProps {
@@ -555,17 +556,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
       case 'scheduling':
         return (
           <div className="tab-content active">
-            <div className="scheduling-content">
-              <h3>Tournament Scheduling</h3>
-              <p>Tournament scheduling functionality will be implemented here.</p>
-              <p>This will include:</p>
-              <ul>
-                <li>Match scheduling</li>
-                <li>Bracket generation</li>
-                <li>Game times and venues</li>
-                <li>Results tracking</li>
-              </ul>
-            </div>
+            <TournamentSchedule
+              tournamentId={tournamentId || ''}
+              tournamentName={tournament?.name || 'Tournament'}
+            />
           </div>
         );
 

@@ -228,6 +228,15 @@ export class TournamentService {
 
   async deleteTournament(tournamentId: string): Promise<void> {
     try {
+      // First, delete all events related to this tournament
+      try {
+        const { eventService } = await import('./eventService');
+        await eventService.deleteEventsByTournamentId(tournamentId);
+      } catch (eventError) {
+        console.warn('Failed to delete tournament events, continuing with tournament deletion:', eventError);
+      }
+      
+      // Then delete the tournament
       const response = await fetch(`${this.baseUrl}/${tournamentId}`, {
         method: 'DELETE',
       });

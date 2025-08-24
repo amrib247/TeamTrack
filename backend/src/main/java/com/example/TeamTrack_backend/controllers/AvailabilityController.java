@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -103,5 +104,25 @@ public class AvailabilityController {
             e.printStackTrace();
             return CompletableFuture.completedFuture(ResponseEntity.<Availability>badRequest().build());
         }
+    }
+    
+    /**
+     * Clean up all availabilities for events in a specific tournament
+     */
+    @DeleteMapping("/tournament/{tournamentId}")
+    public CompletableFuture<ResponseEntity<String>> cleanupTournamentEventAvailabilities(@PathVariable String tournamentId) {
+        System.out.println("📥 AvailabilityController.cleanupTournamentEventAvailabilities called");
+        System.out.println("🏆 Tournament ID: " + tournamentId);
+        
+        return availabilityService.cleanupTournamentEventAvailabilities(tournamentId)
+                .thenApply(v -> {
+                    System.out.println("✅ AvailabilityController: Tournament event availabilities cleaned up successfully");
+                    return ResponseEntity.ok("Successfully cleaned up availabilities for tournament " + tournamentId);
+                })
+                .exceptionally(throwable -> {
+                    System.err.println("❌ AvailabilityController: Error cleaning up tournament event availabilities: " + throwable.getMessage());
+                    throwable.printStackTrace();
+                    return ResponseEntity.<String>badRequest().build();
+                });
     }
 }

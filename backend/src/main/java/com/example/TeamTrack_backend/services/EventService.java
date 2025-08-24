@@ -21,7 +21,10 @@ import com.google.firebase.cloud.FirestoreClient;
 @Service
 public class EventService {
     
-    public EventService() {
+    private final AvailabilityService availabilityService;
+    
+    public EventService(AvailabilityService availabilityService) {
+        this.availabilityService = availabilityService;
         System.out.println("🔧 EventService constructor called");
         System.out.println("🔧 EventService constructor completed");
     }
@@ -294,14 +297,48 @@ public class EventService {
     public CompletableFuture<Void> deleteEvent(String eventId) {
         return CompletableFuture.runAsync(() -> {
             try {
+                System.out.println("🗑️ EventService: Deleting event with ID: " + eventId);
+                
+                // Get Firestore instance first
                 Firestore firestore = getFirestore();
                 if (firestore == null) {
                     throw new RuntimeException("Firebase Firestore not available");
                 }
                 
+                // First, cleanup all availabilities for this event
+                System.out.println("🗑️ EventService: Cleaning up event availabilities...");
+                try {
+                    // Query for all availabilities for this event
+                    var availabilitiesFuture = firestore.collection("availabilities")
+                        .whereEqualTo("eventId", eventId)
+                        .get();
+                    
+                    var availabilitiesSnapshot = availabilitiesFuture.get();
+                    System.out.println("🔍 EventService: Found " + availabilitiesSnapshot.size() + " availability entries to delete");
+                    
+                    // Delete all availabilities for this event
+                    for (var availabilityDoc : availabilitiesSnapshot.getDocuments()) {
+                        firestore.collection("availabilities").document(availabilityDoc.getId()).delete().get();
+                        System.out.println("🗑️ EventService: Deleted availability: " + availabilityDoc.getId());
+                    }
+                    System.out.println("✅ EventService: All event availabilities cleaned up");
+                } catch (Exception e) {
+                    System.err.println("⚠️ EventService: Warning - could not cleanup event availabilities: " + e.getMessage());
+                    // Don't fail event deletion if availability cleanup fails
+                }
+                
+                // Then delete the event document
+                
                 firestore.collection("events").document(eventId).delete().get();
+                System.out.println("✅ EventService: Event document deleted");
+                
+                System.out.println("🎯 EventService: Event deletion cleanup completed successfully:");
+                System.out.println("   • Event Availabilities: Cleaned up");
+                System.out.println("   • Event Document: Deleted");
+                
             } catch (Exception e) {
-                System.err.println("Error deleting event: " + e.getMessage());
+                System.err.println("❌ EventService: Error deleting event: " + e.getMessage());
+                e.printStackTrace();
                 throw new RuntimeException("Failed to delete event", e);
             }
         });
@@ -339,7 +376,16 @@ public class EventService {
                             try {
                                 java.time.LocalDateTime eventDateTime = java.time.LocalDateTime.parse(event.getDate() + "T" + event.getStartTime());
                                 if (eventDateTime.isBefore(oneMonthAgo)) {
-                                    // Event is more than a month old, delete it
+                                    // Event is more than a month old, delete it and its availabilities
+                                    try {
+                                        // Clean up availabilities first
+                                        availabilityService.cleanupEventAvailabilities(document.getId()).get();
+                                        System.out.println("🧹 EventService: Cleaned up availabilities for old event: " + event.getName());
+                                    } catch (Exception availabilityError) {
+                                        System.err.println("⚠️ EventService: Warning - could not cleanup availabilities for old event: " + event.getName() + ": " + availabilityError.getMessage());
+                                    }
+                                    
+                                    // Then delete the event
                                     firestore.collection("events").document(document.getId()).delete().get();
                                     deletedCount++;
                                     System.out.println("🗑️ EventService: Deleted old event: " + event.getName() + " (Date: " + event.getDate() + " " + event.getStartTime() + ")");
@@ -397,6 +443,97 @@ public class EventService {
             } catch (Exception e) {
                 System.err.println("Error getting events by date range: " + e.getMessage());
                 throw new RuntimeException("Failed to get events by date range", e);
+            }
+        });
+    }
+    
+    /**
+     * Get all events for a specific tournament
+     */
+    public CompletableFuture<List<Event>> getEventsByTournamentId(String tournamentId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🔍 EventService: Getting events for tournament: " + tournamentId);
+                
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase Firestore not available");
+                }
+                
+                // Query for events with the specified tournament ID
+                Query query = firestore.collection("events")
+                    .whereEqualTo("tournamentId", tournamentId);
+                
+                QuerySnapshot snapshot = query.get().get();
+                List<Event> events = new ArrayList<>();
+                
+                for (QueryDocumentSnapshot document : snapshot.getDocuments()) {
+                    Event event = document.toObject(Event.class);
+                    if (event != null) {
+                        event.setId(document.getId());
+                        events.add(event);
+                    }
+                }
+                
+                System.out.println("✅ EventService: Found " + events.size() + " events for tournament " + tournamentId);
+                return events;
+                
+            } catch (Exception e) {
+                System.err.println("❌ EventService: Error getting events for tournament: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to get events for tournament", e);
+            }
+        });
+    }
+    
+    /**
+     * Delete all events for a specific tournament
+     */
+    public CompletableFuture<Long> deleteEventsByTournamentId(String tournamentId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("🗑️ EventService: Deleting events for tournament: " + tournamentId);
+                
+                Firestore firestore = getFirestore();
+                if (firestore == null) {
+                    throw new RuntimeException("Firebase Firestore not available");
+                }
+                
+                // First, clean up all availabilities for events in this tournament
+                try {
+                    System.out.println("🧹 EventService: Cleaning up availabilities for tournament events...");
+                    availabilityService.cleanupTournamentEventAvailabilities(tournamentId).get();
+                    System.out.println("✅ EventService: Successfully cleaned up availabilities for tournament events");
+                } catch (Exception availabilityError) {
+                    System.err.println("⚠️ EventService: Warning - failed to cleanup availabilities: " + availabilityError.getMessage());
+                    // Continue with event deletion even if availability cleanup fails
+                }
+                
+                // Then, get all events for the tournament
+                Query query = firestore.collection("events")
+                    .whereEqualTo("tournamentId", tournamentId);
+                
+                QuerySnapshot snapshot = query.get().get();
+                long deletedCount = 0;
+                
+                // Delete each event
+                for (QueryDocumentSnapshot document : snapshot.getDocuments()) {
+                    try {
+                        document.getReference().delete().get();
+                        deletedCount++;
+                        System.out.println("🗑️ EventService: Deleted event: " + document.getId());
+                    } catch (Exception e) {
+                        System.err.println("❌ EventService: Failed to delete event " + document.getId() + ": " + e.getMessage());
+                    }
+                }
+                
+                System.out.println("✅ EventService: Deleted " + deletedCount + " events for tournament " + tournamentId);
+                return deletedCount;
+                
+            } catch (Exception e) {
+                System.err.println("❌ EventService: Error deleting events for tournament: " + e.getMessage());
+                e.printStackTrace();
+                throw new RuntimeException("Failed to delete events for tournament", e);
             }
         });
     }

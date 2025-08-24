@@ -288,7 +288,7 @@ public class TeamService {
                 System.out.println("📋 TeamService: Deleting all availability entries for team...");
                 try {
                     if (firestore != null) {
-                        // Query for all availability entries for this team
+                        // Query for all availabilities for this team
                         var availabilitiesFuture = firestore.collection("availabilities")
                             .whereEqualTo("teamId", teamId)
                             .get();
@@ -296,10 +296,10 @@ public class TeamService {
                         var availabilitiesSnapshot = availabilitiesFuture.get();
                         System.out.println("🔍 TeamService: Found " + availabilitiesSnapshot.size() + " availability entries to delete");
                         
-                        // Delete all availability entries for this team
+                        // Delete all availabilities for this team
                         for (var availabilityDoc : availabilitiesSnapshot.getDocuments()) {
                             firestore.collection("availabilities").document(availabilityDoc.getId()).delete().get();
-                            System.out.println("🗑️ TeamService: Deleted availability entry: " + availabilityDoc.getId());
+                            System.out.println("🗑️ TeamService: Deleted availability: " + availabilityDoc.getId());
                         }
                         System.out.println("✅ TeamService: All availability entries deleted for team");
                     }

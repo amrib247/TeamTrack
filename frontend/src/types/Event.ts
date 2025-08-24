@@ -2,7 +2,7 @@ export interface Event {
   id: string;
   teamId: string;
   name: string;
-  tournamentLeague: string;
+  tournamentId?: string;
   date: string; // ISO date string
   startTime: string;
   lengthMinutes: number;
@@ -16,7 +16,7 @@ export interface Event {
 export interface CreateEventRequest {
   teamId: string;
   name: string;
-  tournamentLeague: string;
+  tournamentId?: string;
   date: string;
   startTime: string;
   lengthMinutes: number;
@@ -27,7 +27,7 @@ export interface CreateEventRequest {
 
 export interface UpdateEventRequest {
   name?: string;
-  tournamentLeague?: string;
+  tournamentId?: string;
   date?: string;
   startTime?: string;
   lengthMinutes?: number;

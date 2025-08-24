@@ -131,6 +131,44 @@ export class EventService {
       throw error;
     }
   }
+
+  /**
+   * Get all events for a specific tournament
+   */
+  async getEventsByTournamentId(tournamentId: string): Promise<Event[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/tournament/${tournamentId}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get tournament events: ${response.status} ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting tournament events:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all events for a specific tournament
+   */
+  async deleteEventsByTournamentId(tournamentId: string): Promise<void> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/tournament/${tournamentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to delete events for tournament: ${response.status} ${errorText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting events for tournament:', error);
+      throw error;
+    }
+  }
 }
 
 export const eventService = new EventService();

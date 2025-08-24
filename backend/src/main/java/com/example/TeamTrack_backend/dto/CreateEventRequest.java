@@ -3,7 +3,7 @@ package com.example.TeamTrack_backend.dto;
 public class CreateEventRequest {
     private String teamId;
     private String name;
-    private String tournamentLeague;
+    private String tournamentId;
     private String date;
     private String startTime;
     private int lengthMinutes;
@@ -13,10 +13,10 @@ public class CreateEventRequest {
 
     public CreateEventRequest() {}
 
-    public CreateEventRequest(String teamId, String name, String tournamentLeague, String date, String startTime, int lengthMinutes, String location, String description, String score) {
+    public CreateEventRequest(String teamId, String name, String tournamentId, String date, String startTime, int lengthMinutes, String location, String description, String score) {
         this.teamId = teamId;
         this.name = name;
-        this.tournamentLeague = tournamentLeague;
+        this.tournamentId = tournamentId;
         this.date = date;
         this.startTime = startTime;
         this.lengthMinutes = lengthMinutes;
@@ -42,12 +42,12 @@ public class CreateEventRequest {
         this.name = name;
     }
 
-    public String getTournamentLeague() {
-        return tournamentLeague;
+    public String getTournamentId() {
+        return tournamentId;
     }
 
-    public void setTournamentLeague(String tournamentLeague) {
-        this.tournamentLeague = tournamentLeague;
+    public void setTournamentId(String tournamentId) {
+        this.tournamentId = tournamentId;
     }
 
     public String getDate() {

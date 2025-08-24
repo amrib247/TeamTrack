@@ -38,7 +38,7 @@ public class EventController {
         Event event = new Event(
             request.getTeamId(),
             request.getName(),
-            request.getTournamentLeague(),
+            request.getTournamentId(),
             request.getDate(),
             request.getStartTime(),
             request.getLengthMinutes(),
@@ -101,6 +101,26 @@ public class EventController {
             @RequestParam String endDate) {
         return eventService.getEventsByDateRange(teamId, startDate, endDate)
             .thenApply(events -> ResponseEntity.ok(events))
+            .exceptionally(throwable -> ResponseEntity.badRequest().build());
+    }
+    
+    /**
+     * Get all events for a specific tournament
+     */
+    @GetMapping("/tournament/{tournamentId}")
+    public CompletableFuture<ResponseEntity<List<Event>>> getEventsByTournamentId(@PathVariable String tournamentId) {
+        return eventService.getEventsByTournamentId(tournamentId)
+            .thenApply(events -> ResponseEntity.ok(events))
+            .exceptionally(throwable -> ResponseEntity.badRequest().build());
+    }
+    
+    /**
+     * Delete all events for a specific tournament
+     */
+    @DeleteMapping("/tournament/{tournamentId}")
+    public CompletableFuture<ResponseEntity<String>> deleteEventsByTournamentId(@PathVariable String tournamentId) {
+        return eventService.deleteEventsByTournamentId(tournamentId)
+            .thenApply(deletedCount -> ResponseEntity.ok("Deleted " + deletedCount + " events for tournament " + tournamentId))
             .exceptionally(throwable -> ResponseEntity.badRequest().build());
     }
     
