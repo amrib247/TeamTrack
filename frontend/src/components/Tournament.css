@@ -13,7 +13,7 @@
 .tournament-card.clickable:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   transform: translateY(-3px);
-  border-color: #3498db;
+  border-color: #00d4ff;
 }
 
 /* Tournament Invite Cards (Red background with black text) */
@@ -155,9 +155,9 @@
 .user-teams-in-tournament {
   margin-bottom: 16px;
   padding: 12px;
-  background: #e8f4fd;
+  background: linear-gradient(135deg, #e6f9ff 0%, #ccf2ff 100%);
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #00d4ff;
 }
 
 .user-teams-in-tournament strong {
@@ -174,7 +174,7 @@
 }
 
 .user-team-badge {
-  background: #3498db;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
   color: white;
   padding: 4px 8px;
   border-radius: 12px;
@@ -226,12 +226,12 @@
 }
 
 .btn-primary {
-  background: #3498db;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2980b9;
+  background: linear-gradient(135deg, #0099cc 0%, #006699 100%);
 }
 
 .btn-secondary {

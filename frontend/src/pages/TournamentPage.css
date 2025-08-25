@@ -4,9 +4,59 @@
   background-color: #f5f5f5;
 }
 
+/* Tournament-specific button overrides - only for elements within the tournament page */
+.tournament-page .btn-primary,
+.tournament-page button.btn-primary,
+.tournament-page input[type="submit"].btn-primary {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3) !important;
+}
+
+.tournament-page .btn-primary:hover:not(:disabled),
+.tournament-page button.btn-primary:hover:not(:disabled),
+.tournament-page input[type="submit"].btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4) !important;
+}
+
+.tournament-page .btn-secondary,
+.tournament-page button.btn-secondary {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.tournament-page .btn-secondary:hover:not(:disabled),
+.tournament-page button.btn-secondary:hover:not(:disabled) {
+  background: #5a6268 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Tournament-specific invite button overrides */
+.tournament-page .btn-invite,
+.tournament-page button.btn-invite,
+.tournament-page .btn.btn-invite {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3) !important;
+}
+
+.tournament-page .btn-invite:hover:not(:disabled),
+.tournament-page button.btn-invite:hover:not(:disabled),
+.tournament-page .btn.btn-invite:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4) !important;
+}
+
+.tournament-page .btn-invite:active,
+.tournament-page button.btn-invite:active,
+.tournament-page .btn.btn-invite:active {
+  transform: translateY(0) !important;
+}
+
 /* Header */
 .tournament-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006699 100%);
   color: white;
   padding: 1rem 2rem;
   display: flex;
@@ -93,9 +143,16 @@
 }
 
 .sidebar-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006699 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4) !important;
+}
+
+/* Ensure tournament page sidebar uses tournament colors */
+.tournament-page .sidebar-item.active {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #006699 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4) !important;
 }
 
 .sidebar-icon {
@@ -153,7 +210,7 @@
 }
 
 .btn-invite {
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -162,12 +219,12 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
 }
 
 .btn-invite:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
 }
 
 /* Organizers List */
@@ -212,7 +269,7 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -234,7 +291,7 @@
 }
 
 .member-role {
-  color: #3498db;
+  color: #00d4ff;
   font-size: 0.9rem;
   margin-bottom: 0.3rem;
   font-weight: 500;
@@ -392,8 +449,8 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
 }
 
 .form-group textarea {
@@ -437,13 +494,13 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
 }
 
 .btn-secondary {

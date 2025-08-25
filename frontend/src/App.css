@@ -17,8 +17,23 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #a8e6cf 0%, #7fcdcd 100%);
+  background: linear-gradient(135deg, #00ff1a 0%, #b8ffc4 50%, #00ff1a 100%);
+  background-size: 200% 200%;
+  animation: breathingGradient 12s ease-in-out infinite;
   min-height: 100vh;
+}
+
+/* Breathing gradient animation */
+@keyframes breathingGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 code {
@@ -63,6 +78,30 @@ code {
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+}
+
+/* Team-specific button styling */
+.btn-team {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-team:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Tournament-specific button styling */
+.btn-tournament {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-tournament:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
 }
 
 .btn-secondary {
@@ -320,7 +359,9 @@ input::placeholder {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #00ff1a 0%, #b8ffc4 50%, #00ff1a 100%);
+  background-size: 200% 200%;
+  animation: breathingGradient 12s ease-in-out infinite;
   color: white;
 }
 

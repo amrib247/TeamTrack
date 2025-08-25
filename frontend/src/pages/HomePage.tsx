@@ -587,7 +587,12 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
                  {/* Teams Display (restored) */}
          <div className="teams-section">
-           <h3>Your Teams</h3>
+           <div className="teams-header">
+             <h3>Your Teams</h3>
+             <button className="btn btn-primary" onClick={openCreateTeam}>
+               ➕ Create a Team
+             </button>
+           </div>
            {(() => {
              const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
              return validTeams.length > 0 ? (
@@ -642,20 +647,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
              );
            })()}
          </div>
-
-
-
-        <div className="team-actions">
-          <h3>Team Management</h3>
-          <div className="action-buttons">
-            <button className="btn btn-primary">
-              🏆 Join a Team
-            </button>
-            <button className="btn btn-primary" onClick={openCreateTeam}>
-              ➕ Create a Team
-            </button>
-          </div>
-        </div>
 
         {/* Tournaments Section */}
         <div className="tournaments-section">

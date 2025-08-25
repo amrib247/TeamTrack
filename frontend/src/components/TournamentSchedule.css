@@ -4,6 +4,29 @@
   width: 100%;
 }
 
+/* Schedule Header and Controls Layout */
+.tournament-schedule-section .schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tournament-schedule-section .schedule-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.tournament-schedule-section .schedule-controls {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 /* Modal Actions Layout */
 .modal-actions {
   display: flex;
@@ -55,12 +78,12 @@
 
 /* Game card styling */
 .game-card {
-  border-left: 4px solid #28a745;
-  background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+  border-left: 4px solid #6c757d;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
 }
 
 .game-card .event-header h4 {
-  color: #155724;
+  color: #495057;
   font-weight: 600;
 }
 
@@ -70,17 +93,17 @@
 
 /* Calendar game event styling */
 .calendar-event-card.game-event {
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
 }
 
 .calendar-event-card.game-event .calendar-event-name {
-  color: #155724;
+  color: #495057;
   font-weight: 600;
 }
 
 .calendar-event-card.game-event .calendar-event-time {
-  color: #0f5132;
+  color: #6c757d;
 }
 
 /* Weekly Calendar View Styles */
@@ -202,11 +225,11 @@
 
 /* Tournament-specific event card styles */
 .event-card.tournament {
-  border-left: 4px solid #28a745;
+  border-left: 4px solid #6c757d;
 }
 
 .event-card.tournament .event-header h4 {
-  color: #28a745;
+  color: #6c757d;
 }
 
 /* Responsive adjustments for weekly view */
@@ -297,4 +320,69 @@
 
 .calendar-day-events.weekly::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+.team-schedule-item {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #6c757d;
+}
+
+.team-schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  border-left: 4px solid #6c757d;
+  padding-left: 0.5rem;
+}
+
+.team-schedule-header h4 {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* View toggle buttons for tournament schedule */
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.view-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #00d4ff;
+  background: white;
+  color: #00d4ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.view-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: #00d4ff;
+  color: #00d4ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.15);
+}
+
+.view-btn.active {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: white;
+  border-color: #00d4ff;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.view-btn.active:hover {
+  box-shadow: 0 6px 16px rgba(0, 212, 255, 0.4);
+  transform: translateY(-2px);
 }

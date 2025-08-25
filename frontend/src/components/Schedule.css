@@ -25,7 +25,7 @@
 
 .schedule-controls {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   flex-wrap: wrap;
 }
@@ -39,29 +39,48 @@
   min-width: 150px;
 }
 
-.view-toggle {
+/* Team Schedule View Selector - Specific to avoid global style conflicts */
+.schedule-section .view-toggle {
   display: flex;
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
 }
 
-.view-btn {
+.schedule-section .view-btn {
   padding: 0.5rem 1rem;
   border: none;
   background: white;
+  color: #6c757d;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.9rem;
+  font-weight: 500;
 }
 
-.view-btn:hover {
-  background: #f8f9fa;
+.schedule-section .view-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
 }
 
-.view-btn.active {
-  background: #667eea;
-  color: white;
+.schedule-section .view-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Additional specificity to override global button styles */
+.schedule-section .view-btn.active.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+}
+
+/* Force team colors for any button within schedule section */
+.schedule-section button.view-btn.active,
+.schedule-section .view-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-color: #667eea !important;
 }
 
 /* Schedule Content */
@@ -702,7 +721,7 @@
     font-size: 0.8rem;
   }
   
-  .view-btn {
+  .schedule-section .view-btn {
     padding: 0.4rem 0.8rem;
     font-size: 0.8rem;
   }
@@ -726,5 +745,16 @@
 
 .tournament-event-note p:first-child {
   font-weight: 600;
+}
+
+/* Maximum specificity override for team schedule view selector */
+.schedule-section .view-toggle .view-btn.active,
+.schedule-section .view-toggle button.view-btn.active,
+.schedule-section .view-toggle .view-btn.active.btn-primary,
+.schedule-section .view-toggle .view-btn.active[class*="btn"] {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border-color: #667eea !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
 }
 

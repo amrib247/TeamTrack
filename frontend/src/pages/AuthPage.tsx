@@ -116,7 +116,10 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
   return (
     <div className="app auth-page">
       <div className="container">
-        <h1>TeamTrack</h1>
+        <div className="logo-header">
+          <img src="/High Res TeamTrack.png" alt="TeamTrack Logo" className="logo-image" />
+          <h1>TeamTrack</h1>
+        </div>
         <p className="subtitle">Sports Team Management System</p>
         
         <div className="auth-container">

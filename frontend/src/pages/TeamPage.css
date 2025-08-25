@@ -1,6 +1,87 @@
+/* Team Page Layout */
 .team-page {
   min-height: 100vh;
   background-color: #f5f5f5;
+}
+
+/* Team-specific button overrides - only for elements within the team page */
+.team-page .btn-primary,
+.team-page button.btn-primary,
+.team-page input[type="submit"].btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.team-page .btn-primary:hover:not(:disabled),
+.team-page button.btn-primary:hover:not(:disabled),
+.team-page input[type="submit"].btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+.team-page .btn-secondary,
+.team-page button.btn-secondary {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.team-page .btn-secondary:hover:not(:disabled),
+.team-page button.btn-secondary:hover:not(:disabled) {
+  background: #5a6268 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* Invite button - ensure it uses team colors */
+.team-page .btn-invite,
+.btn-invite {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.team-page .btn-invite:hover,
+.btn-invite:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+}
+
+.team-page .btn-invite:active,
+.btn-invite:active {
+  transform: translateY(0) !important;
+}
+
+/* Option card buttons */
+.option-card .btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.option-card .btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
 }
 
 /* Header */
@@ -92,9 +173,16 @@
 }
 
 .sidebar-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+/* Ensure team page sidebar uses team colors */
+.team-page .sidebar-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
 }
 
 .sidebar-icon {
@@ -290,18 +378,6 @@
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.form-actions .btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
 }
 
 /* Danger Zone */
@@ -784,29 +860,6 @@
   font-style: italic;
 }
 
-.btn-invite {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
-}
-
-.btn-invite:hover {
-  background: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
-}
-
-.btn-invite:active {
-  transform: translateY(0);
-}
-
 .loading-message {
   text-align: center;
   padding: 3rem;
@@ -1243,6 +1296,18 @@
   width: 100%;
   padding: 0.75rem 1rem;
   font-size: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+}
+
+.option-card .btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
 }
 
 .coach-safety-modal .modal-actions {

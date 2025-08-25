@@ -26,33 +26,6 @@
   transform: translateY(-1px);
 }
 
-/* Team Actions */
-.team-actions {
-  margin: 2rem 0;
-  padding: 2rem;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e8ed;
-}
-
-.team-actions h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
-  font-size: 1.5rem;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.action-buttons .btn {
-  flex: 1;
-  min-width: 150px;
-}
-
 /* Teams Section */
 .teams-section {
   margin: 2rem 0;
@@ -63,10 +36,33 @@
   border: 1px solid #e1e8ed;
 }
 
-.teams-section h3 {
-  margin: 0 0 1.5rem 0;
+.teams-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.teams-header h3 {
+  margin: 0;
   color: #333;
   font-size: 1.5rem;
+}
+
+.teams-header .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.teams-header .btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .teams-grid {
@@ -297,7 +293,7 @@
 
 .upload-text {
   margin-top: 0.5rem;
-  color: #3498db;
+  color: #667eea;
   cursor: pointer;
   font-size: 0.9rem;
   text-decoration: underline;
@@ -366,7 +362,7 @@
   background: #f8f9fa;
   padding: 1rem;
   border-radius: 8px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid #667eea;
 }
 
 .team-name {
@@ -376,7 +372,7 @@
 }
 
 .team-role {
-  color: #3498db;
+  color: #667eea;
   font-size: 0.9rem;
   margin-bottom: 0.3rem;
 }
@@ -543,6 +539,12 @@
     justify-content: center;
   }
   
+  .teams-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
   .teams-grid {
     grid-template-columns: 1fr;
   }
@@ -604,8 +606,8 @@
 .create-team-form select:focus,
 .create-team-form textarea:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 .create-team-form textarea {
@@ -621,8 +623,8 @@
 }
 
 .create-team-form select:focus {
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 /* Form group spacing */
@@ -634,6 +636,33 @@
 .create-team-form .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Team-specific button styling for create team modal */
+.create-team-form .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.create-team-form .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.create-team-form .btn-secondary {
+  background: #6c757d;
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.create-team-form .btn-secondary:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-2px);
 }
 
 /* Success message styling */
@@ -757,7 +786,7 @@
 }
 
 .teams-grid .team-sport {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
@@ -1076,8 +1105,8 @@
 .create-tournament-form select:focus,
 .create-tournament-form textarea:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 .create-tournament-form textarea {
@@ -1090,6 +1119,11 @@
 .create-tournament-form select {
   background-color: white;
   cursor: pointer;
+}
+
+.create-tournament-form select:focus {
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
 }
 
 /* Responsive design for tournaments */
