@@ -39,6 +39,7 @@ public class EventController {
             request.getTeamId(),
             request.getName(),
             request.getTournamentId(),
+            request.getOpposingTeamId(),
             request.getDate(),
             request.getStartTime(),
             request.getLengthMinutes(),

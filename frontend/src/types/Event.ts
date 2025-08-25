@@ -3,6 +3,7 @@ export interface Event {
   teamId: string;
   name: string;
   tournamentId?: string;
+  opposingTeamId?: string;
   date: string; // ISO date string
   startTime: string;
   lengthMinutes: number;
@@ -17,6 +18,7 @@ export interface CreateEventRequest {
   teamId: string;
   name: string;
   tournamentId?: string;
+  opposingTeamId?: string;
   date: string;
   startTime: string;
   lengthMinutes: number;

@@ -250,14 +250,16 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
          ...formData,
          teamId: selectedTeam1,
          name: `Game vs ${team2Name}`,
-         tournamentId: tournamentId
+         tournamentId: tournamentId,
+         opposingTeamId: selectedTeam2
        };
        
        const event2Data: CreateEventRequest = {
          ...formData,
          teamId: selectedTeam2,
          name: `Game vs ${team1Name}`,
-         tournamentId: tournamentId
+         tournamentId: tournamentId,
+         opposingTeamId: selectedTeam1
        };
       
       // Create both events

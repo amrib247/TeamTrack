@@ -4,6 +4,7 @@ public class CreateEventRequest {
     private String teamId;
     private String name;
     private String tournamentId;
+    private String opposingTeamId;
     private String date;
     private String startTime;
     private int lengthMinutes;
@@ -13,10 +14,11 @@ public class CreateEventRequest {
 
     public CreateEventRequest() {}
 
-    public CreateEventRequest(String teamId, String name, String tournamentId, String date, String startTime, int lengthMinutes, String location, String description, String score) {
+    public CreateEventRequest(String teamId, String name, String tournamentId, String opposingTeamId, String date, String startTime, int lengthMinutes, String location, String description, String score) {
         this.teamId = teamId;
         this.name = name;
         this.tournamentId = tournamentId;
+        this.opposingTeamId = opposingTeamId;
         this.date = date;
         this.startTime = startTime;
         this.lengthMinutes = lengthMinutes;
@@ -48,6 +50,14 @@ public class CreateEventRequest {
 
     public void setTournamentId(String tournamentId) {
         this.tournamentId = tournamentId;
+    }
+
+    public String getOpposingTeamId() {
+        return opposingTeamId;
+    }
+
+    public void setOpposingTeamId(String opposingTeamId) {
+        this.opposingTeamId = opposingTeamId;
     }
 
     public String getDate() {

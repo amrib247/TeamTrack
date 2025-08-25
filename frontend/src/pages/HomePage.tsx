@@ -127,6 +127,10 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       if (orphanedTeamIds.length > 0) {
         console.warn(`Found ${orphanedTeamIds.length} orphaned teams:`, orphanedTeamIds);
         console.warn('These teams exist in userTeams but not in teams collection. They will be filtered out from display.');
+        
+        // TODO: Consider implementing a cleanup mechanism to remove orphaned userTeams records
+        // This would require a backend endpoint to clean up orphaned userTeams records
+        // For now, we just filter them out from display
       }
       
     } catch (error) {

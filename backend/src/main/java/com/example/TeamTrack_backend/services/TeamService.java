@@ -272,10 +272,73 @@ public class TeamService {
                         var eventsSnapshot = eventsFuture.get();
                         System.out.println("🔍 TeamService: Found " + eventsSnapshot.size() + " events to delete");
                         
-                        // Delete all events for this team
+                        // Delete all events for this team, handling tournament events specially
                         for (var eventDoc : eventsSnapshot.getDocuments()) {
-                            firestore.collection("events").document(eventDoc.getId()).delete().get();
-                            System.out.println("🗑️ TeamService: Deleted event: " + eventDoc.getId());
+                            Map<String, Object> eventData = eventDoc.getData();
+                            String eventId = eventDoc.getId();
+                            String tournamentId = (String) eventData.get("tournamentId");
+                            
+                            if (tournamentId != null && !tournamentId.isEmpty()) {
+                                // This is a tournament event - find and delete the corresponding partner event
+                                System.out.println("🏆 TeamService: Found tournament event " + eventId + " for tournament " + tournamentId);
+                                
+                                try {
+                                    // Find the partner event using the opposingTeamId field
+                                    String opposingTeamId = (String) eventData.get("opposingTeamId");
+                                    if (opposingTeamId != null && !opposingTeamId.isEmpty()) {
+                                        // Find the event where the opposing team is playing against the deleted team
+                                        var partnerEventQuery = firestore.collection("events")
+                                            .whereEqualTo("tournamentId", tournamentId)
+                                            .whereEqualTo("teamId", opposingTeamId)
+                                            .whereEqualTo("opposingTeamId", teamId)
+                                            .get();
+                                        
+                                        var partnerEventSnapshot = partnerEventQuery.get();
+                                        if (!partnerEventSnapshot.isEmpty()) {
+                                            // We found the partner event - delete it first
+                                            var partnerDoc = partnerEventSnapshot.getDocuments().get(0);
+                                            String partnerEventId = partnerDoc.getId();
+                                            
+                                            System.out.println("🔍 TeamService: Found partner event: " + partnerEventId + " for team: " + opposingTeamId);
+                                            
+                                            // Delete the partner event first
+                                            firestore.collection("events").document(partnerEventId).delete().get();
+                                            System.out.println("🗑️ TeamService: Deleted partner tournament event: " + partnerEventId);
+                                            
+                                            // Also clean up availabilities for the partner event
+                                            try {
+                                                var availabilitiesQuery = firestore.collection("availabilities")
+                                                    .whereEqualTo("eventId", partnerEventId)
+                                                    .get();
+                                                
+                                                var availabilitiesSnapshot = availabilitiesQuery.get();
+                                                int deletedAvailabilities = 0;
+                                                
+                                                for (var availabilityDoc : availabilitiesSnapshot.getDocuments()) {
+                                                    firestore.collection("availabilities").document(availabilityDoc.getId()).delete().get();
+                                                    deletedAvailabilities++;
+                                                }
+                                                
+                                                if (deletedAvailabilities > 0) {
+                                                    System.out.println("🧹 TeamService: Cleaned up " + deletedAvailabilities + " availabilities for partner event " + partnerEventId);
+                                                }
+                                            } catch (Exception availabilityError) {
+                                                System.err.println("⚠️ TeamService: Warning - could not cleanup availabilities for partner event " + partnerEventId + ": " + availabilityError.getMessage());
+                                            }
+                                        } else {
+                                            System.out.println("⚠️ TeamService: Warning - could not find partner event for tournament event " + eventId + " (opposingTeamId: " + opposingTeamId + ")");
+                                        }
+                                    } else {
+                                        System.out.println("⚠️ TeamService: Warning - tournament event " + eventId + " does not have opposingTeamId set");
+                                    }
+                                } catch (Exception partnerError) {
+                                    System.err.println("⚠️ TeamService: Warning - could not find/delete partner event for tournament event " + eventId + ": " + partnerError.getMessage());
+                                }
+                            }
+                            
+                            // Delete the current event
+                            firestore.collection("events").document(eventId).delete().get();
+                            System.out.println("🗑️ TeamService: Deleted event: " + eventId);
                         }
                         System.out.println("✅ TeamService: All events deleted for team");
                     }
@@ -285,6 +348,7 @@ public class TeamService {
                 }
                 
                 // Second, delete all availability entries associated with this team
+                // Note: Tournament event availabilities are handled during event deletion above
                 System.out.println("📋 TeamService: Deleting all availability entries for team...");
                 try {
                     if (firestore != null) {
@@ -480,6 +544,27 @@ public class TeamService {
                             System.out.println("🗑️ TeamService: Removed user-team relationship: " + document.getId());
                         }
                         System.out.println("✅ TeamService: All users removed from team");
+                        
+                        // Verify that all userTeams records were deleted
+                        var verificationFuture = firestore.collection("userTeams")
+                            .whereEqualTo("teamId", teamId)
+                            .get();
+                        
+                        var verificationSnapshot = verificationFuture.get();
+                        if (verificationSnapshot.size() > 0) {
+                            System.err.println("⚠️ TeamService: Warning - " + verificationSnapshot.size() + " userTeams records still exist after deletion");
+                            // Force delete any remaining records
+                            for (var remainingDoc : verificationSnapshot.getDocuments()) {
+                                try {
+                                    firestore.collection("userTeams").document(remainingDoc.getId()).delete().get();
+                                    System.out.println("🗑️ TeamService: Force deleted remaining user-team relationship: " + remainingDoc.getId());
+                                } catch (Exception forceDeleteError) {
+                                    System.err.println("❌ TeamService: Critical error - could not force delete user-team relationship " + remainingDoc.getId() + ": " + forceDeleteError.getMessage());
+                                }
+                            }
+                        } else {
+                            System.out.println("✅ TeamService: Verified all userTeams records were deleted successfully");
+                        }
                     }
                 } catch (Exception e) {
                     System.err.println("⚠️ TeamService: Warning - could not remove user associations: " + e.getMessage());
@@ -490,6 +575,45 @@ public class TeamService {
                 System.out.println("🗑️ TeamService: Deleting team document...");
                 firestore.collection("teams").document(teamId).delete().get();
                 System.out.println("✅ TeamService: Team document deleted");
+                
+                // Final verification - ensure no orphaned data remains
+                System.out.println("🔍 TeamService: Performing final verification...");
+                try {
+                    // Check if team document still exists
+                    var teamVerification = firestore.collection("teams").document(teamId).get().get();
+                    if (teamVerification.exists()) {
+                        System.err.println("❌ TeamService: Critical error - team document still exists after deletion!");
+                    } else {
+                        System.out.println("✅ TeamService: Team document verified as deleted");
+                    }
+                    
+                    // Check if any userTeams records still exist
+                    var userTeamsVerification = firestore.collection("userTeams")
+                        .whereEqualTo("teamId", teamId)
+                        .get();
+                    
+                    var userTeamsSnapshot = userTeamsVerification.get();
+                    if (userTeamsSnapshot.size() > 0) {
+                        System.err.println("❌ TeamService: Critical error - " + userTeamsSnapshot.size() + " userTeams records still exist after cleanup!");
+                    } else {
+                        System.out.println("✅ TeamService: All userTeams records verified as deleted");
+                    }
+                    
+                    // Check if any events still exist
+                    var eventsVerification = firestore.collection("events")
+                        .whereEqualTo("teamId", teamId)
+                        .get();
+                    
+                    var eventsSnapshot = eventsVerification.get();
+                    if (eventsSnapshot.size() > 0) {
+                        System.err.println("❌ TeamService: Critical error - " + eventsSnapshot.size() + " events still exist after cleanup!");
+                    } else {
+                        System.out.println("✅ TeamService: All events verified as deleted");
+                    }
+                    
+                } catch (Exception verificationError) {
+                    System.err.println("⚠️ TeamService: Warning - could not perform final verification: " + verificationError.getMessage());
+                }
                 
                 // Log comprehensive cleanup summary
                 System.out.println("🎯 TeamService: Team termination cleanup completed successfully:");

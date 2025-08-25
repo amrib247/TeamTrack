@@ -5,6 +5,7 @@ public class Event {
     private String teamId;
     private String name;
     private String tournamentId;
+    private String opposingTeamId;
     private String date;
     private String startTime;
     private int lengthMinutes;
@@ -16,10 +17,11 @@ public class Event {
 
     public Event() {}
 
-    public Event(String teamId, String name, String tournamentId, String date, String startTime, int lengthMinutes, String location, String description, String score) {
+    public Event(String teamId, String name, String tournamentId, String opposingTeamId, String date, String startTime, int lengthMinutes, String location, String description, String score) {
         this.teamId = teamId;
         this.name = name;
         this.tournamentId = tournamentId;
+        this.opposingTeamId = opposingTeamId;
         this.date = date;
         this.startTime = startTime;
         this.lengthMinutes = lengthMinutes;
@@ -61,6 +63,14 @@ public class Event {
 
     public void setTournamentId(String tournamentId) {
         this.tournamentId = tournamentId;
+    }
+
+    public String getOpposingTeamId() {
+        return opposingTeamId;
+    }
+
+    public void setOpposingTeamId(String opposingTeamId) {
+        this.opposingTeamId = opposingTeamId;
     }
 
     public String getDate() {
@@ -134,6 +144,7 @@ public class Event {
                 ", teamId='" + teamId + '\'' +
                 ", name='" + name + '\'' +
                 ", tournamentId='" + tournamentId + '\'' +
+                ", opposingTeamId='" + opposingTeamId + '\'' +
                 ", date='" + date + '\'' +
                 ", startTime='" + startTime + '\'' +
                 ", lengthMinutes=" + lengthMinutes +
