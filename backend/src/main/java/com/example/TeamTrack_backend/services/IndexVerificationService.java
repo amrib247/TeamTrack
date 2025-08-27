@@ -20,9 +20,7 @@ public class IndexVerificationService {
     private final Firestore firestore;
 
     public IndexVerificationService() {
-        System.out.println("? IndexVerificationService constructor called");
         this.firestore = FirestoreClient.getFirestore();
-        System.out.println("? IndexVerificationService constructor completed");
     }
 
     /**

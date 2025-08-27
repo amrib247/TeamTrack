@@ -25,16 +25,10 @@ public class EventService {
     
     public EventService(AvailabilityService availabilityService) {
         this.availabilityService = availabilityService;
-        System.out.println("🔧 EventService constructor called");
-        System.out.println("🔧 EventService constructor completed");
     }
     
     private Firestore getFirestore() {
         try {
-            System.out.println("🔍 EventService: Checking Firebase initialization...");
-            System.out.println("🔍 EventService: FirebaseApp.getApps().isEmpty(): " + FirebaseApp.getApps().isEmpty());
-            System.out.println("🔍 EventService: FirebaseApp.getApps().size(): " + FirebaseApp.getApps().size());
-            
             // Check if Firebase is initialized
             if (FirebaseApp.getApps().isEmpty()) {
                 System.err.println("❌ EventService: Firebase not initialized");
@@ -42,13 +36,10 @@ public class EventService {
             }
             
             // Use the same approach as other services
-            Firestore firestore = FirestoreClient.getFirestore();
-            System.out.println("✅ EventService: Got Firestore from FirestoreClient: " + firestore);
-            return firestore;
+            return FirestoreClient.getFirestore();
             
         } catch (Exception e) {
             System.err.println("❌ EventService: Failed to get Firestore instance: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -69,28 +60,50 @@ public class EventService {
                     }
                 }
                 
+                // Validate date format - only if provided
+                if (event.getDate() != null && !event.getDate().isEmpty()) {
+                    if (event.getDate().equals("0001-01-01")) {
+                        throw new IllegalArgumentException("Event date cannot be invalid (0001-01-01)");
+                    }
+                    
+                    // Check if date is more than one month in the past
+                    try {
+                        java.time.LocalDate eventDate = java.time.LocalDate.parse(event.getDate());
+                        java.time.LocalDate currentDate = java.time.LocalDate.now();
+                        java.time.LocalDate oneMonthAgo = currentDate.minusMonths(1);
+                        if (eventDate.isBefore(oneMonthAgo)) {
+                            throw new IllegalArgumentException("Event date cannot be more than one month in the past");
+                        }
+                    } catch (java.time.format.DateTimeParseException e) {
+                        throw new IllegalArgumentException("Invalid date format. Expected YYYY-MM-DD");
+                    }
+                    
+                    // Validate time format - only if provided
+                    if (event.getStartTime() != null && !event.getStartTime().isEmpty()) {
+                        // Try to parse the time to ensure it's valid
+                        try {
+                            java.time.LocalTime.parse(event.getStartTime());
+                        } catch (java.time.format.DateTimeParseException e) {
+                            throw new IllegalArgumentException("Invalid time format. Expected HH:MM");
+                        }
+                    }
+                }
+                
                 Firestore firestore = getFirestore();
                 if (firestore == null) {
                     throw new RuntimeException("Firebase Firestore not available");
                 }
-                
-                System.out.println("🔍 EventService: Firestore instance obtained successfully");
                 
                 DocumentReference docRef = firestore.collection("events").document();
                 event.setId(docRef.getId());
                 event.setCreatedAt(java.time.LocalDateTime.now().toString());
                 event.setUpdatedAt(java.time.LocalDateTime.now().toString());
                 
-                System.out.println("🔍 EventService: Event prepared, saving to Firestore...");
-                
                 docRef.set(event).get();
-                
-                System.out.println("✅ EventService: Event created successfully with ID: " + event.getId());
                 return event;
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error creating event: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to create event", e);
             }
         });
@@ -102,24 +115,16 @@ public class EventService {
     public CompletableFuture<List<Event>> getEventsByTeamId(String teamId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                System.out.println("🔍 EventService: Getting events for teamId: " + teamId);
-                
                 Firestore firestore = getFirestore();
                 if (firestore == null) {
                     throw new RuntimeException("Firebase Firestore not available");
                 }
                 
-                System.out.println("🔍 EventService: Firestore instance obtained successfully");
-                
                 Query query = firestore.collection("events")
                     .whereEqualTo("teamId", teamId);
                 
-                System.out.println("🔍 EventService: Query built, executing...");
-                
                 ApiFuture<QuerySnapshot> querySnapshot = query.get();
                 QuerySnapshot snapshot = querySnapshot.get();
-                
-                System.out.println("🔍 EventService: Query executed, found " + snapshot.size() + " documents");
                 
                 List<Event> events = new ArrayList<>();
                 java.time.LocalDateTime now = java.time.LocalDateTime.now();
@@ -127,20 +132,14 @@ public class EventService {
                 java.time.LocalDateTime oneMonthAgo = now.minusMonths(1);
                 List<String> eventsToDelete = new ArrayList<>();
                 
-                System.out.println("🔍 EventService: Current time: " + now);
-                System.out.println("🔍 EventService: One week ago: " + oneWeekAgo);
-                System.out.println("🔍 EventService: One month ago: " + oneMonthAgo);
-                
                 for (QueryDocumentSnapshot document : snapshot.getDocuments()) {
                     try {
-                        System.out.println("🔍 EventService: Processing document: " + document.getId());
                         Event event = document.toObject(Event.class);
                         if (event != null) {
                             event.setId(document.getId());
                             
                             // Check if event is more than a week old
                             try {
-                                System.out.println("🔍 EventService: Raw date: '" + event.getDate() + "', Raw time: '" + event.getStartTime() + "'");
                                 
                                 // Try different date parsing strategies
                                 java.time.LocalDateTime eventDateTime = null;
@@ -193,7 +192,6 @@ public class EventService {
                         }
                     } catch (Exception docError) {
                         System.err.println("❌ EventService: Error processing document " + document.getId() + ": " + docError.getMessage());
-                        docError.printStackTrace();
                     }
                 }
                 
@@ -202,6 +200,15 @@ public class EventService {
                     System.out.println("🗑️ EventService: Deleting " + eventsToDelete.size() + " old events...");
                     for (String eventId : eventsToDelete) {
                         try {
+                            // Clean up availabilities first
+                            try {
+                                availabilityService.cleanupEventAvailabilities(eventId).get();
+                                System.out.println("🧹 EventService: Cleaned up availabilities for old event: " + eventId);
+                            } catch (Exception availabilityError) {
+                                System.err.println("⚠️ EventService: Warning - could not cleanup availabilities for old event: " + eventId + ": " + availabilityError.getMessage());
+                            }
+                            
+                            // Then delete the event
                             firestore.collection("events").document(eventId).delete().get();
                             System.out.println("✅ EventService: Deleted old event with ID: " + eventId);
                         } catch (Exception deleteError) {
@@ -222,12 +229,10 @@ public class EventService {
                     }
                 });
                 
-                System.out.println("✅ EventService: Successfully processed " + events.size() + " events (filtered from " + snapshot.size() + " total)");
                 return events;
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error getting events for team: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to get events", e);
             }
         });
@@ -338,7 +343,6 @@ public class EventService {
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error deleting event: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to delete event", e);
             }
         });
@@ -404,7 +408,6 @@ public class EventService {
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error during cleanup: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to cleanup old events", e);
             }
         });
@@ -480,7 +483,6 @@ public class EventService {
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error getting events for tournament: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to get events for tournament", e);
             }
         });
@@ -532,7 +534,6 @@ public class EventService {
                 
             } catch (Exception e) {
                 System.err.println("❌ EventService: Error deleting events for tournament: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to delete events for tournament", e);
             }
         });

@@ -39,7 +39,6 @@ public class TournamentInviteService {
             
         } catch (Exception e) {
             System.err.println("❌ TournamentInviteService: Failed to get Firestore instance: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

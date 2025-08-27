@@ -47,7 +47,6 @@ public class ChatService {
             
         } catch (Exception e) {
             System.err.println("❌ ChatService: Failed to get Firestore instance: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }

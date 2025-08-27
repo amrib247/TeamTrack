@@ -31,9 +31,7 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
-            System.out.println("📁 FileController: Uploading file: " + file.getOriginalFilename());
             FileUploadResponse response = fileUploadService.uploadFile(file);
-            System.out.println("✅ FileController: File uploaded successfully: " + response.getFilename());
             return ResponseEntity.ok(response);
         } catch (IOException e) {
             System.err.println("❌ FileController: File upload failed: " + e.getMessage());
@@ -44,7 +42,6 @@ public class FileController {
     @GetMapping("/{filename}")
     public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable String filename) {
         try {
-            System.out.println("📥 FileController: Downloading file: " + filename);
             byte[] fileData = fileUploadService.getFile(filename);
             ByteArrayResource resource = new ByteArrayResource(fileData);
             
@@ -68,13 +65,10 @@ public class FileController {
     @DeleteMapping("/{filename}")
     public ResponseEntity<Void> deleteFile(@PathVariable String filename) {
         try {
-            System.out.println("🗑️ FileController: Deleting file: " + filename);
             boolean deleted = fileUploadService.deleteFile(filename);
             if (deleted) {
-                System.out.println("✅ FileController: File deleted successfully: " + filename);
                 return ResponseEntity.ok().build();
             } else {
-                System.out.println("❌ FileController: File not found for deletion: " + filename);
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {

@@ -180,7 +180,6 @@ public class AuthService {
             return firebaseAuthService.deleteUserAccount(uid);
         } catch (Exception e) {
             System.err.println("❌ AuthService.deleteAccount() failed: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to delete account: " + e.getMessage());
         }
     }

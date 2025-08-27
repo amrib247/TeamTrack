@@ -305,13 +305,10 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
              // Update all related events
        const updatePromises = sameGameEvents.map(event => {
-         const updateData = {
+         const updateData: any = {
            ...formData,
-           teamId: event.teamId, // Keep the original team ID for each event
-           name: event.name // Keep the original name for each event
+           teamId: event.teamId // Keep the original team ID for each event
          };
-         // Remove the name field from formData since it's not editable
-         delete updateData.name;
          return eventService.updateEvent(event.id, updateData);
        });
 

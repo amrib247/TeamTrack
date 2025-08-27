@@ -17,7 +17,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.cloud.FirestoreClient;
 
 @Configuration
-@Order(1) // Ensure this runs before other components
+@Order(1)
 public class FirebaseInitializer {
     
     private FirebaseApp firebaseApp;
@@ -32,9 +32,8 @@ public class FirebaseInitializer {
             if (credPath != null && !credPath.isEmpty()) {
                 try (FileInputStream serviceAccount = new FileInputStream(credPath)) {
                     credentials = GoogleCredentials.fromStream(serviceAccount);
-                    System.out.println("✅ Firebase credentials loaded from environment variable");
                 } catch (Exception e) {
-                    System.out.println("⚠️ Failed to load credentials from environment variable: " + e.getMessage());
+                    // Continue to next credential source
                 }
             }
             
@@ -45,13 +44,10 @@ public class FirebaseInitializer {
                     if (resource.exists()) {
                         try (InputStream inputStream = resource.getInputStream()) {
                             credentials = GoogleCredentials.fromStream(inputStream);
-                            System.out.println("✅ Firebase credentials loaded from classpath");
                         }
-                    } else {
-                        System.out.println("⚠️ firebase-service-account.json not found in classpath");
                     }
                 } catch (Exception e) {
-                    System.out.println("⚠️ Failed to load credentials from classpath: " + e.getMessage());
+                    // Continue to next credential source
                 }
             }
             
@@ -59,13 +55,12 @@ public class FirebaseInitializer {
             if (credentials == null) {
                 try {
                     credentials = GoogleCredentials.getApplicationDefault();
-                    System.out.println("✅ Firebase credentials loaded from default application credentials");
                 } catch (IOException e) {
-                    System.out.println("❌ No Firebase credentials found anywhere!");
-                    System.out.println("To enable Firebase persistence, either:");
-                    System.out.println("1. Set GOOGLE_APPLICATION_CREDENTIALS environment variable");
-                    System.out.println("2. Place firebase-config.json in src/main/resources/");
-                    System.out.println("3. Configure default application credentials");
+                    System.err.println("❌ No Firebase credentials found anywhere!");
+                    System.err.println("To enable Firebase persistence, either:");
+                    System.err.println("1. Set GOOGLE_APPLICATION_CREDENTIALS environment variable");
+                    System.err.println("2. Place firebase-config.json in src/main/resources/");
+                    System.err.println("3. Configure default application credentials");
                     throw new RuntimeException("Firebase credentials required for database persistence", e);
                 }
             }
@@ -78,16 +73,14 @@ public class FirebaseInitializer {
             if (FirebaseApp.getApps().isEmpty()) {
                 this.firebaseApp = FirebaseApp.initializeApp(options);
                 System.out.println("🎉 Firebase initialized successfully!");
-                System.out.println("📊 Database will use Firebase Firestore for persistence");
             } else {
                 this.firebaseApp = FirebaseApp.getInstance();
-                System.out.println("ℹ️ Firebase already initialized");
             }
             
         } catch (Exception e) {
-            System.err.println("💥 CRITICAL: Failed to initialize Firebase: " + e.getMessage());
+            System.err.println("❌ Failed to initialize Firebase: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Firebase initialization failed - application cannot start", e);
+            throw new RuntimeException("Firebase initialization failed", e);
         }
     }
     

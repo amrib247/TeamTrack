@@ -150,14 +150,12 @@ public class EventController {
                 
                 for (QueryDocumentSnapshot document : snapshot.getDocuments()) {
                     Event event = document.toObject(Event.class);
-                    if (event != null) {
-                        result.append("Event ID: ").append(document.getId()).append("\n");
-                        result.append("Name: ").append(event.getName()).append("\n");
-                        result.append("Team ID: ").append(event.getTeamId()).append("\n");
-                        result.append("Date: '").append(event.getDate()).append("'\n");
-                        result.append("Time: '").append(event.getStartTime()).append("'\n");
-                        result.append("---\n");
-                    }
+                    result.append("Event ID: ").append(document.getId()).append("\n");
+                    result.append("Name: ").append(event.getName()).append("\n");
+                    result.append("Team ID: ").append(event.getTeamId()).append("\n");
+                    result.append("Date: '").append(event.getDate()).append("'\n");
+                    result.append("Time: '").append(event.getStartTime()).append("'\n");
+                    result.append("---\n");
                 }
                 
                 return ResponseEntity.ok(result.toString());

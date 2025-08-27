@@ -162,7 +162,6 @@ public class FirebaseAuthService {
             
         } catch (Exception e) {
             System.err.println("❌ FirebaseAuthService: Error deleting user account: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to delete user account: " + e.getMessage());
         }
     }

@@ -28,10 +28,6 @@ public class UserTeamController {
 
     @Autowired
     private UserTeamService userTeamService;
-    
-    public UserTeamController() {
-        System.out.println("🎯 UserTeamController constructor called - controller is being instantiated!");
-    }
 
     // Add user to team
     @PostMapping("/add")
@@ -83,15 +79,10 @@ public class UserTeamController {
     // Get all users for a specific team
     @GetMapping("/team/{teamId}")
     public CompletableFuture<ResponseEntity<List<UserTeamWithUserDto>>> getTeamUsers(@PathVariable String teamId) {
-        System.out.println("🎯 UserTeamController.getTeamUsers called with teamId: " + teamId);
         return userTeamService.getTeamUsers(teamId)
-                .thenApply(teamUsers -> {
-                    System.out.println("✅ UserTeamController: Retrieved " + teamUsers.size() + " team users");
-                    return ResponseEntity.ok(teamUsers);
-                })
+                .thenApply(teamUsers -> ResponseEntity.ok(teamUsers))
                 .exceptionally(throwable -> {
                     System.err.println("❌ UserTeamController: Error getting team users: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<List<UserTeamWithUserDto>>badRequest().build();
                 });
     }
@@ -124,15 +115,11 @@ public class UserTeamController {
     public CompletableFuture<ResponseEntity<UserTeam>> inviteUserToTeam(
             @PathVariable String teamId,
             @RequestBody InviteUserRequest inviteRequest) {
-        System.out.println("🎯 UserTeamController.inviteUserToTeam called with teamId: " + teamId + ", email: " + inviteRequest.getEmail() + ", role: " + inviteRequest.getRole());
+        
         return userTeamService.inviteUserToTeam(teamId, inviteRequest.getEmail(), inviteRequest.getRole())
-            .thenApply(userTeam -> {
-                System.out.println("✅ UserTeamController: User invited successfully");
-                return ResponseEntity.ok(userTeam);
-            })
+            .thenApply(userTeam -> ResponseEntity.ok(userTeam))
             .exceptionally(throwable -> {
                 System.err.println("❌ UserTeamController: Error inviting user: " + throwable.getMessage());
-                throwable.printStackTrace();
                 return ResponseEntity.<UserTeam>badRequest().build();
             });
     }
@@ -201,16 +188,10 @@ public class UserTeamController {
             @RequestParam String userId,
             @RequestParam String action) {
         
-        System.out.println("🎯 UserTeamController.checkCoachSafety called with userId: " + userId + ", action: " + action);
-        
         return userTeamService.checkCoachSafety(userId, action)
-            .thenApply(safetyResponse -> {
-                System.out.println("✅ UserTeamController: Coach safety check completed - can proceed: " + safetyResponse.isCanProceed());
-                return ResponseEntity.ok(safetyResponse);
-            })
+            .thenApply(safetyResponse -> ResponseEntity.ok(safetyResponse))
             .exceptionally(throwable -> {
                 System.err.println("❌ UserTeamController: Error checking coach safety: " + throwable.getMessage());
-                throwable.printStackTrace();
                 return ResponseEntity.<com.example.TeamTrack_backend.dto.CoachSafetyCheckResponse>badRequest().build();
             });
     }

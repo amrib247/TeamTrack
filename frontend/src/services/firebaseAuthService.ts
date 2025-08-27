@@ -3,7 +3,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   updateProfile,
-  deleteUser,
+
   type UserCredential
 } from 'firebase/auth';
 import { 
@@ -11,7 +11,7 @@ import {
   setDoc, 
   getDoc, 
   updateDoc, 
-  deleteDoc,
+
   collection,
   query,
   where,

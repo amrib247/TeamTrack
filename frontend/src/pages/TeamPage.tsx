@@ -86,7 +86,7 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
   const [coachCount, setCoachCount] = useState<number>(0);
   const [loadingCoachCount, setLoadingCoachCount] = useState(false);
   const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
-  const [coachSafetyData, setCoachSafetyData] = useState<any>(null);
+
 
   // State for tournament invites
   const [tournamentInvites, setTournamentInvites] = useState<any[]>([]);

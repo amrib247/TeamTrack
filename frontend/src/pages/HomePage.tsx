@@ -46,8 +46,8 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   
      // Team details state
    const [teamDetails, setTeamDetails] = useState<Record<string, { teamName: string; sport: string; ageGroup: string; description?: string; profilePhotoUrl?: string } | null>>({});
-  const [loadingTeams, setLoadingTeams] = useState(false);
 
+  
   // Tournament states
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [pendingTournamentInvites, setPendingTournamentInvites] = useState<any[]>([]);
@@ -80,10 +80,10 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   
   // Fetch team details for all user teams
   const fetchTeamDetails = async () => {
-    if (currentUser.teams.length === 0) return;
-    
-    setLoadingTeams(true);
-    try {
+          if (currentUser.teams.length === 0) return;
+      
+
+      try {
       const details: Record<string, { teamName: string; sport: string; ageGroup: string; description?: string; profilePhotoUrl?: string } | null> = {};
       const orphanedTeamIds: string[] = [];
       
@@ -135,9 +135,9 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       
     } catch (error) {
       console.error('Failed to fetch team details:', error);
-    } finally {
-      setLoadingTeams(false);
-    }
+          } finally {
+        
+      }
   };
 
   // Fetch tournaments organized by current user
@@ -499,70 +499,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     navigate(`/team/${userTeamId}`);
   };
 
-  // Handle accepting team invite
-  const handleAcceptInvite = async (userTeamId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent team card click
-    
-    try {
-      await teamService.acceptInvite(userTeamId);
-      
-      // Refresh user data to update invite status
-      await onRefreshUserData();
-      
-      // Show success message
-      alert('Team invite accepted successfully!');
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept invite');
-    }
-  };
-  
-  // Handle accepting tournament organizer invite
-  const handleAcceptTournamentInvite = async (organizerTournamentId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent tournament card click
-    
-    try {
-      await tournamentService.acceptOrganizerInvite(organizerTournamentId);
-      
-      // Refresh user data to update invite status
-      await onRefreshUserData();
-      
-      // Refresh pending invites list
-      const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
-      setPendingTournamentInvites(pendingInvites);
-      
-      // Refresh tournaments list to show the newly accepted tournament
-      await loadTournaments();
-      
-      // Show success message
-      alert('Tournament organizer invite accepted successfully!');
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to accept tournament invite');
-    }
-  };
-  
-  // Handle declining tournament organizer invite
-  const handleDeclineTournamentInvite = async (organizerTournamentId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent tournament card click
-    
-    try {
-      await tournamentService.declineOrganizerInvite(organizerTournamentId);
-      
-      // Refresh user data to update invite status
-      await onRefreshUserData();
-      
-      // Refresh pending invites list
-      const pendingInvites = await tournamentService.getPendingOrganizerInvites(currentUser.id);
-      setPendingTournamentInvites(pendingInvites);
-      
-      // Show success message
-      alert('Tournament organizer invite declined successfully!');
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to decline tournament invite');
-    }
-  };
+
   
   // Handle clicking on pending tournament invite card
   const handlePendingTournamentInviteClick = (invite: any) => {

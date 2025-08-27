@@ -23,7 +23,6 @@ interface AvailabilityModalProps {
   eventId: string;
   teamId: string;
   currentUserId: string;
-  userRole: string;
 }
 
 const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
@@ -31,8 +30,7 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
   onClose,
   eventId,
   teamId,
-  currentUserId,
-  userRole
+  currentUserId
 }) => {
   const [availability, setAvailability] = useState<TeamAvailabilityResponse | null>(null);
   const [loading, setLoading] = useState(false);

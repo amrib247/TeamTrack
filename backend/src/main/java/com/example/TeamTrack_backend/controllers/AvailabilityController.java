@@ -23,10 +23,6 @@ public class AvailabilityController {
     @Autowired
     private AvailabilityService availabilityService;
     
-    public AvailabilityController() {
-        System.out.println("🎯 AvailabilityController constructor called - controller is being instantiated!");
-    }
-    
     /**
      * Set availability for a user for a specific event
      */
@@ -37,17 +33,10 @@ public class AvailabilityController {
             @RequestParam String eventId,
             @RequestParam String status) {
         
-        System.out.println("📥 AvailabilityController.setAvailability called");
-        System.out.println("👤 User ID: " + userId + ", Team ID: " + teamId + ", Event ID: " + eventId + ", Status: " + status);
-        
         return availabilityService.setAvailability(userId, teamId, eventId, status)
-                .thenApply(availability -> {
-                    System.out.println("✅ AvailabilityController: Availability set successfully");
-                    return ResponseEntity.ok(availability);
-                })
+                .thenApply(availability -> ResponseEntity.ok(availability))
                 .exceptionally(throwable -> {
                     System.err.println("❌ AvailabilityController: Error setting availability: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<Availability>badRequest().build();
                 });
     }
@@ -61,17 +50,10 @@ public class AvailabilityController {
             @PathVariable String eventId,
             @RequestParam String currentUserId) {
         
-        System.out.println("📥 AvailabilityController.getTeamAvailabilityForEvent called");
-        System.out.println("🏀 Team ID: " + teamId + ", Event ID: " + eventId + ", Current User ID: " + currentUserId);
-        
         return availabilityService.getTeamAvailabilityForEvent(teamId, eventId, currentUserId)
-                .thenApply(availability -> {
-                    System.out.println("✅ AvailabilityController: Team availability retrieved successfully");
-                    return ResponseEntity.ok(availability);
-                })
+                .thenApply(availability -> ResponseEntity.ok(availability))
                 .exceptionally(throwable -> {
                     System.err.println("❌ AvailabilityController: Error getting team availability: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<Map<String, Object>>badRequest().build();
                 });
     }
@@ -85,25 +67,12 @@ public class AvailabilityController {
             @PathVariable String teamId,
             @PathVariable String eventId) {
         
-        System.out.println("📥 AvailabilityController.getUserAvailabilityForEvent called");
-        System.out.println("👤 User ID: " + userId + ", Team ID: " + teamId + ", Event ID: " + eventId);
-        
-        try {
-            return availabilityService.getUserAvailabilityForEvent(userId, teamId, eventId)
-                    .thenApply(availability -> {
-                        if (availability != null) {
-                            System.out.println("✅ AvailabilityController: User availability retrieved successfully");
-                            return ResponseEntity.ok(availability);
-                        } else {
-                            System.out.println("ℹ️ AvailabilityController: No availability found for user");
-                            return ResponseEntity.<Availability>notFound().build();
-                        }
-                    });
-        } catch (Exception e) {
-            System.err.println("❌ AvailabilityController: Error getting user availability: " + e.getMessage());
-            e.printStackTrace();
-            return CompletableFuture.completedFuture(ResponseEntity.<Availability>badRequest().build());
-        }
+        return availabilityService.getUserAvailabilityForEvent(userId, teamId, eventId)
+                .thenApply(availability -> ResponseEntity.ok(availability))
+                .exceptionally(throwable -> {
+                    System.err.println("❌ AvailabilityController: Error getting user availability: " + throwable.getMessage());
+                    return ResponseEntity.<Availability>badRequest().build();
+                });
     }
     
     /**
@@ -111,17 +80,11 @@ public class AvailabilityController {
      */
     @DeleteMapping("/tournament/{tournamentId}")
     public CompletableFuture<ResponseEntity<String>> cleanupTournamentEventAvailabilities(@PathVariable String tournamentId) {
-        System.out.println("📥 AvailabilityController.cleanupTournamentEventAvailabilities called");
-        System.out.println("🏆 Tournament ID: " + tournamentId);
         
         return availabilityService.cleanupTournamentEventAvailabilities(tournamentId)
-                .thenApply(v -> {
-                    System.out.println("✅ AvailabilityController: Tournament event availabilities cleaned up successfully");
-                    return ResponseEntity.ok("Successfully cleaned up availabilities for tournament " + tournamentId);
-                })
+                .thenApply(v -> ResponseEntity.ok("Successfully cleaned up availabilities for tournament " + tournamentId))
                 .exceptionally(throwable -> {
                     System.err.println("❌ AvailabilityController: Error cleaning up tournament event availabilities: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<String>badRequest().build();
                 });
     }

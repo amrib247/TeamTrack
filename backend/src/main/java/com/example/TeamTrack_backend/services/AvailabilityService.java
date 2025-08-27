@@ -24,16 +24,10 @@ public class AvailabilityService {
     
     public AvailabilityService(UserTeamService userTeamService) {
         this.userTeamService = userTeamService;
-        System.out.println("🔧 AvailabilityService constructor called");
-        System.out.println("🔧 AvailabilityService constructor completed");
     }
     
     private Firestore getFirestore() {
         try {
-            System.out.println("🔍 AvailabilityService: Checking Firebase initialization...");
-            System.out.println("🔍 AvailabilityService: FirebaseApp.getApps().isEmpty(): " + FirebaseApp.getApps().isEmpty());
-            System.out.println("🔍 AvailabilityService: FirebaseApp.getApps().size(): " + FirebaseApp.getApps().size());
-            
             // Check if Firebase is initialized
             if (FirebaseApp.getApps().isEmpty()) {
                 System.err.println("❌ AvailabilityService: Firebase not initialized");
@@ -41,13 +35,10 @@ public class AvailabilityService {
             }
             
             // Use the same approach as other services
-            Firestore firestore = FirestoreClient.getFirestore();
-            System.out.println("✅ AvailabilityService: Got Firestore from FirestoreClient: " + firestore);
-            return firestore;
+            return FirestoreClient.getFirestore();
             
         } catch (Exception e) {
             System.err.println("❌ AvailabilityService: Failed to get Firestore instance: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -58,8 +49,6 @@ public class AvailabilityService {
     public CompletableFuture<Availability> setAvailability(String userId, String teamId, String eventId, String status) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                System.out.println("🔍 AvailabilityService: Setting availability for user: " + userId + ", event: " + eventId + ", status: " + status);
-                
                 Firestore firestore = getFirestore();
                 if (firestore == null) {
                     throw new RuntimeException("Firebase Firestore not available");
@@ -88,7 +77,6 @@ public class AvailabilityService {
                         existingAvailability.setUpdatedAt(java.time.LocalDateTime.now().toString());
                         
                         firestore.collection("availabilities").document(existingDoc.getId()).set(existingAvailability).get();
-                        System.out.println("✅ AvailabilityService: Updated existing availability");
                         return existingAvailability;
                     }
                 }
@@ -99,13 +87,10 @@ public class AvailabilityService {
                 newAvailability.setId(availabilityId);
                 
                 firestore.collection("availabilities").document(availabilityId).set(newAvailability).get();
-                System.out.println("✅ AvailabilityService: Created new availability with ID: " + availabilityId);
-                
                 return newAvailability;
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error setting availability: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to set availability: " + e.getMessage());
             }
         });
@@ -117,11 +102,8 @@ public class AvailabilityService {
     public CompletableFuture<Map<String, Object>> getTeamAvailabilityForEvent(String teamId, String eventId, String currentUserId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                System.out.println("🔍 AvailabilityService: Getting team availability for event: " + eventId);
-                
                 // Use UserTeamService to get team members
                 List<UserTeamWithUserDto> teamMembers = userTeamService.getTeamUsers(teamId).get();
-                System.out.println("🔍 AvailabilityService: Found " + teamMembers.size() + " team members via UserTeamService");
                 
                 // Get all availabilities for this event
                 Firestore firestore = getFirestore();
@@ -143,8 +125,6 @@ public class AvailabilityService {
                     }
                 }
                 
-                System.out.println("🔍 AvailabilityService: Found " + userAvailabilities.size() + " availability entries");
-                
                 // Build team availability from UserTeamWithUserDto
                 List<Map<String, Object>> teamAvailability = new ArrayList<>();
                 
@@ -158,7 +138,6 @@ public class AvailabilityService {
                     memberAvailability.put("isCurrentUser", teamMember.getUserId().equals(currentUserId));
                     
                     teamAvailability.add(memberAvailability);
-                    System.out.println("🔍 AvailabilityService: Added member: " + teamMember.getFirstName() + " " + teamMember.getLastName() + " with role: " + teamMember.getRole());
                 }
                 
                 // Sort: current user first, then by role (COACH first), then by name
@@ -187,13 +166,10 @@ public class AvailabilityService {
                 Map<String, Object> result = new HashMap<>();
                 result.put("teamAvailability", teamAvailability);
                 result.put("totalMembers", teamAvailability.size());
-                
-                System.out.println("✅ AvailabilityService: Successfully retrieved team availability with " + teamAvailability.size() + " members");
                 return result;
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error getting team availability: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to get team availability: " + e.getMessage());
             }
         });
@@ -233,7 +209,6 @@ public class AvailabilityService {
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error getting user availability: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to get user availability: " + e.getMessage());
             }
         });
@@ -268,7 +243,6 @@ public class AvailabilityService {
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error deleting availability: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to delete availability: " + e.getMessage());
             }
         });
@@ -309,7 +283,6 @@ public class AvailabilityService {
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error cleaning up event availabilities: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to cleanup event availabilities: " + e.getMessage());
             }
         });
@@ -350,7 +323,6 @@ public class AvailabilityService {
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error cleaning up team availabilities: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to cleanup team availabilities: " + e.getMessage());
             }
         });
@@ -408,7 +380,6 @@ public class AvailabilityService {
                 
             } catch (Exception e) {
                 System.err.println("❌ AvailabilityService: Error cleaning up tournament event availabilities: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to cleanup tournament event availabilities: " + e.getMessage());
             }
         });

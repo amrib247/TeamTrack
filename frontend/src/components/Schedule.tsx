@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, CreateEventRequest } from '../types/Event';
-import type { Tournament } from '../types/Auth';
+
 import { eventService } from '../services/eventService';
 import { tournamentService } from '../services/tournamentService';
 import AvailabilityModal from './AvailabilityModal';
@@ -864,7 +864,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
           eventId={selectedEvent.id}
           teamId={teamId}
           currentUserId={currentUserId}
-          userRole={userRole}
+
         />
       )}
     </div>

@@ -28,10 +28,6 @@ public class TeamController {
     @Autowired
     private TeamService teamService;
     
-    public TeamController() {
-        System.out.println("🎯 TeamController constructor called - controller is being instantiated!");
-    }
-    
     /**
      * Create a new team
      */
@@ -40,17 +36,10 @@ public class TeamController {
             @RequestBody CreateTeamRequest request,
             @RequestParam String createdByUserId) {
         
-        System.out.println("📥 TeamController.createTeam called with request: " + request.getTeamName());
-        System.out.println("👤 Created by user ID: " + createdByUserId);
-        
         return teamService.createTeam(request, createdByUserId)
-                .thenApply(team -> {
-                    System.out.println("✅ TeamController: Team created successfully, returning response");
-                    return ResponseEntity.ok(team);
-                })
+                .thenApply(team -> ResponseEntity.ok(team))
                 .exceptionally(throwable -> {
                     System.err.println("❌ TeamController: Error creating team: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<Team>badRequest().build();
                 });
     }
@@ -73,17 +62,10 @@ public class TeamController {
             @PathVariable String teamId,
             @RequestBody UpdateTeamRequest request) {
         
-        System.out.println("📥 TeamController.updateTeam called with teamId: " + teamId);
-        System.out.println("📝 Update request: " + request.getTeamName() + " - " + request.getSport() + " - " + request.getAgeGroup());
-        
         return teamService.updateTeam(teamId, request)
-                .thenApply(team -> {
-                    System.out.println("✅ TeamController: Team updated successfully");
-                    return ResponseEntity.ok(team);
-                })
+                .thenApply(team -> ResponseEntity.ok(team))
                 .exceptionally(throwable -> {
                     System.err.println("❌ TeamController: Error updating team: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<Team>badRequest().build();
                 });
     }
@@ -99,58 +81,37 @@ public class TeamController {
     }
     
     /**
-     * Terminate team (deactivates and removes all user associations)
+     * Terminate team
      */
     @DeleteMapping("/{teamId}/terminate")
     public CompletableFuture<ResponseEntity<Void>> terminateTeam(@PathVariable String teamId) {
-        System.out.println("📥 TeamController.terminateTeam called with teamId: " + teamId);
-        
         return teamService.terminateTeam(teamId)
-                .thenApply(result -> {
-                    System.out.println("✅ TeamController: Team terminated successfully");
-                    return ResponseEntity.ok().<Void>build();
-                })
+                .thenApply(result -> ResponseEntity.ok().<Void>build())
                 .exceptionally(throwable -> {
                     System.err.println("❌ TeamController: Error terminating team: " + throwable.getMessage());
-                    throwable.printStackTrace();
                     return ResponseEntity.<Void>badRequest().build();
                 });
     }
-
+    
     /**
      * Get coach count for a team
      */
     @GetMapping("/{teamId}/coach-count")
     public CompletableFuture<ResponseEntity<Integer>> getCoachCount(@PathVariable String teamId) {
-        System.out.println("👥 TeamController.getCoachCount called with teamId: " + teamId);
-        
         return teamService.getCoachCount(teamId)
-                .thenApply(count -> {
-                    System.out.println("✅ TeamController: Coach count retrieved successfully: " + count);
-                    return ResponseEntity.ok(count);
-                })
-                .exceptionally(throwable -> {
-                    System.err.println("❌ TeamController: Error getting coach count: " + throwable.getMessage());
-                    throwable.printStackTrace();
-                    return ResponseEntity.<Integer>badRequest().build();
-                });
+                .thenApply(count -> ResponseEntity.ok(count))
+                .exceptionally(throwable -> ResponseEntity.<Integer>badRequest().build());
     }
-
+    
     /**
      * Search teams by name
      */
     @GetMapping("/search")
     public CompletableFuture<ResponseEntity<List<Team>>> searchTeamsByName(@RequestParam String name) {
-        System.out.println("🔍 TeamController.searchTeamsByName called with name: " + name);
-        
         return teamService.searchTeamsByName(name)
-                .thenApply(teams -> {
-                    System.out.println("✅ TeamController: Found " + teams.size() + " teams matching name: " + name);
-                    return ResponseEntity.ok(teams);
-                })
+                .thenApply(teams -> ResponseEntity.ok(teams))
                 .exceptionally(throwable -> {
-                    System.err.println("❌ TeamController: Error searching teams by name: " + throwable.getMessage());
-                    throwable.printStackTrace();
+                    System.err.println("❌ TeamController: Error searching teams: " + throwable.getMessage());
                     return ResponseEntity.<List<Team>>badRequest().build();
                 });
     }

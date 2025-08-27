@@ -9,10 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/test")
 public class TestController {
     
-    public TestController() {
-        System.out.println("🎯 TestController constructor called - controller is being instantiated!");
-    }
-    
     @GetMapping
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("Test controller is working!");
@@ -20,7 +16,6 @@ public class TestController {
     
     @GetMapping("/chat")
     public ResponseEntity<String> chatTest() {
-        System.out.println("✅ TestController.chatTest called - testing chat endpoint!");
         return ResponseEntity.ok("Chat test endpoint is working!");
     }
 }

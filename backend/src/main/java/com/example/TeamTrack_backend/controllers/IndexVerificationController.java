@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,20 +14,16 @@ import com.example.TeamTrack_backend.services.IndexVerificationService;
 
 @RestController
 @RequestMapping("/admin/indices")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class IndexVerificationController {
-
+    
     private final IndexVerificationService indexVerificationService;
-
+    
     @Autowired
     public IndexVerificationController(IndexVerificationService indexVerificationService) {
-        System.out.println("? IndexVerificationController constructor called - controller is being instantiated!");
         this.indexVerificationService = indexVerificationService;
-        System.out.println("? IndexVerificationController constructor completed");
     }
-
-    /**
-     * Verify all Firestore indices and return performance metrics
-     */
+    
     @GetMapping("/verify")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> verifyAllIndices() {
         return indexVerificationService.verifyAllIndices()
@@ -38,10 +35,7 @@ public class IndexVerificationController {
                 }
             });
     }
-
-    /**
-     * Get index verification status and recommendations
-     */
+    
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getIndexStatus() {
         Map<String, Object> status = Map.of(

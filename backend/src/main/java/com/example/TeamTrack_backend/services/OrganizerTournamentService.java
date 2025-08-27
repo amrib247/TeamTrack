@@ -42,7 +42,6 @@ public class OrganizerTournamentService {
             
         } catch (Exception e) {
             System.err.println("❌ OrganizerTournamentService: Failed to get Firestore instance: " + e.getMessage());
-            e.printStackTrace();
             return null;
         }
     }
@@ -91,7 +90,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error during organizer tournament creation: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to create organizer tournament: " + e.getMessage(), e);
             }
         });
@@ -137,7 +135,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error finding tournaments by organizer: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to find tournaments by organizer: " + e.getMessage());
             }
         });
@@ -183,7 +180,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error finding organizers by tournament: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to find organizers by tournament: " + e.getMessage());
             }
         });
@@ -246,7 +242,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error getting organizer details: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to get organizer details: " + e.getMessage());
             }
         });
@@ -288,7 +283,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error deactivating organizer tournaments: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to deactivate organizer tournaments: " + e.getMessage());
             }
         });
@@ -325,7 +319,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error deleting organizer tournaments: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to delete organizer tournaments: " + e.getMessage());
             }
         });
@@ -398,7 +391,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error inviting user to tournament: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to invite user to tournament: " + e.getMessage());
             }
         });
@@ -483,7 +475,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error accepting organizer invite: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to accept organizer invite: " + e.getMessage());
             }
         });
@@ -511,7 +502,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error declining organizer invite: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to decline organizer invite: " + e.getMessage());
             }
         });
@@ -636,7 +626,6 @@ public class OrganizerTournamentService {
                 
             } catch (Exception e) {
                 System.err.println("❌ OrganizerTournamentService: Error removing organizer from tournament: " + e.getMessage());
-                e.printStackTrace();
                 throw new RuntimeException("Failed to remove organizer from tournament: " + e.getMessage());
             }
         });
