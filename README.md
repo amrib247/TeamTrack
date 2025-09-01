@@ -41,6 +41,72 @@ TeamTrack is a comprehensive team management and tournament organization platfor
 - **npm** - Package manager for frontend dependencies
 - **Gradle Wrapper** - Consistent Gradle version management
 
+## Deployment
+
+### GitHub Pages (Frontend)
+
+The frontend is automatically deployed to GitHub Pages when you push to the main branch.
+
+#### Setup Instructions:
+
+1. **Update GitHub Repository Settings:**
+   - Go to your repository on GitHub
+   - Navigate to Settings → Pages
+   - Set Source to "GitHub Actions"
+
+2. **Update Configuration:**
+   - Replace `yourusername` in `frontend/package.json` with your actual GitHub username
+   - Update the homepage URL: `"homepage": "https://yourusername.github.io/TeamTrack"`
+
+3. **Set Environment Variables:**
+   - Go to Settings → Secrets and variables → Actions
+   - Add `VITE_API_BASE_URL` with your Render backend URL
+
+4. **Deploy:**
+   ```bash
+   git add .
+   git commit -m "Setup GitHub Pages deployment"
+   git push origin main
+   ```
+
+### Render (Backend)
+
+The backend is deployed on Render for free hosting.
+
+#### Setup Instructions:
+
+1. **Create Render Account:**
+   - Go to [Render](https://render.com)
+   - Sign up with your GitHub account
+
+2. **Deploy Backend:**
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Configure the service:
+     - **Name**: `teamtrack-backend`
+     - **Environment**: `Java`
+     - **Build Command**: `./gradlew build`
+     - **Start Command**: `java -jar build/libs/TeamTrack_backend-0.0.1-SNAPSHOT.jar`
+
+3. **Set Environment Variables:**
+   - Go to Environment → Environment Variables
+   - Add the following variables:
+     ```
+     PORT=8080
+     CORS_ORIGINS=https://yourusername.github.io
+     GOOGLE_APPLICATION_CREDENTIALS=your_firebase_service_account_json
+     ```
+
+4. **Deploy:**
+   - Click "Create Web Service"
+   - Render will automatically build and deploy your backend
+
+### Production URLs
+
+After deployment, your application will be available at:
+- **Frontend**: `https://yourusername.github.io/TeamTrack`
+- **Backend**: `https://your-render-app-name.onrender.com`
+
 ## Getting Started
 
 ### Prerequisites
@@ -97,6 +163,7 @@ Before running TeamTrack, ensure you have the following installed:
    The backend is configured to allow requests from:
    - `http://localhost:5173` (Vite dev server)
    - `http://localhost:3000` (Alternative dev server)
+   - `https://yourusername.github.io` (Production frontend)
    
    Update `backend/src/main/resources/application.properties` if you need different origins.
 
@@ -322,6 +389,8 @@ TeamTrack/
 ├── firestore.indexes.json  # Firestore database indices for performance
 ├── verify-indices.sh       # Index verification script (Linux/macOS)
 ├── verify-indices.bat      # Index verification script (Windows)
+├── .github/workflows/      # GitHub Actions for deployment
+├── render.yaml             # Render deployment configuration
 └── README.md               # This file
 ```
 
