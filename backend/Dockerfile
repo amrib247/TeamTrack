@@ -4,15 +4,15 @@ FROM eclipse-temurin:21-jdk-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy Gradle wrapper and build files
-COPY gradle/ gradle/
-COPY gradlew gradlew.bat build.gradle settings.gradle ./
+# Copy Gradle wrapper and build files from backend directory
+COPY backend/gradle/ gradle/
+COPY backend/gradlew backend/gradlew.bat backend/build.gradle backend/settings.gradle ./
 
 # Make gradlew executable
 RUN chmod +x gradlew
 
-# Copy source code
-COPY src/ src/
+# Copy source code from backend directory
+COPY backend/src/ src/
 
 # Build the application
 RUN ./gradlew build -x test
