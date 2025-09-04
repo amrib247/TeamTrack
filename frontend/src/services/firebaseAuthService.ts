@@ -363,7 +363,7 @@ class FirebaseAuthService {
       await signInWithEmailAndPassword(auth, user.email!, password);
       
       // Call the backend API to delete account (this will trigger cascade deletion)
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/delete-account`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://teamtrack-backend.onrender.com/api'}/auth/delete-account`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
