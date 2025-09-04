@@ -1,6 +1,7 @@
 import type { User, CreateUserRequest, UpdateUserRequest } from '../types/Auth';
 
 // Use environment variable for API URL, fallback to production backend
+// Updated: 2025-09-04 - Fixed all API URLs to use production backend
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://teamtrack-backend.onrender.com/api';
 
 class ApiService {
