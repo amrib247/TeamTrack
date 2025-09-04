@@ -3,15 +3,15 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Replace these values with your Firebase web app config
+// Firebase web app configuration
 const firebaseConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  };
+  apiKey: "AIzaSyD-n1Ro87Lk3mm6j_l6Tke11aLgXHkVJvE",
+  authDomain: "teamtrack-93cae.firebaseapp.com",
+  projectId: "teamtrack-93cae",
+  storageBucket: "teamtrack-93cae.firebasestorage.app",
+  messagingSenderId: "860441948458",
+  appId: "1:860441948458:web:ca76a7eeb7a4111be4ee53"
+};
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
