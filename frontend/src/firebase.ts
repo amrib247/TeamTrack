@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Firebase web app configuration
+// Firebase web app configuration - Updated for production
 const firebaseConfig = {
   apiKey: "AIzaSyD-n1Ro87Lk3mm6j_l6Tke11aLgXHkVJvE",
   authDomain: "teamtrack-93cae.firebaseapp.com",
