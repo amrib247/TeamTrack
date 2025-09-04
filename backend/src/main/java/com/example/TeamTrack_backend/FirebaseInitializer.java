@@ -35,6 +35,12 @@ public class FirebaseInitializer {
         String clientX509CertUrl = System.getenv("FIREBASE_CLIENT_X509_CERT_URL");
         String universeDomain = System.getenv("FIREBASE_UNIVERSE_DOMAIN");
         
+        // Debug: Print which environment variables are found
+        System.out.println("🔍 Checking Firebase environment variables:");
+        System.out.println("FIREBASE_PROJECT_ID: " + (projectId != null ? "✅ Found" : "❌ Missing"));
+        System.out.println("FIREBASE_PRIVATE_KEY: " + (privateKey != null ? "✅ Found" : "❌ Missing"));
+        System.out.println("FIREBASE_CLIENT_EMAIL: " + (clientEmail != null ? "✅ Found" : "❌ Missing"));
+        
         if (projectId == null || privateKey == null || clientEmail == null) {
             System.out.println("🔍 Firebase environment variables not found, trying other methods...");
             return null;
