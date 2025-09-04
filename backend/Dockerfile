@@ -31,4 +31,4 @@ USER appuser
 EXPOSE 8080
 
 # Run the application
-CMD ["java", "-jar", "build/libs/TeamTrack_backend-0.0.1-SNAPSHOT.jar"]
+CMD ["java", "-jar", "build/libs/TeamTrack-backend-0.0.1-SNAPSHOT.jar"]
