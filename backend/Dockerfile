@@ -1,28 +1,25 @@
+# Use Eclipse Temurin JDK 21 Alpine image
 FROM eclipse-temurin:21-jdk-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Copy the Gradle files
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle .
-COPY settings.gradle .
+# Copy Gradle wrapper and build files
+COPY gradle/ gradle/
+COPY gradlew gradlew.bat build.gradle settings.gradle ./
 
 # Make gradlew executable
 RUN chmod +x gradlew
 
-# Download dependencies
-RUN ./gradlew dependencies --no-daemon
-
 # Copy source code
-COPY src src
+COPY src/ src/
 
 # Build the application
-RUN ./gradlew build --no-daemon
+RUN ./gradlew build -x test
 
 # Create a non-root user
 RUN addgroup -g 1001 -S appgroup && \
-    adduser -u 1001 -S appuser -G appgroup
+    adduser -S appuser -u 1001 -G appgroup
 
 # Change ownership of the app directory
 RUN chown -R appuser:appgroup /app
@@ -30,7 +27,7 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Expose the port
+# Expose port 8080
 EXPOSE 8080
 
 # Run the application
