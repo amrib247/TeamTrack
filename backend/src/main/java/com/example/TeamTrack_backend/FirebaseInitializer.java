@@ -1,5 +1,6 @@
 package com.example.TeamTrack_backend;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,20 +23,57 @@ public class FirebaseInitializer {
     
     private FirebaseApp firebaseApp;
     
+    private GoogleCredentials createCredentialsFromEnv() {
+        String projectId = System.getenv("FIREBASE_PROJECT_ID");
+        String privateKeyId = System.getenv("FIREBASE_PRIVATE_KEY_ID");
+        String privateKey = System.getenv("FIREBASE_PRIVATE_KEY");
+        String clientEmail = System.getenv("FIREBASE_CLIENT_EMAIL");
+        String clientId = System.getenv("FIREBASE_CLIENT_ID");
+        String authUri = System.getenv("FIREBASE_AUTH_URI");
+        String tokenUri = System.getenv("FIREBASE_TOKEN_URI");
+        String authProviderX509CertUrl = System.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL");
+        String clientX509CertUrl = System.getenv("FIREBASE_CLIENT_X509_CERT_URL");
+        String universeDomain = System.getenv("FIREBASE_UNIVERSE_DOMAIN");
+        
+        if (projectId == null || privateKey == null || clientEmail == null) {
+            System.out.println("🔍 Firebase environment variables not found, trying other methods...");
+            return null;
+        }
+        
+        // Create the service account JSON structure
+        String serviceAccountJson = String.format("""
+            {
+                "type": "service_account",
+                "project_id": "%s",
+                "private_key_id": "%s",
+                "private_key": "%s",
+                "client_email": "%s",
+                "client_id": "%s",
+                "auth_uri": "%s",
+                "token_uri": "%s",
+                "auth_provider_x509_cert_url": "%s",
+                "client_x509_cert_url": "%s",
+                "universe_domain": "%s"
+            }
+            """, projectId, privateKeyId, privateKey, clientEmail, clientId, 
+                 authUri, tokenUri, authProviderX509CertUrl, clientX509CertUrl, universeDomain);
+        
+        try {
+            System.out.println("✅ Creating Firebase credentials from environment variables...");
+            return GoogleCredentials.fromStream(new ByteArrayInputStream(serviceAccountJson.getBytes()));
+        } catch (IOException e) {
+            System.err.println("❌ Failed to create credentials from environment variables: " + e.getMessage());
+            return null;
+        }
+    }
+    
     @javax.annotation.PostConstruct
     public void init() {
         try {
             GoogleCredentials credentials = null;
             
-            // First try to get credentials from environment variable
-            String credPath = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
-            if (credPath != null && !credPath.isEmpty()) {
-                try (FileInputStream serviceAccount = new FileInputStream(credPath)) {
-                    credentials = GoogleCredentials.fromStream(serviceAccount);
-                } catch (Exception e) {
-                    // Continue to next credential source
-                }
-            }
+            // First try to get credentials from environment variables
+            credentials = createCredentialsFromEnv();
             
             // If no environment credentials, try to load from classpath
             if (credentials == null) {
