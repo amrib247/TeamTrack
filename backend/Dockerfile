@@ -1,5 +1,5 @@
-# Use Eclipse Temurin JDK 21 Alpine image
-FROM eclipse-temurin:21-jdk-alpine
+# Use Eclipse Temurin JDK 21 (not Alpine) for better compatibility
+FROM eclipse-temurin:21-jdk
 
 # Set working directory
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN chmod +x gradlew
 COPY backend/src/ src/
 
 # Build the application
-RUN ./gradlew build -x test
+RUN ./gradlew build -x test --no-daemon
 
 # Create a non-root user
 RUN addgroup -g 1001 -S appgroup && \
