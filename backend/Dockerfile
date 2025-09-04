@@ -18,8 +18,8 @@ COPY backend/src/ src/
 RUN ./gradlew build -x test --no-daemon
 
 # Create a non-root user
-RUN addgroup -g 1001 -S appgroup && \
-    adduser -S appuser -u 1001 -G appgroup
+RUN groupadd -g 1001 appgroup && \
+    useradd -u 1001 -g appgroup -s /bin/bash -m appuser
 
 # Change ownership of the app directory
 RUN chown -R appuser:appgroup /app
