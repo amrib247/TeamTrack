@@ -46,6 +46,12 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_API_BASE_URL: https://teamtrack-backend.onrender.com/api
 
+      - name: List build output
+        run: |
+          cd frontend
+          ls -la dist/
+          echo "Build completed successfully"
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
