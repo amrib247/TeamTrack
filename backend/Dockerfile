@@ -17,11 +17,16 @@ COPY backend/settings.gradle .
 # Make gradlew executable
 RUN chmod +x gradlew
 
+# Download dependencies first (this helps with network issues)
+RUN ./gradlew dependencies --no-daemon || \
+    (sleep 10 && ./gradlew dependencies --no-daemon) || \
+    (sleep 20 && ./gradlew dependencies --no-daemon)
+
 # Copy source code
 COPY backend/src/ src/
 
 # Build the application
-RUN ./gradlew build -x test
+RUN ./gradlew build -x test --no-daemon
 
 # Change ownership of the app directory to the app user
 RUN chown -R appuser:appgroup /app
