@@ -9,5 +9,23 @@ services:
         value: 8080
       - key: CORS_ORIGINS
         value: ${CORS_ORIGINS}
-      - key: GOOGLE_APPLICATION_CREDENTIALS
-        value: /opt/render/project/src/backend/src/main/resources/firebase-service-account.json
+      - key: FIREBASE_PROJECT_ID
+        value: ${FIREBASE_PROJECT_ID}
+      - key: FIREBASE_PRIVATE_KEY
+        value: ${FIREBASE_PRIVATE_KEY}
+      - key: FIREBASE_CLIENT_EMAIL
+        value: ${FIREBASE_CLIENT_EMAIL}
+      - key: FIREBASE_PRIVATE_KEY_ID
+        value: ${FIREBASE_PRIVATE_KEY_ID}
+      - key: FIREBASE_CLIENT_ID
+        value: ${FIREBASE_CLIENT_ID}
+      - key: FIREBASE_AUTH_URI
+        value: https://accounts.google.com/o/oauth2/auth
+      - key: FIREBASE_TOKEN_URI
+        value: https://oauth2.googleapis.com/token
+      - key: FIREBASE_AUTH_PROVIDER_X509_CERT_URL
+        value: https://www.googleapis.com/oauth2/v1/certs
+      - key: FIREBASE_CLIENT_X509_CERT_URL
+        value: ${FIREBASE_CLIENT_X509_CERT_URL}
+      - key: FIREBASE_UNIVERSE_DOMAIN
+        value: googleapis.com
