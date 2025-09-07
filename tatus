@@ -1,0 +1,3 @@
+[33m6219cb6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Cleaned up lots of code, removing unecessary imports and unused variables. Also fixed brief issue where old events are automatically deleted and result in orphaned availability objects in the database.
+[33md3adbeb[m Cleaned up and added central README file. Added indices to optimize retrievals and searches in the database, greatly improving search time.
+[33mb564412[m Major UI updates: Added favicon's to website, improved green, breathing background. Changed styling of all tournament related buttons and items, fixed homepage, added logo to login page.
