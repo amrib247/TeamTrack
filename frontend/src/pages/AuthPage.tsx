@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import type { LoginRequest, RegisterRequest, AuthResponse } from '../types/Auth';
 import './AuthPage.css';
+import logoImage from '/High Res TeamTrack.png';
 
 interface AuthPageProps {
   onAuthSuccess: (user: AuthResponse) => void;
@@ -117,7 +118,7 @@ function AuthPage({ onAuthSuccess }: AuthPageProps) {
     <div className="app auth-page">
       <div className="container">
         <div className="logo-header">
-          <img src="/High Res TeamTrack.png" alt="TeamTrack Logo" className="logo-image" />
+          <img src={logoImage} alt="TeamTrack Logo" className="logo-image" />
           <h1>TeamTrack</h1>
         </div>
         <p className="subtitle">Sports Team Management System</p>
