@@ -1,0 +1,40 @@
+# Environment files
+.env
+.env.local
+.env.production
+.env.development
+
+# Firebase credentials (SECURITY - NEVER commit these!)
+**/firebase-service-account.json
+**/firebase-config.json
+**/serviceAccountKey.json
+**/*-service-account.json
+**/firebase-credentials.json
+
+# API Keys and Secrets
+**/api-keys.json
+**/secrets.json
+**/credentials.json
+
+# Build outputs
+dist/
+build/
+target/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
