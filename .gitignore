@@ -16,6 +16,9 @@
 **/secrets.json
 **/credentials.json
 
+# Legacy backend (removed — delete local folder if it still exists)
+backend/
+
 # Build outputs
 dist/
 build/

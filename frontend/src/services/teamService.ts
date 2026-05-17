@@ -1,4 +1,17 @@
-import { API_BASE_URL } from './api';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import { deleteQueryBatch, docData, docToData, nowIso, omitUndefined, queryByField, toNumber } from '../lib/firestoreUtils';
 
 export interface CreateTeamRequest {
   teamName: string;
@@ -44,6 +57,14 @@ export interface TeamMember {
   profilePhotoUrl?: string;
 }
 
+export interface TournamentInviteRecord {
+  id: string;
+  teamId: string;
+  tournamentId: string;
+  createdAt?: string;
+  isActive: boolean;
+}
+
 export interface CoachSafetyCheckResponse {
   canProceed: boolean;
   message: string;
@@ -53,394 +74,438 @@ export interface CoachSafetyCheckResponse {
   action: 'LEAVE_TEAM' | 'DELETE_ACCOUNT';
 }
 
+type UserTeamDoc = {
+  userId: string;
+  teamId: string;
+  role: string;
+  joinedAt?: string;
+  joinDate?: string;
+  isActive: boolean;
+  inviteAccepted: boolean;
+};
+
+type TeamDoc = {
+  teamName: string;
+  sport: string;
+  ageGroup: string;
+  description?: string;
+  profilePhotoUrl?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  coachCount?: number;
+};
+
+function mapTeam(id: string, data: TeamDoc): Team {
+  return {
+    id,
+    teamName: data.teamName,
+    sport: data.sport,
+    ageGroup: data.ageGroup,
+    description: data.description,
+    profilePhotoUrl: data.profilePhotoUrl,
+    createdBy: data.createdBy,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+    isActive: data.isActive !== false,
+  };
+}
+
+function joinedAtValue(data: UserTeamDoc): string {
+  return data.joinedAt || data.joinDate || nowIso();
+}
+
+async function updateCoachCount(teamId: string, delta: number): Promise<void> {
+  const teamRef = doc(db, 'teams', teamId);
+  const teamSnap = await getDoc(teamRef);
+  if (!teamSnap.exists()) {
+    throw new Error('Team not found');
+  }
+  const current = toNumber(teamSnap.data()?.coachCount, 1);
+  const next = current + delta;
+  if (next < 1) {
+    throw new Error('Cannot have zero coach count. At least one coach is required.');
+  }
+  await updateDoc(teamRef, { coachCount: next });
+}
+
 class TeamService {
-  
   async createTeam(request: CreateTeamRequest, createdByUserId: string): Promise<Team> {
-    try {
-      console.log('🚀 Creating team with data:', request);
-      
-      const response = await fetch(`${API_BASE_URL}/teams?createdByUserId=${createdByUserId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+    const teamId = crypto.randomUUID();
+    const timestamp = nowIso();
+    const teamData: TeamDoc = {
+      teamName: request.teamName,
+      sport: request.sport,
+      ageGroup: request.ageGroup,
+      description: request.description,
+      profilePhotoUrl: request.profilePhotoUrl,
+      createdBy: createdByUserId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      isActive: true,
+      coachCount: 1,
+    };
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to create team:', response.status, errorText);
-        throw new Error(`Failed to create team: ${response.status} ${errorText}`);
-      }
+    await setDoc(doc(db, 'teams', teamId), omitUndefined(teamData));
 
-      const createdTeam = await response.json();
-      console.log('✅ Team created successfully:', createdTeam);
-      return createdTeam;
-    } catch (error) {
-      console.error('Failed to create team:', error);
-      throw error;
-    }
+    await addDoc(collection(db, 'userTeams'), {
+      userId: createdByUserId,
+      teamId,
+      role: 'COACH',
+      joinedAt: timestamp,
+      isActive: true,
+      inviteAccepted: true,
+    });
+
+    return mapTeam(teamId, teamData);
   }
 
   async getTeam(teamId: string): Promise<Team> {
-    try {
-      console.log('🔍 Getting team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to get team:', response.status, errorText);
-        throw new Error(`Failed to get team: ${response.status} ${errorText}`);
-      }
-
-      const team = await response.json();
-      console.log('✅ Team retrieved successfully:', team);
-      return team;
-    } catch (error) {
-      console.error('Failed to get team:', error);
-      throw error;
+    const snap = await getDoc(doc(db, 'teams', teamId));
+    const data = docToData<TeamDoc>(snap);
+    if (!data) {
+      throw new Error('Team not found');
     }
+    return mapTeam(data.id, data);
   }
 
   async updateTeam(teamId: string, request: UpdateTeamRequest): Promise<Team> {
-    try {
-      console.log('🔄 Updating team:', teamId, 'with data:', request);
-      console.log('🔍 API URL:', `${API_BASE_URL}/teams/${teamId}`);
-      console.log('🔍 Request body:', JSON.stringify(request, null, 2));
-      
-      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to update team:', response.status, errorText);
-        throw new Error(`Failed to update team: ${response.status} ${errorText}`);
-      }
-
-      const updatedTeam = await response.json();
-      console.log('✅ Team updated successfully:', updatedTeam);
-      return updatedTeam;
-    } catch (error) {
-      console.error('Failed to update team:', error);
-      throw error;
+    const teamRef = doc(db, 'teams', teamId);
+    const snap = await getDoc(teamRef);
+    const existing = docToData<TeamDoc>(snap);
+    if (!existing) {
+      throw new Error('Team not found');
     }
+
+    const updated: TeamDoc = {
+      ...existing,
+      teamName: request.teamName,
+      sport: request.sport,
+      ageGroup: request.ageGroup,
+      description: request.description ?? existing.description,
+      profilePhotoUrl: request.profilePhotoUrl ?? existing.profilePhotoUrl,
+      updatedAt: nowIso(),
+    };
+
+    await setDoc(teamRef, omitUndefined(updated));
+    return mapTeam(teamId, updated);
   }
 
   async deactivateTeam(teamId: string): Promise<void> {
-    try {
-      console.log('🔄 Deactivating team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/teams/${teamId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to deactivate team:', response.status, errorText);
-        throw new Error(`Failed to deactivate team: ${response.status} ${errorText}`);
-      }
-
-      console.log('✅ Team deactivated successfully');
-    } catch (error) {
-      console.error('Failed to deactivate team:', error);
-      throw error;
-    }
+    await updateDoc(doc(db, 'teams', teamId), { isActive: false });
   }
 
   async terminateTeam(teamId: string): Promise<void> {
-    try {
-      console.log('🗑️ Terminating team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/teams/${teamId}/terminate`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    const events = await queryByField<{ tournamentId?: string; opposingTeamId?: string }>('events', 'teamId', teamId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to terminate team:', response.status, errorText);
-        throw new Error(`Failed to terminate team: ${response.status} ${errorText}`);
+    for (const event of events) {
+      if (event.tournamentId && event.opposingTeamId) {
+        const partnerEvents = await getDocs(
+          query(
+            collection(db, 'events'),
+            where('tournamentId', '==', event.tournamentId),
+            where('teamId', '==', event.opposingTeamId),
+            where('opposingTeamId', '==', teamId)
+          )
+        );
+        for (const partnerDoc of partnerEvents.docs) {
+          await deleteQueryBatch('availabilities', [where('eventId', '==', partnerDoc.id)]);
+          await deleteDoc(partnerDoc.ref);
+        }
       }
-
-      console.log('✅ Team terminated successfully');
-    } catch (error) {
-      console.error('Failed to terminate team:', error);
-      throw error;
+      await deleteQueryBatch('availabilities', [where('eventId', '==', event.id)]);
+      await deleteDoc(doc(db, 'events', event.id));
     }
+
+    await deleteQueryBatch('availabilities', [where('teamId', '==', teamId)]);
+    await deleteQueryBatch('tasks', [where('teamId', '==', teamId)]);
+    await deleteQueryBatch('chat_messages', [where('teamId', '==', teamId)]);
+    await deleteQueryBatch('chat_rooms', [where('teamId', '==', teamId)]);
+
+    const invites = await queryByField<{ tournamentId: string; isActive: boolean }>(
+      'tournamentInvites',
+      'teamId',
+      teamId
+    );
+    for (const invite of invites) {
+      if (invite.isActive) {
+        const tournamentRef = doc(db, 'tournaments', invite.tournamentId);
+        const tournamentSnap = await getDoc(tournamentRef);
+        if (tournamentSnap.exists()) {
+          const current = toNumber(tournamentSnap.data()?.teamCount, 0);
+          await updateDoc(tournamentRef, { teamCount: Math.max(0, current - 1) });
+        }
+      }
+      await deleteDoc(doc(db, 'tournamentInvites', invite.id));
+    }
+
+    await deleteQueryBatch('userTeams', [where('teamId', '==', teamId)]);
+    await deleteDoc(doc(db, 'teams', teamId));
   }
 
-  async getUserTeams(userId: string): Promise<Team[]> {
-    try {
-      console.log('🔍 Getting teams for user:', userId);
-      
-      // This method is not needed in the backend API since teams are fetched through userTeams
-      // For now, return empty array - teams are fetched through the auth service
-      return [];
-    } catch (error) {
-      console.error('Failed to get user teams:', error);
-      throw error;
-    }
+  async getUserTeams(_userId: string): Promise<Team[]> {
+    return [];
   }
 
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
-    try {
-      console.log('🔍 Getting team members for team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/user-teams/team/${teamId}`);
+    const userTeams = await queryByField<UserTeamDoc>('userTeams', 'teamId', teamId);
+    const members: TeamMember[] = [];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to get team members:', response.status, errorText);
-        throw new Error(`Failed to get team members: ${response.status} ${errorText}`);
-      }
+    for (const ut of userTeams) {
+      const profileSnap = await getDoc(doc(db, 'userProfiles', ut.userId));
+      const profile = profileSnap.data();
+      if (!profile) continue;
 
-      const teamMembers = await response.json();
-      console.log('✅ Team members retrieved successfully:', teamMembers);
-      return teamMembers;
-    } catch (error) {
-      console.error('Failed to get team members:', error);
-      throw error;
+      members.push({
+        id: ut.id,
+        userId: ut.userId,
+        teamId: ut.teamId,
+        role: ut.role,
+        joinedAt: joinedAtValue(ut),
+        isActive: ut.isActive !== false,
+        inviteAccepted: !!ut.inviteAccepted,
+        firstName: String(profile.firstName ?? ''),
+        lastName: String(profile.lastName ?? ''),
+        email: String(profile.email ?? ''),
+        phoneNumber: profile.phoneNumber as string | undefined,
+        profilePhotoUrl: profile.profilePhotoUrl as string | undefined,
+      });
     }
+
+    return members;
   }
 
-  // Invite user to team
-  inviteUserToTeam(teamId: string, email: string, role: string): Promise<any> {
-    return fetch(`${API_BASE_URL}/user-teams/teams/${teamId}/invite`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, role }),
-    }).then(async response => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to invite user');
+  inviteUserToTeam(teamId: string, email: string, role: string): Promise<UserTeamDoc & { id: string }> {
+    return (async () => {
+      const users = await getDocs(query(collection(db, 'userProfiles'), where('email', '==', email)));
+      if (users.empty) {
+        throw new Error(`User with email ${email} not found`);
       }
-      return response.json();
-    });
-  }
+      const userId = users.docs[0].id;
 
-  // Accept team invite
-  acceptInvite(userTeamId: string): Promise<any> {
-    return fetch(`${API_BASE_URL}/user-teams/accept-invite/${userTeamId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).then(async response => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to accept invite');
+      const existing = await getDocs(
+        query(collection(db, 'userTeams'), where('userId', '==', userId), where('teamId', '==', teamId))
+      );
+      if (!existing.empty) {
+        throw new Error('User is already a member of this team');
       }
-      return response.json();
-    });
+
+      const userTeamRef = await addDoc(collection(db, 'userTeams'), {
+        userId,
+        teamId,
+        role,
+        joinedAt: nowIso(),
+        isActive: true,
+        inviteAccepted: false,
+      });
+
+      return { id: userTeamRef.id, userId, teamId, role, joinedAt: nowIso(), isActive: true, inviteAccepted: false };
+    })();
   }
 
-  // Decline team invite (deletes the UserTeam relationship)
-  declineInvite(userTeamId: string): Promise<void> {
-    return fetch(`${API_BASE_URL}/user-teams/decline-invite/${userTeamId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).then(async response => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to decline invite');
+  async acceptInvite(userTeamId: string): Promise<UserTeamDoc & { id: string }> {
+    const userTeamRef = doc(db, 'userTeams', userTeamId);
+    const snap = await getDoc(userTeamRef);
+    const data = docToData<UserTeamDoc>(snap);
+    if (!data) {
+      throw new Error('UserTeam relationship not found');
+    }
+
+    await setDoc(userTeamRef, omitUndefined({ ...data, inviteAccepted: true }));
+
+    if (data.role === 'COACH') {
+      await updateCoachCount(data.teamId, 1);
+    }
+
+    return { ...data, id: userTeamId, inviteAccepted: true };
+  }
+
+  async declineInvite(userTeamId: string): Promise<void> {
+    const snap = await getDoc(doc(db, 'userTeams', userTeamId));
+    const data = docToData<UserTeamDoc>(snap);
+    if (data?.role === 'COACH' && data.teamId) {
+      try {
+        await updateCoachCount(data.teamId, -1);
+      } catch {
+        // invite not accepted yet — coach count unchanged
       }
-    });
+    }
+    await deleteDoc(doc(db, 'userTeams', userTeamId));
   }
 
-  // Leave a team (deletes the UserTeam relationship)
   async leaveTeam(userTeamId: string, userId: string): Promise<void> {
-    try {
-      // First check if this user can safely leave (coach safety check)
-      const safetyCheck = await this.checkCoachSafety(userId, 'LEAVE_TEAM');
-      if (!safetyCheck.canProceed) {
-        throw new Error(safetyCheck.message);
-      }
+    const safetyCheck = await this.checkCoachSafety(userId, 'LEAVE_TEAM');
+    if (!safetyCheck.canProceed) {
+      throw new Error(safetyCheck.message);
+    }
 
-      // If safety check passes, proceed with leaving the team
-      const response = await fetch(`${API_BASE_URL}/user-teams/leave-team/${userTeamId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const snap = await getDoc(doc(db, 'userTeams', userTeamId));
+    const data = docToData<UserTeamDoc>(snap);
+    if (!data) {
+      throw new Error('UserTeam not found');
+    }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.log('🔍 Leave team error response:', errorData);
-        throw new Error(errorData.error || 'Failed to leave team');
-      }
-    } catch (error) {
-      console.error('Failed to leave team:', error);
-      throw error;
+    await deleteDoc(doc(db, 'userTeams', userTeamId));
+
+    if (data.role === 'COACH') {
+      await updateCoachCount(data.teamId, -1);
     }
   }
 
-  // Update user role in team
-  updateUserRole(userTeamId: string, newRole: string): Promise<any> {
-    return fetch(`${API_BASE_URL}/user-teams/update-role/${userTeamId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ newRole }),
-    }).then(async response => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to update user role');
-      }
-      return response.json();
-    });
+  async updateUserRole(userTeamId: string, newRole: string): Promise<UserTeamDoc & { id: string }> {
+    const userTeamRef = doc(db, 'userTeams', userTeamId);
+    const snap = await getDoc(userTeamRef);
+    const data = docToData<UserTeamDoc>(snap);
+    if (!data) {
+      throw new Error('UserTeam not found');
+    }
+
+    const oldRole = data.role;
+    await setDoc(userTeamRef, omitUndefined({ ...data, role: newRole }));
+
+    let delta = 0;
+    if (oldRole === 'COACH') delta -= 1;
+    if (newRole === 'COACH') delta += 1;
+    if (delta !== 0) {
+      await updateCoachCount(data.teamId, delta);
+    }
+
+    return { ...data, id: userTeamId, role: newRole };
   }
 
-  // Remove user from team
-  removeUserFromTeam(userTeamId: string): Promise<void> {
-    return fetch(`${API_BASE_URL}/user-teams/remove-user/${userTeamId}`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-    }).then(async response => {
-      if (!response.ok) {
-        const text = await response.text().catch(() => '');
-        throw new Error(text || 'Failed to remove user from team');
-      }
-    });
+  async removeUserFromTeam(userTeamId: string): Promise<void> {
+    const snap = await getDoc(doc(db, 'userTeams', userTeamId));
+    const data = docToData<UserTeamDoc>(snap);
+    await deleteDoc(doc(db, 'userTeams', userTeamId));
+    if (data?.role === 'COACH') {
+      await updateCoachCount(data.teamId, -1);
+    }
   }
 
-  // Get coach count for a team
   async getCoachCount(teamId: string): Promise<number> {
-    try {
-      console.log('👥 Getting coach count for team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/teams/${teamId}/coach-count`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to get coach count:', response.status, errorText);
-        throw new Error(`Failed to get coach count: ${response.status} ${errorText}`);
-      }
-
-      const count = await response.json();
-      console.log('✅ Coach count retrieved successfully:', count);
-      return count;
-    } catch (error) {
-      console.error('Failed to get coach count:', error);
-      throw error;
-    }
+    const snap = await getDoc(doc(db, 'teams', teamId));
+    if (!snap.exists()) return 0;
+    return toNumber(snap.data()?.coachCount, 0);
   }
 
-  // Check if a coach can safely leave a team or delete their account
-  async checkCoachSafety(userId: string, action: 'LEAVE_TEAM' | 'DELETE_ACCOUNT'): Promise<CoachSafetyCheckResponse> {
-    try {
-      console.log('🔒 Checking coach safety for user:', userId, 'action:', action);
-      
-      const response = await fetch(`${API_BASE_URL}/user-teams/check-coach-safety?userId=${userId}&action=${action}`);
+  async checkCoachSafety(
+    userId: string,
+    action: 'LEAVE_TEAM' | 'DELETE_ACCOUNT'
+  ): Promise<CoachSafetyCheckResponse> {
+    const coachTeams = await getDocs(
+      query(collection(db, 'userTeams'), where('userId', '==', userId), where('role', '==', 'COACH'))
+    );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to check coach safety:', response.status, errorText);
-        throw new Error(`Failed to check coach safety: ${response.status} ${errorText}`);
+    for (const coachDoc of coachTeams.docs) {
+      const ut = docData<UserTeamDoc>(coachDoc);
+      const coachCount = await this.getCoachCount(ut.teamId);
+
+      if (coachCount === 1) {
+        const teamSnap = await getDoc(doc(db, 'teams', ut.teamId));
+        const teamName = teamSnap.exists() ? String(teamSnap.data()?.teamName ?? 'Unknown Team') : 'Unknown Team';
+        const actionText =
+          action === 'DELETE_ACCOUNT' ? 'delete your account' : 'leave the team';
+        return {
+          canProceed: false,
+          message: `You are the only coach of '${teamName}'. You must either promote someone else to coach or delete the team before you can ${actionText}.`,
+          teamId: ut.teamId,
+          teamName,
+          coachCount,
+          action,
+        };
       }
-
-      const safetyResponse = await response.json();
-      console.log('✅ Coach safety check completed:', safetyResponse);
-      return safetyResponse;
-    } catch (error) {
-      console.error('Failed to check coach safety:', error);
-      throw error;
     }
+
+    return {
+      canProceed: true,
+      message: 'You can safely proceed with this action.',
+      teamId: null,
+      teamName: null,
+      coachCount: 0,
+      action,
+    };
   }
 
-  // Search teams by name
   async searchTeamsByName(name: string): Promise<Team[]> {
-    try {
-      console.log('🔍 Searching teams by name:', name);
-      
-      const response = await fetch(`${API_BASE_URL}/teams/search?name=${encodeURIComponent(name)}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to search teams:', response.status, errorText);
-        throw new Error(`Failed to search teams: ${response.status} ${errorText}`);
-      }
-
-      const teams = await response.json();
-      console.log('✅ Teams search completed:', teams);
-      return teams;
-    } catch (error) {
-      console.error('Failed to search teams:', error);
-      throw error;
-    }
+    const snapshot = await getDocs(collection(db, 'teams'));
+    const lower = name.toLowerCase();
+    return snapshot.docs
+      .map((d) => mapTeam(d.id, d.data() as TeamDoc))
+      .filter((t) => t.teamName.toLowerCase().includes(lower));
   }
 
-  // Get tournament invites for a team
-  async getTournamentInvites(teamId: string): Promise<any[]> {
-    try {
-      console.log('🏆 Getting tournament invites for team:', teamId);
-      
-      const response = await fetch(`${API_BASE_URL}/tournaments/teams/invites/${teamId}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to get tournament invites:', response.status, errorText);
-        throw new Error(`Failed to get tournament invites: ${response.status} ${errorText}`);
-      }
-
-      const invites = await response.json();
-      console.log('✅ Tournament invites retrieved successfully:', invites);
-      return invites;
-    } catch (error) {
-      console.error('Failed to get tournament invites:', error);
-      throw error;
-    }
+  async getTournamentInvites(teamId: string): Promise<TournamentInviteRecord[]> {
+    const invites = await getDocs(
+      query(
+        collection(db, 'tournamentInvites'),
+        where('teamId', '==', teamId),
+        where('isActive', '==', false)
+      )
+    );
+    return invites.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        teamId: String(data.teamId),
+        tournamentId: String(data.tournamentId),
+        createdAt: data.createdAt as string | undefined,
+        isActive: false,
+      };
+    });
   }
 
-  // Get accepted tournament invites for a team (enrolled tournaments)
-  async getAcceptedTournamentInvites(teamId: string): Promise<any[]> {
-    try {
-      console.log('🏆 Getting accepted tournament invites for team:', teamId);
-      const response = await fetch(`${API_BASE_URL}/tournaments/teams/${teamId}/enrolled`);
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to get accepted tournament invites:', response.status, errorText);
-        throw new Error(`Failed to get accepted tournament invites: ${response.status} ${errorText}`);
-      }
-      const invites = await response.json();
-      console.log('✅ Accepted tournament invites retrieved successfully:', invites);
-      return invites;
-    } catch (error) {
-      console.error('Failed to get accepted tournament invites:', error);
-      throw error;
-    }
+  async getAcceptedTournamentInvites(teamId: string): Promise<TournamentInviteRecord[]> {
+    const invites = await getDocs(
+      query(
+        collection(db, 'tournamentInvites'),
+        where('teamId', '==', teamId),
+        where('isActive', '==', true)
+      )
+    );
+    return invites.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        teamId: String(data.teamId),
+        tournamentId: String(data.tournamentId),
+        createdAt: data.createdAt as string | undefined,
+        isActive: true,
+      };
+    });
   }
 
-  // Leave a tournament
   async leaveTournament(teamId: string, tournamentId: string): Promise<void> {
-    try {
-      console.log('🏆 Leaving tournament:', tournamentId, 'for team:', teamId);
-      const response = await fetch(`${API_BASE_URL}/tournaments/teams/${teamId}/tournaments/${tournamentId}/leave`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to leave tournament:', response.status, errorText);
-        throw new Error(`Failed to leave tournament: ${response.status} ${errorText}`);
+    const invites = await getDocs(
+      query(
+        collection(db, 'tournamentInvites'),
+        where('teamId', '==', teamId),
+        where('tournamentId', '==', tournamentId)
+      )
+    );
+
+    if (!invites.empty) {
+      await deleteDoc(invites.docs[0].ref);
+      const tournamentRef = doc(db, 'tournaments', tournamentId);
+      const tournamentSnap = await getDoc(tournamentRef);
+      if (tournamentSnap.exists()) {
+        const current = toNumber(tournamentSnap.data()?.teamCount, 0);
+        await updateDoc(tournamentRef, { teamCount: Math.max(0, current - 1) });
       }
-      
-      console.log('✅ Successfully left tournament');
-    } catch (error) {
-      console.error('Failed to leave tournament:', error);
-      throw error;
+    }
+  }
+
+  async removeAllTeamsForUser(userId: string): Promise<void> {
+    const userTeams = await queryByField<UserTeamDoc>('userTeams', 'userId', userId);
+    for (const ut of userTeams) {
+      if (ut.role === 'COACH') {
+        try {
+          await updateCoachCount(ut.teamId, -1);
+        } catch (e) {
+          console.warn('Could not decrement coach count:', e);
+        }
+      }
+      await deleteDoc(doc(db, 'userTeams', ut.id));
     }
   }
 }

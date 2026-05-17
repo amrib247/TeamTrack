@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -12,23 +12,24 @@
 }
 
 .tournament-safety-modal {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
   padding: 0;
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-border);
 }
 
 .tournament-safety-header {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
+  background: var(--color-bg);
+  color: var(--color-text);
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tournament-safety-header h2 {
@@ -37,11 +38,12 @@
   font-weight: 600;
 }
 
-.close-button {
+.tournament-safety-header .close-button {
   background: none;
-  border: none;
-  color: white;
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
   font-size: 24px;
+  line-height: 1;
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -49,12 +51,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.2s;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
-.close-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+.tournament-safety-header .close-button:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .tournament-safety-content {
@@ -68,7 +72,7 @@
 }
 
 .warning-message {
-  color: #2c3e50;
+  color: var(--color-text);
   font-size: 1.1rem;
   line-height: 1.6;
   margin-bottom: 24px;
@@ -82,68 +86,34 @@
   flex-wrap: wrap;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
-}
-
 .add-organizer-btn {
-  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
-  color: white;
-  border: none;
-  padding: 14px 28px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
   min-width: 180px;
-}
-
-.add-organizer-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
 }
 
 .delete-tournament-btn {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-  border: none;
-  padding: 14px 28px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
   min-width: 180px;
+  background: var(--color-surface);
+  color: var(--color-error-text);
+  border-color: var(--color-error-border);
 }
 
-.delete-tournament-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+.delete-tournament-btn:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
-/* Responsive design */
 @media (max-width: 600px) {
   .tournament-safety-modal {
     width: 95%;
     margin: 20px;
   }
-  
+
   .tournament-safety-actions {
     flex-direction: column;
     align-items: center;
     gap: 20px;
   }
-  
+
   .add-organizer-btn,
   .delete-tournament-btn {
     width: 100%;

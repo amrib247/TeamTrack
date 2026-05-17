@@ -1,98 +1,25 @@
-/* Team Page Layout */
+/* Team Page — minimalist tokens */
+
 .team-page {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: var(--color-bg);
 }
 
-/* Team-specific button overrides - only for elements within the team page */
-.team-page .btn-primary,
-.team-page button.btn-primary,
-.team-page input[type="submit"].btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-.team-page .btn-primary:hover:not(:disabled),
-.team-page button.btn-primary:hover:not(:disabled),
-.team-page input[type="submit"].btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-}
-
-.team-page .btn-secondary,
-.team-page button.btn-secondary {
-  background: #6c757d !important;
-  color: white !important;
-}
-
-.team-page .btn-secondary:hover:not(:disabled),
-.team-page button.btn-secondary:hover:not(:disabled) {
-  background: #5a6268 !important;
-  transform: translateY(-2px) !important;
-}
-
-/* Form Actions */
 .form-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-/* Invite button - ensure it uses team colors */
-.team-page .btn-invite,
-.btn-invite {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-.team-page .btn-invite:hover,
-.btn-invite:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
-}
-
-.team-page .btn-invite:active,
-.btn-invite:active {
-  transform: translateY(0) !important;
-}
-
-/* Option card buttons */
-.option-card .btn {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-.option-card .btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 /* Header */
 .team-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1rem 2rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: var(--space-md) var(--space-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .team-header h1 {
@@ -102,53 +29,55 @@
 }
 
 .btn-back {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .btn-back:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateX(-2px);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
 .btn-logout {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-family: inherit;
+  font-size: 0.875rem;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.3);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
-/* Layout */
 .team-layout {
   display: flex;
   min-height: calc(100vh - 80px);
 }
 
-/* Sidebar */
 .team-sidebar {
   width: 280px;
-  background: white;
-  border-right: 1px solid #e0e0e0;
-  padding: 2rem 1.5rem;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-xl) var(--space-lg);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .sidebar-item {
@@ -156,33 +85,34 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
   text-align: left;
   width: 100%;
-  color: #555;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.95rem;
 }
 
 .sidebar-item:hover {
-  background: #f8f9fa;
-  color: #333;
-  transform: translateX(4px);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
 .sidebar-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
 }
 
-/* Ensure team page sidebar uses team colors */
 .team-page .sidebar-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
 }
 
 .sidebar-icon {
@@ -196,72 +126,71 @@
   font-size: 0.95rem;
 }
 
-/* Main Content */
 .team-content {
   flex: 1;
-  padding: 2rem;
-  background: white;
-  margin: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  margin: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .team-content h2 {
-  color: #333;
-  margin-bottom: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-lg);
   font-size: 1.8rem;
   font-weight: 600;
 }
 
-/* Content Sections */
 .content-settings {
   width: 100%;
 }
 
 .content-settings .team-info {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
-  margin-bottom: 2rem;
+  background: var(--color-bg);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
+  margin-bottom: var(--space-xl);
 }
 
 .content-settings .team-info h3 {
-  color: #333;
-  margin-bottom: 1rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
   font-size: 1.5rem;
 }
 
 .content-settings .team-sport {
   font-size: 1.1rem;
-  color: #666;
-  margin-bottom: 0.5rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
 }
 
 .content-settings .team-role {
   font-weight: 500;
-  color: #555;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
 }
 
 .content-settings .team-joined {
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .content-settings .team-description {
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 1rem;
-  margin-top: 0.5rem;
+  margin-top: var(--space-sm);
   line-height: 1.5;
   font-style: italic;
 }
 
 .team-header-info {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--space-lg);
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .team-photo {
@@ -272,8 +201,8 @@
   width: 80px;
   height: 80px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #e0e0e0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .team-text-info {
@@ -283,14 +212,14 @@
 .photo-upload-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: flex-start;
 }
 
 .photo-preview {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -298,13 +227,13 @@
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .photo-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -314,51 +243,48 @@
   font-size: 0.9rem;
 }
 
-/* Coach Settings */
 .coach-settings {
-  margin-top: 2rem;
+  margin-top: var(--space-xl);
 }
 
 .coach-settings h3 {
-  color: #333;
-  margin-bottom: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-lg);
   font-size: 1.5rem;
-  border-bottom: 2px solid #667eea;
-  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-sm);
 }
 
 .settings-section {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-xl);
 }
 
 .settings-section h4 {
-  color: #333;
-  margin-bottom: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-lg);
   font-size: 1.3rem;
   font-weight: 600;
 }
 
-/* Edit Team Form */
 .edit-team-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .form-group label {
   font-weight: 600;
-  color: #555;
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
@@ -366,77 +292,75 @@
 .form-group select,
 .form-group textarea {
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--transition);
+  background: var(--color-surface);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  border-color: var(--color-border-strong);
 }
 
-/* Danger Zone */
 .danger-zone {
-  border-color: #dc3545;
-  background: #fff5f5;
+  border-color: var(--color-error-border);
+  background: var(--color-error-bg);
 }
 
 .danger-zone h4 {
-  color: #dc3545;
+  color: var(--color-error-text);
 }
 
 .danger-warning {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .danger-warning p {
-  color: #dc2626;
+  color: var(--color-error-text);
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.5;
 }
 
 .terminate-confirm {
-  background: white;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
 }
 
 .terminate-confirm p {
-  color: #dc2626;
+  color: var(--color-error-text);
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .terminate-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dc3545;
-  border-radius: 8px;
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  margin-bottom: 1rem;
-  background-color: white;
+  margin-bottom: var(--space-md);
+  background-color: var(--color-surface);
 }
 
 .terminate-input:focus {
   outline: none;
-  border-color: #c82333;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+  border-color: var(--color-border-strong);
 }
 
 .terminate-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .terminate-actions .btn {
@@ -446,39 +370,37 @@
   font-weight: 500;
 }
 
-/* Leave Team Styles */
 .leave-team-confirm {
-  background: white;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
 }
 
 .leave-team-confirm p {
-  color: #dc2626;
+  color: var(--color-error-text);
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .leave-team-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dc3545;
-  border-radius: 8px;
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  margin-bottom: 1rem;
-  background-color: white;
+  margin-bottom: var(--space-md);
+  background-color: var(--color-surface);
 }
 
 .leave-team-input:focus {
   outline: none;
-  border-color: #c82333;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+  border-color: var(--color-border-strong);
 }
 
 .leave-team-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .leave-team-actions .btn {
@@ -488,101 +410,95 @@
   font-weight: 500;
 }
 
-/* Non-coach message */
 .non-coach-message {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 2rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
   text-align: center;
-  margin-top: 2rem;
+  margin-top: var(--space-xl);
 }
 
 .non-coach-message p {
-  color: #666;
-  margin: 0.5rem 0;
+  color: var(--color-text-muted);
+  margin: var(--space-sm) 0;
   font-size: 1rem;
 }
 
-/* Error Message */
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-  border: 1px solid #f5c6cb;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-md);
+  border: 1px solid var(--color-error-border);
   text-align: center;
 }
 
 .error-message h2 {
-  color: #dc3545;
-  margin-bottom: 1rem;
+  color: var(--color-error-text);
+  margin-bottom: var(--space-md);
 }
 
 .error-message p {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
   font-size: 1.1rem;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .team-layout {
     flex-direction: column;
   }
-  
+
   .team-sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--color-border);
     padding: 0;
   }
-  
 
-  
   .sidebar-nav {
     flex-direction: row;
     overflow-x: auto;
-    padding: 0 1rem;
+    padding: 0 var(--space-md);
   }
-  
+
   .sidebar-item {
     min-width: 120px;
     flex-direction: column;
     text-align: center;
-    padding: 1rem 0.5rem;
+    padding: var(--space-md) var(--space-sm);
   }
-  
+
   .sidebar-text {
     font-size: 0.8rem;
   }
-  
+
   .team-content {
-    margin: 0.5rem;
-    padding: 1.5rem;
+    margin: var(--space-sm);
+    padding: var(--space-lg);
   }
-  
+
   .team-header {
-    padding: 1rem;
+    padding: var(--space-md);
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-md);
     text-align: center;
   }
-  
+
   .team-header h1 {
     font-size: 1.5rem;
   }
-  
-  /* Settings responsive adjustments */
+
   .settings-section {
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .terminate-actions {
     flex-direction: column;
   }
@@ -590,84 +506,85 @@
 
 @media (max-width: 480px) {
   .sidebar-nav {
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
-  
+
   .sidebar-item {
     min-width: 100px;
-    padding: 0.75rem 0.25rem;
+    padding: 0.75rem var(--space-xs);
   }
-  
+
   .sidebar-icon {
     font-size: 1rem;
   }
-  
+
   .sidebar-text {
     font-size: 0.75rem;
   }
 }
 
-/* Roster Styles */
 .content-roster {
-  padding: 2rem;
+  padding: var(--space-xl);
 }
 
-/* Tournaments Styles */
 .content-tournaments {
-  padding: 2rem;
+  padding: var(--space-xl);
 }
 
 .content-tournaments h2 {
-  color: #333;
-  margin: 0 0 1.5rem 0;
+  color: var(--color-text);
+  margin: 0 0 var(--space-lg) 0;
   font-size: 1.8rem;
   font-weight: 600;
 }
 
 .content-tournaments h3 {
-  color: #333;
-  margin: 1.5rem 0 1rem 0;
+  color: var(--color-text);
+  margin: var(--space-lg) 0 var(--space-md) 0;
   font-size: 1.4rem;
   font-weight: 600;
 }
 
 .content-tournaments p {
-  color: #666;
-  margin: 0 0 1rem 0;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md) 0;
   line-height: 1.6;
 }
 
 .content-tournaments ul {
-  color: #666;
-  margin: 1rem 0;
-  padding-left: 2rem;
+  color: var(--color-text-muted);
+  margin: var(--space-md) 0;
+  padding-left: var(--space-xl);
 }
 
 .content-tournaments li {
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
   line-height: 1.5;
 }
 
-/* Tournament Invites */
 .tournament-invites {
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
 }
 
 .invite-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .tournament-invite-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--transition);
+}
+
+.tournament-invite-card:hover {
+  border-color: var(--color-border-strong);
 }
 
 .invite-info {
@@ -676,45 +593,44 @@
 
 .invite-tournament {
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
 }
 
 .tournament-info {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
   font-size: 0.85rem;
 }
 
 .tournament-info span {
-  background: #f8f9fa;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  color: #495057;
-  border: 1px solid #e9ecef;
+  background: var(--color-bg);
+  padding: 0.25rem var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .invite-date {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .invite-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
-/* Enrolled Tournaments */
 .enrolled-tournaments {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #e9ecef;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
 }
 
 .enrolled-tournaments h3 {
-  color: #333;
-  margin: 0 0 1rem 0;
+  color: var(--color-text);
+  margin: 0 0 var(--space-md) 0;
   font-size: 1.4rem;
   font-weight: 600;
 }
@@ -722,89 +638,89 @@
 .enrolled-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .enrolled-tournament-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--transition);
+}
+
+.enrolled-tournament-card:hover {
+  border-color: var(--color-border-strong);
 }
 
 .tournament-name {
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
 }
 
 .tournament-details {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
   font-size: 0.85rem;
 }
 
 .tournament-details span {
-  background: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  color: #495057;
-  border: 1px solid #e9ecef;
+  background: var(--color-surface);
+  padding: 0.25rem var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .enrolled-date {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .enrolled-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   align-items: center;
 }
 
 .enrolled-actions .btn {
   padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s ease;
 }
 
 .enrolled-actions .btn-danger {
-  background: #dc3545;
-  color: white;
+  background: var(--color-surface);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
-.enrolled-actions .btn-danger:hover {
-  background: #c82333;
-  transform: translateY(-1px);
+.enrolled-actions .btn-danger:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
 .enrolled-actions .btn-danger:disabled {
-  background: #6c757d;
+  opacity: 0.4;
   cursor: not-allowed;
-  transform: none;
 }
-
-
 
 .roster-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .roster-header h2 {
-  color: #333;
+  color: var(--color-text);
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
@@ -814,56 +730,55 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .coach-hint {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
   margin: 0;
   font-style: italic;
 }
 
-/* Coach Count Display */
 .coach-count-display {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #f8f9fa;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  margin-bottom: 0.5rem;
+  gap: var(--space-sm);
+  background: var(--color-bg);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-sm);
 }
 
 .coach-count-label {
   font-size: 0.9rem;
-  color: #495057;
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .coach-count-value {
   font-size: 1.1rem;
-  color: #667eea;
+  color: var(--color-text);
   font-weight: 600;
-  background: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #dee2e6;
+  background: var(--color-surface);
+  padding: 0.25rem var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
   min-width: 2rem;
   text-align: center;
 }
 
 .coach-count-loading {
   font-size: 0.9rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
 .loading-message {
   text-align: center;
-  padding: 3rem;
-  color: #666;
+  padding: var(--space-2xl);
+  color: var(--color-text-muted);
 }
 
 .loading-message p {
@@ -871,52 +786,47 @@
   margin: 0;
 }
 
-/* Roster */
 .roster-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem 0;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
 }
 
 .roster-member {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  gap: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  transition: border-color var(--transition);
+  border: 1px solid var(--color-border);
   min-height: 80px;
+}
+
+.roster-member:hover {
+  border-color: var(--color-border-strong);
 }
 
 .roster-member.clickable {
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .roster-member.clickable:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  border-color: #667eea;
-}
-
-.roster-member.clickable:active {
-  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
 }
 
 .roster-member[data-role="coach"] {
-  border-left-color: #f59e0b;
+  border-left: 3px solid var(--color-text-muted);
 }
 
 .roster-member[data-role="parent"] {
-  border-left-color: #10b981;
+  border-left: 3px solid var(--color-border-strong);
 }
 
 .roster-member[data-role="player"] {
-  border-left-color: #3b82f6;
+  border-left: 3px solid var(--color-border);
 }
 
 .member-avatar {
@@ -926,13 +836,13 @@
 .profile-photo {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
 }
 
 .profile-photo img {
@@ -944,7 +854,7 @@
 .profile-initials {
   font-size: 1.2rem;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-transform: uppercase;
 }
 
@@ -958,23 +868,23 @@
 .member-name {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   margin: 0;
 }
 
 .member-role {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-transform: capitalize;
   margin: 0;
 }
 
 .member-details {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--color-text-subtle);
   margin: 0;
 }
 
@@ -987,8 +897,8 @@
 
 .empty-roster {
   text-align: center;
-  padding: 3rem;
-  color: #666;
+  padding: var(--space-2xl);
+  color: var(--color-text-muted);
 }
 
 .empty-roster p {
@@ -996,14 +906,13 @@
   margin: 0;
 }
 
-/* Invite Form Modal */
 .invite-form-modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1011,130 +920,115 @@
 }
 
 .invite-form-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  background: var(--color-surface);
+  padding: var(--space-xl);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   max-width: 500px;
   width: 90%;
 }
 
 .invite-form-content h3 {
   margin-top: 0;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: var(--space-lg);
+  color: var(--color-text);
 }
 
 .invite-form-content .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .invite-form-content label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
   font-weight: 500;
-  color: #555;
+  color: var(--color-text);
 }
 
 .invite-form-content input,
 .invite-form-content select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
+  background: var(--color-surface);
 }
 
 .invite-form-content .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
-  margin-top: 1.5rem;
+  margin-top: var(--space-lg);
 }
 
-/* Invite Status */
 .invite-pending {
-  color: #e74c3c;
+  color: var(--color-error-text);
   font-weight: 500;
   font-size: 0.9rem;
-  background: #fdf2f2;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border-left: 3px solid #e74c3c;
-  margin-top: 0.5rem;
+  background: var(--color-error-bg);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-error-border);
+  margin-top: var(--space-sm);
 }
 
-/* View-only settings for non-coach users */
 .view-only-settings {
-  background: white;
-  border-radius: 15px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e8ed;
-  margin-top: 2rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  border: 1px solid var(--color-border);
+  margin-top: var(--space-xl);
 }
 
 .view-only-settings h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
+  margin: 0 0 var(--space-lg) 0;
+  color: var(--color-text);
   font-size: 1.5rem;
-}
-
-.view-only-settings .settings-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e1e8ed;
-}
-
-.view-only-settings .settings-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
 }
 
 .view-only-settings .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .view-only-settings .info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .view-only-settings .info-item label {
   font-weight: 600;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .view-only-settings .info-display {
   padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  color: #2c3e50;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
   min-height: 20px;
-  border: 1px solid #e9ecef;
-}
-
-/* View-only settings styles */
-.view-only-settings {
-  margin-top: 2rem;
+  border: 1px solid var(--color-border);
 }
 
 .view-only-settings .settings-section {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.view-only-settings .settings-section:last-child {
+  margin-bottom: 0;
 }
 
 .view-only-settings .settings-section h4 {
-  color: #495057;
-  margin-bottom: 1rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
   font-size: 1.1rem;
 }
 
@@ -1147,8 +1041,8 @@
 .info-display .info-item {
   display: flex;
   align-items: center;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e9ecef;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-display .info-item:last-child {
@@ -1157,37 +1051,36 @@
 
 .info-display .info-item label {
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text-muted);
   min-width: 120px;
-  margin-right: 1rem;
+  margin-right: var(--space-md);
 }
 
 .info-display .info-item span {
-  color: #212529;
+  color: var(--color-text);
   flex: 1;
 }
 
-/* User Management Modal */
 .user-management-modal {
   max-width: 600px;
   width: 95%;
   min-height: 300px;
-  padding: 2.5rem;
+  padding: var(--space-2xl);
 }
 
 .user-management-modal h3 {
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: var(--space-lg);
+  color: var(--color-text);
   text-align: center;
 }
 
 .user-management-modal .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 }
 
 .user-management-modal .form-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -1197,58 +1090,60 @@
 }
 
 .user-management-modal .btn-warning {
-  background: #ffc107;
-  color: #212529;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
 }
 
-.user-management-modal .btn-warning:hover {
-  background: #e0a800;
+.user-management-modal .btn-warning:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
 .user-management-modal .btn-danger {
-  background: #dc3545;
-  color: white;
+  background: var(--color-text);
+  color: var(--color-surface);
+  border: 1px solid var(--color-text);
 }
 
-.user-management-modal .btn-danger:hover {
-  background: #c82333;
+.user-management-modal .btn-danger:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
-/* Info Message */
 .info-message {
-  background: #e3f2fd;
-  border: 1px solid #2196f3;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
 .info-message p {
-  color: #1976d2;
+  color: var(--color-text-muted);
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.4;
 }
 
-/* Coach Safety Modal */
 .coach-safety-modal {
   max-width: 700px;
   width: 95%;
   min-height: 400px;
-  padding: 2.5rem;
+  padding: var(--space-2xl);
 }
 
 .coach-safety-modal h3 {
-  margin-bottom: 1rem;
-  color: #dc3545;
+  margin-bottom: var(--space-md);
+  color: var(--color-error-text);
   text-align: center;
   font-size: 1.5rem;
 }
 
 .coach-safety-modal p {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
   font-size: 1.1rem;
   line-height: 1.5;
 }
@@ -1256,17 +1151,17 @@
 .coach-safety-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .option-card {
-  background: #f8f9fa;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
   text-align: center;
-  transition: all 0.3s ease;
+  transition: border-color var(--transition);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1274,20 +1169,18 @@
 }
 
 .option-card:hover {
-  border-color: #667eea;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+  border-color: var(--color-border-strong);
 }
 
 .option-card h4 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 0.75rem;
   font-size: 1.2rem;
 }
 
 .option-card p {
-  color: #666;
-  margin-bottom: 1.5rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
   font-size: 0.95rem;
   line-height: 1.4;
 }
@@ -1296,61 +1189,31 @@
   width: 100%;
   padding: 0.75rem 1rem;
   font-size: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-}
-
-.option-card .btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4) !important;
 }
 
 .coach-safety-modal .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
-.coach-safety-modal .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-}
-
-.coach-safety-modal .btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-/* Responsive design for coach safety modal */
 @media (max-width: 768px) {
   .coach-safety-options {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-  
+
   .coach-safety-modal {
-    padding: 1.5rem;
+    padding: var(--space-lg);
     min-height: 350px;
   }
-  
+
   .option-card {
-    padding: 1rem;
+    padding: var(--space-md);
     min-height: 180px;
   }
 }
 
-/* Chat Content Styles */
 .content-chat {
   height: 100%;
   min-height: 600px;

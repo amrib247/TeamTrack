@@ -10,15 +10,16 @@
 .availability-summary {
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   text-align: center;
 }
 
 .availability-summary p {
   margin: 0;
   font-weight: 600;
-  color: #495057;
+  color: var(--color-text);
 }
 
 .availability-list {
@@ -31,7 +32,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--color-border);
   transition: background-color 0.2s;
 }
 
@@ -40,12 +41,12 @@
 }
 
 .availability-member:hover {
-  background-color: #f8f9fa;
+  background-color: var(--color-bg);
 }
 
 .availability-member.current-user {
-  background-color: #e3f2fd;
-  border-left: 4px solid #2196f3;
+  background-color: var(--color-bg);
+  border-left: 3px solid var(--color-border-strong);
 }
 
 .member-info {
@@ -54,7 +55,7 @@
 
 .member-name {
   font-weight: 600;
-  color: #212529;
+  color: var(--color-text);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -62,17 +63,18 @@
 }
 
 .current-user-badge {
-  background-color: #2196f3;
-  color: white;
+  background-color: var(--color-text);
+  color: var(--color-surface);
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 500;
+  border: 1px solid var(--color-text);
 }
 
 .member-role {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   text-transform: capitalize;
 }
 
@@ -88,108 +90,109 @@
 
 .status-btn {
   padding: 6px 12px;
-  border: 1px solid #dee2e6;
-  background-color: white;
-  color: #495057;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color var(--transition), background var(--transition);
   min-width: 60px;
+  font-family: inherit;
 }
 
 .status-btn:hover {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
+  background-color: var(--color-bg);
+  border-color: var(--color-border-strong);
 }
 
 .status-btn.active {
-  background-color: #007bff;
-  color: white;
-  border-color: #007bff;
+  background-color: var(--color-text);
+  color: var(--color-surface);
+  border-color: var(--color-text);
 }
 
 .status-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .status-display {
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.875rem;
   font-weight: 500;
   text-align: center;
   min-width: 80px;
+  border: 1px solid var(--color-border);
 }
 
 .status-yes {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .status-no {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
 .status-maybe {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-strong);
 }
 
 .status-unknown {
-  background-color: #e2e3e5;
-  color: #383d41;
-  border: 1px solid #d6d8db;
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .no-availability {
   text-align: center;
   padding: 40px 20px;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .loading-message {
   text-align: center;
   padding: 40px 20px;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 .error-message {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
   padding: 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
-  border: 1px solid #f5c6cb;
+  border: 1px solid var(--color-error-border);
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .availability-modal {
     width: 95%;
     margin: 20px;
   }
-  
+
   .availability-member {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .member-availability {
     margin-left: 0;
     width: 100%;
   }
-  
+
   .status-selector {
     justify-content: center;
   }
-  
+
   .status-display {
     text-align: center;
     width: 100%;

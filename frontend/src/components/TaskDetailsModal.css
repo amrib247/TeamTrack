@@ -13,7 +13,6 @@
   gap: 32px;
 }
 
-/* Task Information Section */
 .task-info-section {
   display: flex;
   flex-direction: column;
@@ -22,10 +21,10 @@
 
 .task-title {
   margin: 0;
-  color: #333;
+  color: var(--color-text);
   font-size: 1.4rem;
   font-weight: 600;
-  border-bottom: 2px solid #007bff;
+  border-bottom: 1px solid var(--color-border-strong);
   padding-bottom: 8px;
 }
 
@@ -43,20 +42,20 @@
 
 .info-label {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-text-muted);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .info-value {
-  color: #333;
+  color: var(--color-text);
   font-weight: 500;
   font-size: 1rem;
 }
 
 .warning-text {
-  color: #dc3545;
+  color: var(--color-error-text);
   font-size: 0.9rem;
 }
 
@@ -67,16 +66,16 @@
 }
 
 .description-text {
-  color: #555;
+  color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0;
   padding: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 4px solid #007bff;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
 }
 
-/* Status Indicators */
 .task-status-indicators {
   display: flex;
   flex-wrap: wrap;
@@ -85,31 +84,30 @@
 
 .status-badge {
   padding: 6px 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 500;
   text-align: center;
 }
 
 .status-badge.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .status-badge.warning {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
 }
 
 .status-badge.full {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
-/* Users Section */
 .users-section {
   display: flex;
   flex-direction: column;
@@ -118,10 +116,10 @@
 
 .users-section h4 {
   margin: 0;
-  color: #333;
+  color: var(--color-text);
   font-size: 1.2rem;
   font-weight: 600;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   padding-bottom: 8px;
 }
 
@@ -136,14 +134,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  transition: background-color 0.2s ease;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: border-color var(--transition);
 }
 
 .user-item:hover {
-  background: #e9ecef;
+  border-color: var(--color-border-strong);
 }
 
 .user-info {
@@ -154,19 +152,18 @@
 
 .user-name {
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   font-size: 1rem;
 }
 
 .user-email {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
-/* Role Badges */
 .role-badge {
   padding: 4px 12px;
-  border-radius: 16px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -174,31 +171,30 @@
 }
 
 .role-badge.coach {
-  background: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
 }
 
 .role-badge.player {
-  background: #f3e5f5;
-  color: #7b1fa2;
-  border: 1px solid #e1bee7;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
-/* Loading and Error States */
 .loading-message {
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
   padding: 12px 16px;
-  border: 1px solid #f5c6cb;
-  border-radius: 6px;
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
   font-size: 0.9rem;
   text-align: center;
 }
@@ -206,7 +202,7 @@
 .no-users-message {
   text-align: center;
   padding: 30px 20px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .no-users-message p {
@@ -214,28 +210,27 @@
   font-size: 1.1rem;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .task-details-modal {
     width: 95%;
     max-height: 90vh;
   }
-  
+
   .task-info-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   .user-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
-  
+
   .role-badge {
     align-self: flex-end;
   }
-  
+
   .task-status-indicators {
     flex-direction: column;
     gap: 6px;

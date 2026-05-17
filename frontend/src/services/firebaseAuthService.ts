@@ -3,7 +3,7 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   updateProfile,
-
+  deleteUser,
   type UserCredential
 } from 'firebase/auth';
 import { 
@@ -11,7 +11,7 @@ import {
   setDoc, 
   getDoc, 
   updateDoc, 
-
+  deleteDoc,
   collection,
   query,
   where,
@@ -347,54 +347,40 @@ class FirebaseAuthService {
       if (!user) {
         throw new Error('No authenticated user');
       }
-      
-      // First check if this user can safely delete their account (coach safety check)
-      console.log('🔍 Checking coach safety before account deletion for user:', user.uid);
+
       const { teamService } = await import('./teamService');
+      const { tournamentService } = await import('./tournamentService');
+
       const safetyCheck = await teamService.checkCoachSafety(user.uid, 'DELETE_ACCOUNT');
-      console.log('🔍 Coach safety check result:', safetyCheck);
-      
       if (!safetyCheck.canProceed) {
-        console.log('🚨 Coach safety check failed, throwing error:', safetyCheck.message);
         throw new Error(safetyCheck.message);
       }
-      
-      // Re-authenticate user to verify password
-      await signInWithEmailAndPassword(auth, user.email!, password);
-      
-      // Call the backend API to delete account (this will trigger cascade deletion)
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/auth/delete-account`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: user.email,
-          password: password
-        })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.log('🔍 Backend error response:', errorData);
-        throw new Error(errorData.error || 'Failed to delete account');
+
+      const canRemoveFromTournaments = await tournamentService.checkUserCanBeRemovedFromAllTournaments(user.uid);
+      if (!canRemoveFromTournaments) {
+        throw new Error(
+          'Cannot delete account - you are the last organizer of one or more tournaments. Please invite other organizers or delete the tournaments first.'
+        );
       }
-      
-      // Backend already deleted the user from Firebase Auth and Firestore
-      // No need to delete again from Firebase Auth here
-      
+
+      await signInWithEmailAndPassword(auth, user.email!, password);
+
+      await teamService.removeAllTeamsForUser(user.uid);
+      await tournamentService.cleanupUserOrganizerRelationships(user.uid);
+      await deleteDoc(doc(db, 'userProfiles', user.uid));
+      await deleteUser(user);
+
       return 'Account deleted successfully';
-      
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Delete account error:', error);
-      if (error.code === 'auth/wrong-password') {
+      const err = error as { code?: string; message?: string };
+      if (err.code === 'auth/wrong-password') {
         throw new Error('Incorrect password');
       }
-      // Preserve the original error message if it's a coach safety error
-      if (error.message && error.message.includes('You are the only coach')) {
-        throw error; // Re-throw the original error with the coach safety message
+      if (err.message?.includes('You are the only coach') || err.message?.includes('last organizer')) {
+        throw error;
       }
-      throw new Error('Failed to delete account');
+      throw new Error(err.message || 'Failed to delete account');
     }
   }
   

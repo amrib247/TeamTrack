@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { teamService, type CreateTeamRequest } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
-import { authService } from '../services/authService';
+import { firebaseAuthService } from '../services/firebaseAuthService';
 import type { AuthResponse, UserTeam, Tournament, CreateTournamentRequest } from '../types/Auth';
 // Tournament component will be loaded dynamically
 import './HomePage.css';
@@ -277,11 +277,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     try {
       setError('');
       
-      // Use authService instead of firebaseAuthService to get proper error handling
-      await authService.deleteAccount({
-        email: currentUser.email,
-        password: terminatePassword
-      });
+      await firebaseAuthService.deleteAccount(terminatePassword);
       
       // Logout and redirect
       onLogout();

@@ -1,114 +1,93 @@
-/* HomePage specific styles */
+/* HomePage — minimalist tokens (theme via App.css) */
 
 /* Header Navigation */
 .header-navigation {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 1rem 0;
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md) 0;
 }
 
 .btn-settings {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #333;
   padding: 0.5rem 1rem;
-  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s;
-  backdrop-filter: blur(10px);
-  font-size: 0.9rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .btn-settings:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
 }
 
 /* Teams Section */
 .teams-section {
-  margin: 2rem 0;
-  padding: 2rem;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e8ed;
+  margin: var(--space-xl) 0;
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .teams-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .teams-header h3 {
   margin: 0;
-  color: #333;
+  color: var(--color-text);
   font-size: 1.5rem;
-}
-
-.teams-header .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-  transition: all 0.3s ease;
-}
-
-.teams-header .btn-primary:hover {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .teams-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .team-card {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid #e9ecef;
+  background: var(--color-surface);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition);
+  border: 1px solid var(--color-border);
 }
 
 .team-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  background: white;
+  border-color: var(--color-border-strong);
 }
 
 .team-card.clickable {
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .team-card.clickable:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  background: white;
-  border-color: #667eea;
+  border-color: var(--color-border-strong);
 }
 
 .team-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 }
 
 .team-header-left {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
   flex: 1;
 }
 
@@ -120,8 +99,8 @@
   width: 50px;
   height: 50px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
 .team-header-text {
@@ -130,30 +109,28 @@
 
 .team-header h4 {
   margin: 0;
-  color: #2c3e50;
+  color: var(--color-text);
   font-size: 1.2rem;
 }
-
-
 
 .team-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .team-role {
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .team-joined {
-  color: #95a5a6;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
 .team-description {
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   margin-top: 0.3rem;
   line-height: 1.3;
@@ -162,12 +139,12 @@
 
 .no-teams {
   text-align: center;
-  padding: 2rem;
-  color: #7f8c8d;
+  padding: var(--space-xl);
+  color: var(--color-text-muted);
 }
 
 .no-teams p {
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
 }
 
 /* Modal Styles */
@@ -177,42 +154,38 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: var(--space-md);
 }
 
 .modal {
-  background: white;
-  border-radius: 15px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
 }
 
-/* Pending invite modal - make it larger */
 .modal.pending-invite-modal {
   max-width: 700px;
-  min-width: 500px;
+  min-width: min(500px, 100%);
 }
 
-/* Pending invite modal body - more padding */
 .modal.pending-invite-modal .modal-body {
-  padding: 3rem;
+  padding: var(--space-2xl);
 }
 
-/* Pending invite modal actions - more spacing */
 .modal.pending-invite-modal .modal-actions {
-  padding: 2rem;
-  gap: 1.5rem;
+  padding: var(--space-xl);
+  gap: var(--space-lg);
 }
 
-/* Pending invite modal buttons - larger */
 .modal.pending-invite-modal .modal-actions .btn {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
@@ -223,46 +196,49 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e1e8ed;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   margin: 0;
-  color: #2c3e50;
+  color: var(--color-text);
   font-size: 1.5rem;
 }
 
 .close-button {
   background: none;
-  border: none;
-  font-size: 2rem;
+  border: 1px solid transparent;
+  font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   padding: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.3s;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
 .close-button:hover {
-  background-color: #f8f9fa;
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
 
 .modal-body {
-  padding: 2rem;
+  padding: var(--space-xl);
 }
 
 /* Profile Section */
 .profile-section {
   text-align: center;
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e1e8ed;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -276,15 +252,15 @@
 .profile-photo img {
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: var(--radius-md);
   object-fit: cover;
   cursor: pointer;
-  border: 3px solid #e1e8ed;
-  transition: border-color 0.3s;
+  border: 1px solid var(--color-border);
+  transition: border-color var(--transition);
 }
 
 .profile-photo img:hover {
-  border-color: #3498db;
+  border-color: var(--color-border-strong);
 }
 
 .profile-photo input[type="file"] {
@@ -292,62 +268,63 @@
 }
 
 .upload-text {
-  margin-top: 0.5rem;
-  color: #667eea;
+  margin-top: var(--space-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 0.9rem;
   text-decoration: underline;
 }
 
 .remove-photo-btn {
-  margin-top: 0.5rem;
+  margin-top: var(--space-sm);
   padding: 0.3rem 0.8rem;
   font-size: 0.8rem;
 }
 
 /* Info Section */
 .info-section {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid #e1e8ed;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-section h4 {
-  margin: 0 0 1rem 0;
-  color: #2c3e50;
+  margin: 0 0 var(--space-md) 0;
+  color: var(--color-text);
   font-size: 1.2rem;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .info-item label {
   font-weight: 600;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
 .info-display {
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 5px;
-  color: #2c3e50;
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
   min-height: 20px;
+  border: 1px solid var(--color-border);
 }
 
 .info-item input {
-  padding: 0.5rem;
-  border: 1px solid #e1e8ed;
-  border-radius: 5px;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
 }
 
@@ -355,87 +332,73 @@
 .teams-info {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
 .team-info-item {
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 8px;
-  border-left: 4px solid #667eea;
+  background: var(--color-bg);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
 }
 
 .team-name {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text);
   margin-bottom: 0.3rem;
 }
 
-.team-role {
-  color: #667eea;
+.teams-info .team-role {
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   margin-bottom: 0.3rem;
-}
-
-
-
-.team-joined {
-  color: #95a5a6;
-  font-size: 0.8rem;
-}
-
-.team-description {
-  color: #7f8c8d;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-  line-height: 1.4;
-  font-style: italic;
 }
 
 .no-teams-info {
   text-align: center;
-  color: #7f8c8d;
-  padding: 1rem;
+  color: var(--color-text-muted);
+  padding: var(--space-md);
 }
 
 /* Edit Mode */
 .edit-mode {
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin: var(--space-md) 0;
 }
 
 .edit-mode strong {
-  color: #856404;
+  color: var(--color-text);
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
 }
 
 .password-verification {
-  margin: 1rem 0;
+  margin: var(--space-md) 0;
 }
 
 .password-verification label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text);
 }
 
 .password-verification input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #e1e8ed;
-  border-radius: 5px;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
 }
 
 .edit-buttons {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -446,31 +409,31 @@
 
 /* Account Termination */
 .account-termination {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-top: 2rem;
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin-top: var(--space-xl);
 }
 
 .account-termination h4 {
-  color: #721c24;
-  margin: 0 0 1rem 0;
+  color: var(--color-error-text);
+  margin: 0 0 var(--space-md) 0;
 }
 
 .account-termination p {
-  color: #721c24;
-  margin: 0 0 1rem 0;
+  color: var(--color-error-text);
+  margin: 0 0 var(--space-md) 0;
   font-size: 0.9rem;
 }
 
 .terminate-confirm {
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 }
 
 .terminate-confirm p {
-  color: #721c24;
-  margin-bottom: 1rem;
+  color: var(--color-error-text);
+  margin-bottom: var(--space-md);
   font-weight: 600;
 }
 
@@ -478,24 +441,23 @@
 .terminate-password-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dc3545;
-  border-radius: 5px;
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  margin-bottom: 1rem;
-  background-color: white;
+  margin-bottom: var(--space-md);
+  background-color: var(--color-surface);
 }
 
 .terminate-input:focus,
 .terminate-password-input:focus {
   outline: none;
-  border-color: #c82333;
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+  border-color: var(--color-border-strong);
 }
 
 .terminate-actions {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 }
 
 .terminate-actions .btn {
@@ -504,67 +466,67 @@
 }
 
 .terminate-button {
-  background: #dc3545;
-  color: white;
-  border: none;
+  background: var(--color-text);
+  color: var(--color-surface);
+  border: 1px solid var(--color-text);
   padding: 0.75rem 1.5rem;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.9rem;
-  transition: background-color 0.3s;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
 }
 
 .terminate-button:hover {
-  background: #c82333;
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
 .terminate-button:disabled {
-  background: #6c757d;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* Error Message */
+/* Error Message (modal-specific density) */
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
-  padding: 1rem;
-  border-radius: 5px;
-  margin-top: 1rem;
-  border: 1px solid #f5c6cb;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-md);
+  border: 1px solid var(--color-error-border);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .header-navigation {
     justify-content: center;
   }
-  
+
   .teams-header {
     flex-direction: column;
     align-items: stretch;
     text-align: center;
   }
-  
+
   .teams-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .edit-buttons {
     flex-direction: column;
   }
-  
+
   .modal {
-    margin: 1rem;
+    margin: var(--space-md);
     max-height: 95vh;
   }
-  
+
   .modal-header,
   .modal-body {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 }
 
@@ -577,18 +539,18 @@
 .create-team-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .create-team-form .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .create-team-form label {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
@@ -596,18 +558,18 @@
 .create-team-form select,
 .create-team-form textarea {
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--transition);
+  background: var(--color-surface);
 }
 
 .create-team-form input:focus,
 .create-team-form select:focus,
 .create-team-form textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  border-color: var(--color-border-strong);
 }
 
 .create-team-form textarea {
@@ -618,77 +580,35 @@
 }
 
 .create-team-form select {
-  background-color: white;
   cursor: pointer;
 }
 
-.create-team-form select:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Form group spacing */
 .create-team-form .form-group:last-of-type {
   margin-bottom: 0;
 }
 
-/* Button states */
-.create-team-form .btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Team-specific button styling for create team modal */
-.create-team-form .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-  transition: all 0.3s ease;
-}
-
-.create-team-form .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.create-team-form .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.create-team-form .btn-secondary:hover:not(:disabled) {
-  background: #5a6268;
-  transform: translateY(-2px);
-}
-
-/* Success message styling */
 .success-message {
-  background-color: #d4edda;
-  color: #155724;
+  background: var(--color-bg);
+  color: var(--color-text);
   padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #c3e6cb;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
 }
 
-/* Warning text styling */
 .warning-text {
-  color: #856404;
-  background-color: #fff3cd;
+  color: var(--color-text);
+  background: var(--color-bg);
   padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid #ffeaa7;
-  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
 }
 
 .photo-upload-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -697,7 +617,7 @@
 .photo-preview {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -705,11 +625,10 @@
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
-/* Current profile photo display (view mode) */
 .current-profile-photo {
   display: flex;
   justify-content: center;
@@ -721,25 +640,23 @@
   width: 120px;
   height: 120px;
   object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid #e1e8ed;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   display: block;
   max-width: 100%;
   height: auto;
 }
 
-/* No photo placeholder */
 .no-photo-placeholder {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 120px;
   height: 120px;
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 50%;
-  color: #6c757d;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
   font-size: 0.9rem;
   margin: 0 auto;
 }
@@ -751,87 +668,87 @@
 
 .modal-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
 }
 
-/* Form validation styling */
 .create-team-form input:invalid,
 .create-team-form select:invalid {
-  border-color: #e74c3c;
+  border-color: var(--color-error-border);
 }
 
 .create-team-form input:invalid:focus,
 .create-team-form select:invalid:focus {
-  box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+  border-color: var(--color-border-strong);
 }
 
-/* Responsive adjustments for create team modal */
 @media (max-width: 768px) {
   .create-team-modal {
     width: 95vw;
-    margin: 1rem;
+    margin: var(--space-md);
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .modal-actions .btn {
     width: 100%;
   }
 }
 
 .teams-grid .team-sport {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--color-bg);
+  color: var(--color-text);
   padding: 0.3rem 0.8rem;
-  border-radius: 20px;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 600;
+  border: 1px solid var(--color-border);
+  display: inline-block;
 }
 
 .teams-info .team-sport {
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   font-size: 0.8rem;
   margin-bottom: 0.3rem;
 }
 
-/* Invite Status */
 .invite-status {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 4px;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .invite-status.invite-pending {
-  color: #e74c3c;
-  background: #fdf2f2;
-  border-left: 3px solid #e74c3c;
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-left: 3px solid var(--color-error-border);
 }
 
 .accept-invite-btn {
-  margin-top: 0.5rem;
+  margin-top: var(--space-sm);
   padding: 0.25rem 0.75rem;
   font-size: 0.8rem;
-  background: #28a745;
-  border: none;
-  color: white;
-  border-radius: 4px;
+  background: var(--color-text);
+  border: 1px solid var(--color-text);
+  color: var(--color-surface);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .accept-invite-btn:hover {
-  background: #218838;
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
-/* Disabled team cards (pending invites) */
 .team-card.disabled {
   opacity: 0.6;
   pointer-events: none;
@@ -843,20 +760,20 @@
   max-width: 700px;
   width: 95%;
   min-height: 400px;
-  padding: 2.5rem;
+  padding: var(--space-2xl);
 }
 
 .coach-safety-modal h3 {
-  margin-bottom: 1rem;
-  color: #dc3545;
+  margin-bottom: var(--space-md);
+  color: var(--color-error-text);
   text-align: center;
   font-size: 1.5rem;
 }
 
 .coach-safety-modal p {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
   font-size: 1.1rem;
   line-height: 1.5;
 }
@@ -864,17 +781,17 @@
 .coach-safety-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .option-card {
-  background: #f8f9fa;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
   text-align: center;
-  transition: all 0.3s ease;
+  transition: border-color var(--transition);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -882,20 +799,18 @@
 }
 
 .option-card:hover {
-  border-color: #667eea;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+  border-color: var(--color-border-strong);
 }
 
 .option-card h4 {
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 0.75rem;
   font-size: 1.2rem;
 }
 
 .option-card p {
-  color: #666;
-  margin-bottom: 1.5rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-lg);
   font-size: 0.95rem;
   line-height: 1.4;
 }
@@ -909,39 +824,22 @@
 .coach-safety-modal .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
-.coach-safety-modal .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-}
-
-.coach-safety-modal .btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-/* Responsive design for coach safety modal */
 @media (max-width: 768px) {
   .coach-safety-options {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-  
+
   .coach-safety-modal {
-    padding: 1.5rem;
+    padding: var(--space-lg);
     min-height: 350px;
   }
-  
+
   .option-card {
-    padding: 1rem;
+    padding: var(--space-md);
     min-height: 180px;
   }
 }
@@ -951,20 +849,20 @@
   max-width: 800px !important;
   width: 95% !important;
   min-height: 500px !important;
-  padding: 3rem !important;
+  padding: var(--space-2xl) !important;
 }
 
 .tournament-safety-modal h3 {
-  margin-bottom: 1rem;
-  color: #dc3545;
+  margin-bottom: var(--space-md);
+  color: var(--color-error-text);
   text-align: center;
   font-size: 1.5rem;
 }
 
 .tournament-safety-modal p {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
   font-size: 1.1rem;
   line-height: 1.5;
 }
@@ -972,60 +870,40 @@
 .tournament-safety-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .tournament-safety-modal .modal-actions {
   display: flex;
   justify-content: center;
-  gap: 1rem;
+  gap: var(--space-md);
 }
 
-.tournament-safety-modal .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-}
-
-.tournament-safety-modal .btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-/* Responsive design for tournament safety modal */
 @media (max-width: 768px) {
   .tournament-safety-options {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-  
+
   .modal.tournament-safety-modal {
-    padding: 2rem !important;
+    padding: var(--space-xl) !important;
     min-height: 450px !important;
   }
 }
 
 /* Tournaments Section */
 .tournaments-section {
-  margin: 2rem 0;
-  padding: 2rem;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e1e8ed;
+  margin: var(--space-xl) 0;
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
 }
 
-
-
 .tournaments-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: #333;
+  margin: 0 0 var(--space-lg) 0;
+  color: var(--color-text);
   font-size: 1.5rem;
 }
 
@@ -1033,41 +911,41 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e8f4fd;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tournaments-header p {
   margin: 0;
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 0.95rem;
 }
 
 .tournaments-grid {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--space-lg);
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
 }
 
 .no-tournaments {
   text-align: center;
-  padding: 3rem 1rem;
-  color: #666;
+  padding: var(--space-2xl) var(--space-md);
+  color: var(--color-text-muted);
 }
 
 .no-tournaments p {
-  margin: 0.5rem 0;
+  margin: var(--space-sm) 0;
   font-size: 0.95rem;
 }
 
 .no-tournaments p:first-child {
   font-size: 1.1rem;
   font-weight: 500;
-  color: #555;
+  color: var(--color-text);
 }
 
-/* Create Tournament Modal styles */
+/* Create Tournament Modal */
 .create-tournament-modal {
   max-width: 600px;
   width: 90vw;
@@ -1076,18 +954,18 @@
 .create-tournament-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 }
 
 .create-tournament-form .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 }
 
 .create-tournament-form label {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
@@ -1095,18 +973,18 @@
 .create-tournament-form select,
 .create-tournament-form textarea {
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--transition);
+  background: var(--color-surface);
 }
 
 .create-tournament-form input:focus,
 .create-tournament-form select:focus,
 .create-tournament-form textarea:focus {
   outline: none;
-  border-color: #00d4ff;
-  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+  border-color: var(--color-border-strong);
 }
 
 .create-tournament-form textarea {
@@ -1117,37 +995,30 @@
 }
 
 .create-tournament-form select {
-  background-color: white;
   cursor: pointer;
 }
 
-.create-tournament-form select:focus {
-  border-color: #00d4ff;
-  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
-}
-
-/* Responsive design for tournaments */
 @media (max-width: 768px) {
   .tournaments-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-  
+
   .tournaments-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
-  
+
   .create-tournament-modal {
     width: 95vw;
-    margin: 1rem;
+    margin: var(--space-md);
   }
-  
+
   .modal-actions {
     flex-direction: column;
   }
-  
+
   .modal-actions .btn {
     width: 100%;
   }

@@ -1,184 +1,171 @@
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore';
 import type { Task, CreateTaskRequest, TaskUser } from '../types/Task';
+import { db } from '../firebase';
+import { docToData, nowIso, omitUndefined, queryByField } from '../lib/firestoreUtils';
+import { filterAndSortByDate } from '../lib/dateUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+type TaskDoc = Omit<Task, 'id' | 'getCurrentSignups' | 'isFull' | 'hasMinimumSignups' | 'isUserSignedUp' | 'canSignUp'>;
 
-export class TaskService {
-  
-  /**
-   * Create a new task
-   */
+function enrichTask(data: TaskDoc & { id: string }): Task {
+  const signedUpUserIds = data.signedUpUserIds ?? [];
+  const currentSignups = signedUpUserIds.length;
+  return {
+    ...data,
+    signedUpUserIds,
+    getCurrentSignups: currentSignups,
+    isFull: currentSignups >= data.maxSignups,
+    hasMinimumSignups: currentSignups >= data.minSignups,
+    isUserSignedUp: (userId: string) => signedUpUserIds.includes(userId),
+    canSignUp: currentSignups < data.maxSignups,
+  };
+}
+
+class TaskService {
   async createTask(taskData: CreateTaskRequest): Promise<Task> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(taskData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to create task: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
-    }
+    const taskRef = doc(collection(db, 'tasks'));
+    const timestamp = nowIso();
+    const taskDoc: TaskDoc = {
+      ...taskData,
+      signedUpUserIds: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    await setDoc(taskRef, omitUndefined(taskDoc));
+    return enrichTask({ id: taskRef.id, ...taskDoc });
   }
 
-  /**
-   * Get all tasks for a specific team
-   */
   async getTasksByTeamId(teamId: string): Promise<Task[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/team/${teamId}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get tasks: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting tasks:', error);
-      throw error;
-    }
+    const tasks = await queryByField<TaskDoc>('tasks', 'teamId', teamId);
+    const mapped = tasks.map((t) => enrichTask(t));
+    const filtered = await filterAndSortByDate(
+      mapped.map(({ id, date, startTime }) => ({ id, date, startTime })),
+      async (id) => deleteDoc(doc(db, 'tasks', id))
+    );
+    const keptIds = new Set(filtered.map((t) => t.id));
+    return mapped.filter((t) => keptIds.has(t.id));
   }
 
-  /**
-   * Get a specific task by ID
-   */
   async getTaskById(taskId: string): Promise<Task> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get task: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting task:', error);
-      throw error;
+    const snap = await getDoc(doc(db, 'tasks', taskId));
+    const data = docToData<TaskDoc>(snap);
+    if (!data) {
+      throw new Error('Task not found');
     }
+    return enrichTask(data);
   }
 
-  /**
-   * Update an existing task
-   */
   async updateTask(taskId: string, taskData: Partial<CreateTaskRequest>): Promise<Task> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(taskData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update task: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating task:', error);
-      throw error;
+    const existing = await this.getTaskById(taskId);
+    const currentSignups = existing.signedUpUserIds?.length ?? 0;
+    if (taskData.maxSignups !== undefined && taskData.maxSignups < currentSignups) {
+      throw new Error('Maximum signups cannot be less than current signups');
     }
+
+    const taskRef = doc(db, 'tasks', taskId);
+    const merged = {
+      ...existing,
+      ...taskData,
+      updatedAt: nowIso(),
+    };
+    await setDoc(taskRef, omitUndefined({
+      teamId: merged.teamId,
+      name: merged.name,
+      location: merged.location,
+      description: merged.description,
+      date: merged.date,
+      startTime: merged.startTime,
+      maxSignups: merged.maxSignups,
+      minSignups: merged.minSignups,
+      signedUpUserIds: merged.signedUpUserIds,
+      createdBy: merged.createdBy,
+      createdAt: merged.createdAt,
+      updatedAt: merged.updatedAt,
+    }));
+    return enrichTask({ id: taskId, ...(merged as TaskDoc) });
   }
 
-  /**
-   * Delete a task
-   */
   async deleteTask(taskId: string): Promise<void> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to delete task: ${response.status} ${errorText}`);
-      }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      throw error;
-    }
+    await deleteDoc(doc(db, 'tasks', taskId));
   }
 
-  /**
-   * Sign up a user for a task
-   */
   async signUpForTask(taskId: string, userId: string): Promise<Task> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to sign up for task: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error signing up for task:', error);
-      throw error;
+    const task = await this.getTaskById(taskId);
+    if (task.signedUpUserIds.length >= task.maxSignups) {
+      throw new Error('Task is already full');
     }
+    if (task.signedUpUserIds.includes(userId)) {
+      throw new Error('User is already signed up for this task');
+    }
+
+    const signedUpUserIds = [...task.signedUpUserIds, userId];
+    await setDoc(
+      doc(db, 'tasks', taskId),
+      { signedUpUserIds, updatedAt: nowIso() },
+      { merge: true }
+    );
+    return this.getTaskById(taskId);
   }
 
-  /**
-   * Remove a user from a task
-   */
   async removeFromTask(taskId: string, userId: string): Promise<Task> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/remove`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to remove from task: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error removing from task:', error);
-      throw error;
+    const task = await this.getTaskById(taskId);
+    if (!task.signedUpUserIds.includes(userId)) {
+      throw new Error('User is not signed up for this task');
     }
+
+    const signedUpUserIds = task.signedUpUserIds.filter((id) => id !== userId);
+    await setDoc(
+      doc(db, 'tasks', taskId),
+      { signedUpUserIds, updatedAt: nowIso() },
+      { merge: true }
+    );
+    return this.getTaskById(taskId);
   }
 
-  /**
-   * Get all users who have signed up for a task with their roles
-   */
   async getTaskUsers(taskId: string): Promise<TaskUser[]> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/users`);
+    const task = await this.getTaskById(taskId);
+    const users: TaskUser[] = [];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get task users: ${response.status} ${errorText}`);
-      }
+    for (const userId of task.signedUpUserIds) {
+      const profileSnap = await getDoc(doc(db, 'userProfiles', userId));
+      if (!profileSnap.exists()) continue;
+      const profile = profileSnap.data();
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting task users:', error);
-      throw error;
+      const userTeamSnap = await getDocs(
+        query(
+          collection(db, 'userTeams'),
+          where('userId', '==', userId),
+          where('teamId', '==', task.teamId)
+        )
+      );
+      const role = userTeamSnap.empty ? 'UNKNOWN' : String(userTeamSnap.docs[0].data().role ?? 'UNKNOWN');
+
+      users.push({
+        userId,
+        firstName: String(profile?.firstName ?? ''),
+        lastName: String(profile?.lastName ?? ''),
+        email: String(profile?.email ?? ''),
+        role,
+      });
     }
+
+    return users.sort((a, b) => {
+      if (a.role === 'COACH' && b.role !== 'COACH') return -1;
+      if (b.role === 'COACH' && a.role !== 'COACH') return 1;
+      const nameA = `${a.firstName} ${a.lastName}`;
+      const nameB = `${b.firstName} ${b.lastName}`;
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+    });
   }
 }
 
 export const taskService = new TaskService();
+export { TaskService };

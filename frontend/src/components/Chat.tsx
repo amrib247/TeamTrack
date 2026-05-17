@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatService } from '../services/chatService';
+import { storageService } from '../services/storageService';
 import type { ChatMessage } from '../types/Auth';
 import './Chat.css';
 
@@ -127,22 +128,10 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     setFileUpload(prev => prev ? { ...prev, uploading: true, error: undefined } : null);
     
     try {
-      const formData = new FormData();
-      formData.append('file', fileUpload.file);
-
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'}/files/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('File upload failed');
-      }
-
-      const result = await response.json();
+      const fileUrl = await storageService.uploadChatFile(fileUpload.file, teamId);
       return {
-        fileUrl: result.downloadUrl,
-        fileName: result.originalFilename
+        fileUrl,
+        fileName: fileUpload.file.name,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'File upload failed';

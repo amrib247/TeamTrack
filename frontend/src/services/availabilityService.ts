@@ -1,4 +1,14 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import { nowIso, queryByField } from '../lib/firestoreUtils';
+import { teamService } from './teamService';
 
 export interface Availability {
   id: string;
@@ -24,86 +34,114 @@ export interface TeamAvailabilityResponse {
   totalMembers: number;
 }
 
+type AvailabilityDoc = Omit<Availability, 'id'>;
+
 class AvailabilityService {
-  /**
-   * Set availability for a user for a specific event
-   */
   async setAvailability(
     userId: string,
     teamId: string,
     eventId: string,
     status: 'YES' | 'NO' | 'MAYBE'
   ): Promise<Availability> {
-    try {
-      const params = new URLSearchParams({ userId, teamId, eventId, status });
-      const response = await fetch(`${API_BASE_URL}/availability/set?${params}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+    const existing = await getDocs(
+      query(
+        collection(db, 'availabilities'),
+        where('userId', '==', userId),
+        where('teamId', '==', teamId),
+        where('eventId', '==', eventId)
+      )
+    );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to set availability: ${response.status} ${errorText}`);
-      }
+    const timestamp = nowIso();
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error setting availability:', error);
-      throw error;
+    if (!existing.empty) {
+      const docRef = existing.docs[0].ref;
+      const data = existing.docs[0].data() as AvailabilityDoc;
+      const updated: Availability = {
+        id: existing.docs[0].id,
+        ...data,
+        status,
+        updatedAt: timestamp,
+      };
+      await setDoc(docRef, { ...data, status, updatedAt: timestamp });
+      return updated;
     }
+
+    const id = crypto.randomUUID();
+    const availability: Availability = {
+      id,
+      userId,
+      teamId,
+      eventId,
+      status,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    await setDoc(doc(db, 'availabilities', id), {
+      userId,
+      teamId,
+      eventId,
+      status,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    return availability;
   }
 
-  /**
-   * Get team availability for a specific event
-   */
   async getTeamAvailabilityForEvent(
     teamId: string,
     eventId: string,
     currentUserId: string
   ): Promise<TeamAvailabilityResponse> {
-    try {
-      const params = new URLSearchParams({ currentUserId });
-      const response = await fetch(`${API_BASE_URL}/availability/team/${teamId}/event/${eventId}?${params}`);
+    const teamMembers = await teamService.getTeamMembers(teamId);
+    const availabilities = await queryByField<AvailabilityDoc>('availabilities', 'eventId', eventId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get team availability: ${response.status} ${errorText}`);
-      }
+    const userAvailabilities = new Map(availabilities.map((a) => [a.userId, a.status]));
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting team availability:', error);
-      throw error;
-    }
+    const teamAvailability: TeamMemberAvailability[] = teamMembers.map((member) => ({
+      userId: member.userId,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      role: member.role,
+      status: (userAvailabilities.get(member.userId) as TeamMemberAvailability['status']) ?? 'UNKNOWN',
+      isCurrentUser: member.userId === currentUserId,
+    }));
+
+    teamAvailability.sort((a, b) => {
+      if (a.isCurrentUser) return -1;
+      if (b.isCurrentUser) return 1;
+      if (a.role === 'COACH' && b.role !== 'COACH') return -1;
+      if (b.role === 'COACH' && a.role !== 'COACH') return 1;
+      const lastCmp = a.lastName.localeCompare(b.lastName, undefined, { sensitivity: 'base' });
+      if (lastCmp !== 0) return lastCmp;
+      return a.firstName.localeCompare(b.firstName, undefined, { sensitivity: 'base' });
+    });
+
+    return { teamAvailability, totalMembers: teamAvailability.length };
   }
 
-  /**
-   * Get availability for a specific user for a specific event
-   */
   async getUserAvailabilityForEvent(
     userId: string,
     teamId: string,
     eventId: string
   ): Promise<Availability | null> {
-    try {
-      const response = await fetch(`${API_BASE_URL}/availability/user/${userId}/team/${teamId}/event/${eventId}`);
+    const snapshot = await getDocs(
+      query(
+        collection(db, 'availabilities'),
+        where('userId', '==', userId),
+        where('teamId', '==', teamId),
+        where('eventId', '==', eventId)
+      )
+    );
 
-      if (response.status === 404) {
-        return null; // No availability found
-      }
+    if (snapshot.empty) return null;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get user availability: ${response.status} ${errorText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error getting user availability:', error);
-      throw error;
-    }
+    const docSnap = snapshot.docs[0];
+    const data = docSnap.data() as AvailabilityDoc;
+    return {
+      id: docSnap.id,
+      ...data,
+    };
   }
 }
 
