@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasRequiredKeys(keys) {
+      return request.resource.data.keys().hasAll(keys);
+    }
+
+    // Profiles: any member can read (rosters); only the user can write their own doc
+    match /userProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isOwner(userId);
+    }
+
+    // Chat: must post as yourself; only delete your own messages
+    match /chat_messages/{messageId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.teamId is string
+        && request.resource.data.content is string;
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    match /chat_rooms/{roomId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Availability: users may only set their own status
+    match /availabilities/{availabilityId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status in ['YES', 'NO', 'MAYBE'];
+      allow update: if isSignedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Tasks: creator must match auth on create
+    match /tasks/{taskId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.teamId is string;
+      allow update, delete: if isSignedIn();
+    }
+
+    // Organizer links: users manage only their own organizer records
+    match /organizerTournaments/{orgId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Teams: any member can read; creator owns team document writes
+    match /teams/{teamId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isSignedIn();
+    }
+
+    // Membership, events, tournaments, invites: authenticated team/tournament operations
+    match /userTeams/{userTeamId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && hasRequiredKeys(['userId', 'teamId', 'role']);
+      allow update, delete: if isSignedIn();
+    }
+
+    match /events/{eventId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /tournaments/{tournamentId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /tournamentInvites/{inviteId} {
+      allow read, write: if isSignedIn();
+    }
+  }
+}

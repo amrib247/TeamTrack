@@ -72,6 +72,14 @@ Indexes take a few minutes to build. Check status in Firebase Console → Firest
 
 To update indexes later, edit `firestore.indexes.json` and run `firebase deploy --only firestore:indexes` again.
 
+### Deploy security rules
+
+Rules live in `firestore.rules` and `storage.rules`. They require a signed-in user (same as local dev when logged in) and add production checks (e.g. users can only edit their own profile, chat messages, and availability).
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
 ## Local development
 
 ```bash
