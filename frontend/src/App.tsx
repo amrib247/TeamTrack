@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, reload } from 'firebase/auth';
 import { auth } from './firebase';
 import { firebaseAuthService } from './services/firebaseAuthService';
 import LandingPage from './pages/LandingPage';
@@ -13,22 +13,30 @@ import './App.css';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<AuthResponse | null>(null);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for Firebase authentication state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
-          // Get user profile data from Firestore
-          const userData = await firebaseAuthService.getCurrentUser();
-          setCurrentUser(userData);
+          await reload(firebaseUser);
+          if (firebaseUser.emailVerified) {
+            const userData = await firebaseAuthService.getCurrentUser();
+            setCurrentUser(userData);
+            setPendingVerificationEmail(null);
+          } else {
+            setCurrentUser(null);
+            setPendingVerificationEmail(firebaseUser.email ?? null);
+          }
         } catch (error) {
           console.error('Failed to get user data:', error);
           setCurrentUser(null);
+          setPendingVerificationEmail(firebaseUser.email ?? null);
         }
       } else {
         setCurrentUser(null);
+        setPendingVerificationEmail(null);
       }
       setLoading(false);
     });
@@ -38,12 +46,14 @@ function App() {
 
   const handleAuthSuccess = (user: AuthResponse) => {
     setCurrentUser(user);
+    setPendingVerificationEmail(null);
   };
 
   const handleLogout = async () => {
     try {
       await firebaseAuthService.logout();
       setCurrentUser(null);
+      setPendingVerificationEmail(null);
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -81,15 +91,18 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           
           {/* Authentication page */}
-          <Route 
-            path="/auth" 
+          <Route
+            path="/auth"
             element={
               currentUser ? (
                 <Navigate to="/home" replace />
               ) : (
-                <AuthPage onAuthSuccess={handleAuthSuccess} />
+                <AuthPage
+                  onAuthSuccess={handleAuthSuccess}
+                  pendingVerificationEmail={pendingVerificationEmail}
+                />
               )
-            } 
+            }
           />
           
           {/* Home page - only accessible when logged in */}

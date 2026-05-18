@@ -52,6 +52,18 @@ VITE_FIREBASE_APP_ID=your_app_id
 
 Configure **Firestore Security Rules** and **Storage Rules** for your deployment (the app previously relied on server-side Admin SDK access).
 
+### Email verification (one-time Console setup)
+
+1. **Authentication → Sign-in method** — enable **Email/Password**.
+2. **Authentication → Templates → Email address verification** — customize the subject/body (optional).
+3. **Authentication → Settings → Authorized domains** — add `localhost` and your production host (e.g. `amrib247.github.io`).
+
+Deploy updated Firestore rules after enabling verification in the app:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
 ### Deploy Firestore indexes
 
 From the **project root** (where `firebase.json` and `firestore.indexes.json` live):

@@ -85,6 +85,48 @@
   margin-top: var(--space-sm);
 }
 
+.verify-email-panel {
+  text-align: center;
+}
+
+.verify-email-panel h2 {
+  margin: 0 0 var(--space-md);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.verify-email-text {
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0 0 var(--space-lg);
+}
+
+.verify-email-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.verify-email-actions .btn {
+  width: 100%;
+}
+
+.verify-sign-out {
+  margin-top: var(--space-xs);
+}
+
+.success-message {
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 @media (max-width: 480px) {
   .auth-container { padding: var(--space-lg); }
   .form-row { grid-template-columns: 1fr; }

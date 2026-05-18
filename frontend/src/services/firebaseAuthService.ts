@@ -1,47 +1,93 @@
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   updateProfile,
   deleteUser,
-  type UserCredential
+  sendEmailVerification,
+  reload,
+  type User,
+  type UserCredential,
+  type ActionCodeSettings,
 } from 'firebase/auth';
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc, 
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
   deleteDoc,
   collection,
   query,
   where,
-  getDocs
+  getDocs,
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { LoginRequest, RegisterRequest, AuthResponse, UpdateUserRequest } from '../types/Auth';
+import { EmailNotVerifiedError, type RegisterResult } from '../types/authErrors';
 
 class FirebaseAuthService {
-  
+  private getVerificationActionCodeSettings(): ActionCodeSettings {
+    const base = import.meta.env.BASE_URL || '/';
+    const path = base.endsWith('/') ? `${base}auth` : `${base}/auth`;
+    return {
+      url: `${window.location.origin}${path}`,
+      handleCodeInApp: false,
+    };
+  }
+
   /**
-   * Register a new user with Firebase Authentication
+   * Reload auth state and force-refresh the ID token so Firestore rules
+   * see request.auth.token.email_verified after the user clicks the email link.
    */
-  async register(userData: RegisterRequest): Promise<AuthResponse> {
+  private async refreshVerifiedAuthToken(user: User): Promise<boolean> {
+    await reload(user);
+    if (!user.emailVerified) {
+      return false;
+    }
+    await user.getIdToken(true);
+    return true;
+  }
+
+  private async requireVerifiedEmail(user: User): Promise<void> {
+    const verified = await this.refreshVerifiedAuthToken(user);
+    if (!verified) {
+      throw new EmailNotVerifiedError(user.email ?? '');
+    }
+  }
+
+  async sendVerificationEmail(): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+    await sendEmailVerification(user, this.getVerificationActionCodeSettings());
+  }
+
+  async checkEmailVerified(): Promise<boolean> {
+    const user = auth.currentUser;
+    if (!user) {
+      return false;
+    }
+    return this.refreshVerifiedAuthToken(user);
+  }
+
+  /**
+   * Register a new user and send a verification email. User stays signed in to allow resend.
+   */
+  async register(userData: RegisterRequest): Promise<RegisterResult> {
     try {
-      // Create user in Firebase Auth
       const userCredential: UserCredential = await createUserWithEmailAndPassword(
-        auth, 
-        userData.email, 
+        auth,
+        userData.email,
         userData.password
       );
-      
+
       const user = userCredential.user;
-      
-      // Update display name
+
       await updateProfile(user, {
-        displayName: `${userData.firstName} ${userData.lastName}`
+        displayName: `${userData.firstName} ${userData.lastName}`,
       });
-      
-      // Create user profile in Firestore
+
       const userProfile = {
         uid: user.uid,
         email: userData.email,
@@ -51,180 +97,78 @@ class FirebaseAuthService {
         dateOfBirth: userData.dateOfBirth,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        isActive: true
-      };
-      
-      await setDoc(doc(db, 'userProfiles', user.uid), userProfile);
-      
-      // Return user data in the expected format
-      return {
-        id: user.uid,
-        email: user.email!,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phoneNumber: userData.phoneNumber || '',
-        dateOfBirth: userData.dateOfBirth,
-        createdAt: userProfile.createdAt,
-        updatedAt: userProfile.updatedAt,
         isActive: true,
-        teams: []
       };
-      
-    } catch (error: any) {
+
+      await setDoc(doc(db, 'userProfiles', user.uid), userProfile);
+      await sendEmailVerification(user, this.getVerificationActionCodeSettings());
+
+      return {
+        needsEmailVerification: true,
+        email: userData.email,
+      };
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      throw new Error(this.getErrorMessage(error.code));
+      const err = error as { code?: string };
+      throw new Error(this.getErrorMessage(err.code ?? ''));
     }
   }
-  
+
   /**
    * Login user with Firebase Authentication
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      console.log('Login attempt for:', credentials.email);
-      
-      // Sign in with Firebase Auth
       const userCredential: UserCredential = await signInWithEmailAndPassword(
-        auth, 
-        credentials.email, 
+        auth,
+        credentials.email,
         credentials.password
       );
-      
+
       const user = userCredential.user;
-      console.log('Firebase Auth successful, UID:', user.uid);
-      
-      // Get user profile from Firestore
-      console.log('Attempting to get profile for UID:', user.uid);
-      console.log('Collection name being queried: userProfiles');
-      
-      // Try to get the profile document
+      await this.requireVerifiedEmail(user);
+
       const userProfileDoc = await getDoc(doc(db, 'userProfiles', user.uid));
-      
-      console.log('Profile document exists:', userProfileDoc.exists());
-      console.log('Profile document data:', userProfileDoc.data());
-      
-      // If profile not found, let's try to see what collections exist
+
       if (!userProfileDoc.exists()) {
-        console.log('Profile not found, checking available collections...');
-        try {
-          // List all documents in userProfiles collection
-          const collections = await getDocs(collection(db, 'userProfiles'));
-          console.log('All documents in userProfiles collection:', collections.docs.map(doc => ({ id: doc.id, data: doc.data() })));
-          
-          // Also check if there's a 'users' collection (common alternative)
-          try {
-            const usersCollection = await getDocs(collection(db, 'users'));
-            console.log('Documents in users collection:', usersCollection.docs.map(doc => ({ id: doc.id, data: doc.data() })));
-          } catch (usersError) {
-            console.log('No users collection found');
-          }
-          
-        } catch (collectionError) {
-          console.log('Error listing collections:', collectionError);
-        }
-        
-        // Auto-create the missing profile using Firebase Auth data
-        console.log('Auto-creating missing user profile...');
-        try {
-          const userProfile = {
-            uid: user.uid,
-            email: user.email!,
-            firstName: user.displayName?.split(' ')[0] || 'Unknown',
-            lastName: user.displayName?.split(' ').slice(1).join(' ') || 'User',
-            phoneNumber: '',
-            dateOfBirth: '',
-            profilePhotoUrl: '',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isActive: true
-          };
-          
-          await setDoc(doc(db, 'userProfiles', user.uid), userProfile);
-          console.log('User profile created successfully');
-          
-          // Now get the created profile
-          const createdProfileDoc = await getDoc(doc(db, 'userProfiles', user.uid));
-          const createdProfile = createdProfileDoc.data()!;
-          
-          // Continue with teams retrieval
-          console.log('Attempting to get teams for UID:', user.uid);
-          const teamsQuery = query(
-            collection(db, 'userTeams'), 
-            where('userId', '==', user.uid)
-          );
-          const teamsSnapshot = await getDocs(teamsQuery);
-          console.log('Teams query result:', teamsSnapshot.docs.length, 'teams found');
-          
-          const teams = teamsSnapshot.docs.map(doc => {
-            const data = doc.data();
-            console.log('Team data:', data);
-            return {
-              id: doc.id,
-              userId: data.userId,
-              teamId: data.teamId,
-              role: data.role,
-              teamName: data.teamName || '',
-              sport: data.sport || '',
-              joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-              isActive: data.isActive !== false,
-              inviteAccepted: !!data.inviteAccepted
-            };
-          });
-          
-          console.log('Teams processed:', teams.length);
-          
-          // Return user data with created profile
-          return {
-            id: user.uid,
-            email: user.email!,
-            firstName: createdProfile.firstName,
-            lastName: createdProfile.lastName,
-            phoneNumber: createdProfile.phoneNumber || '',
-            dateOfBirth: createdProfile.dateOfBirth,
-            profilePhotoUrl: createdProfile.profilePhotoUrl,
-            createdAt: createdProfile.createdAt,
-            updatedAt: createdProfile.updatedAt,
-            isActive: createdProfile.isActive,
-            teams
-          };
-          
-        } catch (createError) {
-          console.error('Failed to create user profile:', createError);
-          throw new Error('Failed to create user profile - please contact support');
-        }
-      }
-      
-      const userProfile = userProfileDoc.data();
-      console.log('Profile retrieved successfully:', userProfile);
-      
-      // Get user's teams from Firestore
-      console.log('Attempting to get teams for UID:', user.uid);
-      const teamsQuery = query(
-        collection(db, 'userTeams'), 
-        where('userId', '==', user.uid)
-      );
-      const teamsSnapshot = await getDocs(teamsQuery);
-      console.log('Teams query result:', teamsSnapshot.docs.length, 'teams found');
-      
-      const teams = teamsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        console.log('Team data:', data);
-        return {
-          id: doc.id,
-          userId: data.userId,
-          teamId: data.teamId,
-          role: data.role,
-          teamName: data.teamName || '',
-          sport: data.sport || '',
-          joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-          isActive: data.isActive !== false,
-          inviteAccepted: !!data.inviteAccepted
+        const userProfile = {
+          uid: user.uid,
+          email: user.email!,
+          firstName: user.displayName?.split(' ')[0] || 'Unknown',
+          lastName: user.displayName?.split(' ').slice(1).join(' ') || 'User',
+          phoneNumber: '',
+          dateOfBirth: '',
+          profilePhotoUrl: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isActive: true,
         };
-      });
-      
-      console.log('Teams processed:', teams.length);
-      
-      // Return user data in the expected format
+
+        await setDoc(doc(db, 'userProfiles', user.uid), userProfile);
+
+        const createdProfileDoc = await getDoc(doc(db, 'userProfiles', user.uid));
+        const createdProfile = createdProfileDoc.data()!;
+
+        const teams = await this.fetchUserTeams(user.uid);
+
+        return {
+          id: user.uid,
+          email: user.email!,
+          firstName: createdProfile.firstName,
+          lastName: createdProfile.lastName,
+          phoneNumber: createdProfile.phoneNumber || '',
+          dateOfBirth: createdProfile.dateOfBirth,
+          profilePhotoUrl: createdProfile.profilePhotoUrl,
+          createdAt: createdProfile.createdAt,
+          updatedAt: createdProfile.updatedAt,
+          isActive: createdProfile.isActive,
+          teams,
+        };
+      }
+
+      const userProfile = userProfileDoc.data()!;
+      const teams = await this.fetchUserTeams(user.uid);
+
       return {
         id: user.uid,
         email: user.email!,
@@ -232,33 +176,46 @@ class FirebaseAuthService {
         lastName: userProfile.lastName,
         phoneNumber: userProfile.phoneNumber || '',
         dateOfBirth: userProfile.dateOfBirth,
+        profilePhotoUrl: userProfile.profilePhotoUrl,
         createdAt: userProfile.createdAt,
         updatedAt: userProfile.updatedAt,
         isActive: userProfile.isActive,
-        teams
+        teams,
       };
-      
-    } catch (error: any) {
-      console.error('Login error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      // If it's a Firebase Auth error, use the specific message
-      if (error.code && error.code.startsWith('auth/')) {
-        throw new Error(this.getErrorMessage(error.code));
+    } catch (error: unknown) {
+      if (error instanceof EmailNotVerifiedError) {
+        throw error;
       }
-      
-      // For other errors, provide more context
-      if (error.message === 'User profile not found') {
-        throw new Error('User profile not found - please contact support');
+      console.error('Login error:', error);
+      const err = error as { code?: string; message?: string };
+      if (err.code?.startsWith('auth/')) {
+        throw new Error(this.getErrorMessage(err.code));
       }
-      
-      throw new Error(`Login failed: ${error.message || 'Unknown error occurred'}`);
+      throw new Error(err.message || 'Login failed');
     }
   }
-  
+
+  private async fetchUserTeams(userId: string) {
+    const teamsSnapshot = await getDocs(
+      query(collection(db, 'userTeams'), where('userId', '==', userId))
+    );
+
+    return teamsSnapshot.docs.map((teamDoc) => {
+      const data = teamDoc.data();
+      return {
+        id: teamDoc.id,
+        userId: data.userId,
+        teamId: data.teamId,
+        role: data.role,
+        teamName: data.teamName || '',
+        sport: data.sport || '',
+        joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        isActive: data.isActive !== false,
+        inviteAccepted: !!data.inviteAccepted,
+      };
+    });
+  }
+
   /**
    * Update user profile
    */
@@ -268,56 +225,39 @@ class FirebaseAuthService {
       if (!user) {
         throw new Error('No authenticated user');
       }
-      
-      // If password is provided, verify it by re-authenticating
+
+      await this.requireVerifiedEmail(user);
+
       if (userUpdateData.password) {
         try {
           await signInWithEmailAndPassword(auth, user.email!, userUpdateData.password);
-        } catch (error: any) {
-          if (error.code === 'auth/wrong-password') {
+        } catch (error: unknown) {
+          const err = error as { code?: string };
+          if (err.code === 'auth/wrong-password') {
             throw new Error('Incorrect password');
           }
           throw new Error('Password verification failed');
         }
       }
-      
-      // Update user profile in Firestore
+
       const userProfileRef = doc(db, 'userProfiles', user.uid);
-      const updateData: any = {};
-      
+      const updateData: Record<string, string> = {};
+
       if (userUpdateData.firstName) updateData.firstName = userUpdateData.firstName;
       if (userUpdateData.lastName) updateData.lastName = userUpdateData.lastName;
       if (userUpdateData.phoneNumber !== undefined) updateData.phoneNumber = userUpdateData.phoneNumber;
-      if (userUpdateData.profilePhotoUrl !== undefined) updateData.profilePhotoUrl = userUpdateData.profilePhotoUrl;
-      
+      if (userUpdateData.profilePhotoUrl !== undefined) {
+        updateData.profilePhotoUrl = userUpdateData.profilePhotoUrl;
+      }
+
       updateData.updatedAt = new Date().toISOString();
-      
+
       await updateDoc(userProfileRef, updateData);
-      
-      // Get updated profile
+
       const updatedProfileDoc = await getDoc(userProfileRef);
       const updatedProfile = updatedProfileDoc.data()!;
-      
-      // Get user's teams
-      const teamsQuery = query(
-        collection(db, 'userTeams'), 
-        where('userId', '==', user.uid)
-      );
-      const teamsSnapshot = await getDocs(teamsQuery);
-      
-      const teams = teamsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        userId: doc.data().userId,
-        teamId: doc.data().teamId,
-        role: doc.data().role,
-        teamName: doc.data().teamName || '',
-        sport: doc.data().sport || '',
-        joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        isActive: doc.data().isActive !== false,
-        inviteAccepted: !!doc.data().inviteAccepted
-      }));
-      
-      // Return updated user data
+      const teams = await this.fetchUserTeams(user.uid);
+
       return {
         id: user.uid,
         email: user.email!,
@@ -329,15 +269,15 @@ class FirebaseAuthService {
         createdAt: updatedProfile.createdAt,
         updatedAt: updatedProfile.updatedAt,
         isActive: updatedProfile.isActive,
-        teams
+        teams,
       };
-      
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Update user error:', error);
-      throw new Error(error.message || 'Failed to update user profile');
+      const err = error as { message?: string };
+      throw new Error(err.message || 'Failed to update user profile');
     }
   }
-  
+
   /**
    * Delete user account
    */
@@ -356,7 +296,9 @@ class FirebaseAuthService {
         throw new Error(safetyCheck.message);
       }
 
-      const canRemoveFromTournaments = await tournamentService.checkUserCanBeRemovedFromAllTournaments(user.uid);
+      const canRemoveFromTournaments = await tournamentService.checkUserCanBeRemovedFromAllTournaments(
+        user.uid
+      );
       if (!canRemoveFromTournaments) {
         throw new Error(
           'Cannot delete account - you are the last organizer of one or more tournaments. Please invite other organizers or delete the tournaments first.'
@@ -383,21 +325,18 @@ class FirebaseAuthService {
       throw new Error(err.message || 'Failed to delete account');
     }
   }
-  
-  /**
-   * Logout user
-   */
+
   async logout(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       throw new Error('Failed to logout');
     }
   }
-  
+
   /**
-   * Get current user data
+   * Get current user data (only for verified accounts)
    */
   async getCurrentUser(): Promise<AuthResponse | null> {
     try {
@@ -405,36 +344,21 @@ class FirebaseAuthService {
       if (!user) {
         return null;
       }
-      
-      // Get user profile from Firestore
+
+      const verified = await this.refreshVerifiedAuthToken(user);
+      if (!verified) {
+        return null;
+      }
+
       const userProfileDoc = await getDoc(doc(db, 'userProfiles', user.uid));
-      
+
       if (!userProfileDoc.exists()) {
         return null;
       }
-      
+
       const userProfile = userProfileDoc.data();
-      
-      // Get user's teams
-      const teamsQuery = query(
-        collection(db, 'userTeams'), 
-        where('userId', '==', user.uid)
-      );
-      const teamsSnapshot = await getDocs(teamsQuery);
-      
-      const teams = teamsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        userId: doc.data().userId,
-        teamId: doc.data().teamId,
-        role: doc.data().role,
-        teamName: doc.data().teamName || '',
-        sport: doc.data().sport || '',
-        joinedAt: doc.data().joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-        isActive: doc.data().isActive !== false,
-        inviteAccepted: !!doc.data().inviteAccepted
-      }));
-      
-      // Return user data in the expected format
+      const teams = await this.fetchUserTeams(user.uid);
+
       return {
         id: user.uid,
         email: user.email!,
@@ -446,18 +370,14 @@ class FirebaseAuthService {
         createdAt: userProfile.createdAt,
         updatedAt: userProfile.updatedAt,
         isActive: userProfile.isActive,
-        teams
+        teams,
       };
-      
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Get current user error:', error);
       return null;
     }
   }
-  
-  /**
-   * Convert Firebase error codes to user-friendly messages
-   */
+
   private getErrorMessage(errorCode: string): string {
     switch (errorCode) {
       case 'auth/email-already-in-use':
@@ -481,6 +401,3 @@ class FirebaseAuthService {
 }
 
 export const firebaseAuthService = new FirebaseAuthService();
-
-
-
