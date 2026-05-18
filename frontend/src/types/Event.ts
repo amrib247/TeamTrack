@@ -4,8 +4,10 @@ export interface Event {
   name: string;
   tournamentId?: string;
   opposingTeamId?: string;
-  date: string; // ISO date string
-  startTime: string;
+  date: string; // YYYY-MM-DD in timeZone
+  startTime: string; // HH:mm in timeZone
+  timeZone: string; // IANA zone when the event was scheduled
+  startAtUtc: string; // ISO 8601 UTC instant for reminders and cross-user display
   lengthMinutes: number;
   location: string;
   description?: string;
@@ -21,6 +23,7 @@ export interface CreateEventRequest {
   opposingTeamId?: string;
   date: string;
   startTime: string;
+  timeZone?: string;
   lengthMinutes: number;
   location: string;
   description?: string;
@@ -32,6 +35,7 @@ export interface UpdateEventRequest {
   tournamentId?: string;
   date?: string;
   startTime?: string;
+  timeZone?: string;
   lengthMinutes?: number;
   location?: string;
   score?: string;

@@ -1,19 +1,20 @@
 import * as admin from 'firebase-admin';
 import {
-  CRON_WINDOW_MS,
   DEFAULT_REMINDER_LEAD_TIME,
   LEAD_TIME_MS,
   MAX_LEAD_TIME_MS,
   type ReminderLeadTime,
 } from './constants';
-import { formatDateForDisplay, parseItemDateTime, toDateString } from './dateUtils';
 import { sendReminderEmail } from './email';
+import { formatDateForDisplay, resolveStartAtUtc } from './timezoneUtils';
 
 type EventDoc = {
   teamId: string;
   name: string;
   date: string;
   startTime: string;
+  timeZone?: string;
+  startAtUtc?: string;
   location?: string;
 };
 
@@ -22,6 +23,8 @@ type TaskDoc = {
   name: string;
   date: string;
   startTime: string;
+  timeZone?: string;
+  startAtUtc?: string;
   location?: string;
   signedUpUserIds?: string[];
 };
@@ -59,7 +62,7 @@ function deliveryId(
 function isInReminderWindow(start: Date, leadTime: ReminderLeadTime, now: Date): boolean {
   const leadMs = LEAD_TIME_MS[leadTime];
   const reminderAt = new Date(start.getTime() - leadMs);
-  return reminderAt <= now && now < new Date(reminderAt.getTime() + CRON_WINDOW_MS) && now < start;
+  return reminderAt <= now && now < start;
 }
 
 async function getUserTeamMembership(
@@ -115,20 +118,20 @@ async function trySendReminder(params: {
   entityType: 'event' | 'task';
   entityId: string;
   itemName: string;
-  date: string;
-  startTime: string;
+  schedule: EventDoc | TaskDoc;
   location: string;
   now: Date;
 }): Promise<boolean> {
-  const { db, userId, teamId, entityType, entityId, now } = params;
+  const { db, userId, teamId, entityType, entityId, now, schedule } = params;
 
   const membership = await getUserTeamMembership(db, userId, teamId);
   if (!membership || membership.inviteAccepted === false) return false;
   if (membership.emailNotificationsEnabled === false) return false;
 
   const leadTime = resolveLeadTime(membership);
-  const start = parseItemDateTime(params.date, params.startTime);
-  if (!start || !isInReminderWindow(start, leadTime, now)) return false;
+  const startAtUtc = resolveStartAtUtc(schedule);
+  const start = new Date(startAtUtc);
+  if (!isInReminderWindow(start, leadTime, now)) return false;
 
   const dedupeRef = db.collection('reminderDeliveries').doc(
     deliveryId(userId, entityType, entityId, leadTime)
@@ -159,7 +162,7 @@ async function trySendReminder(params: {
     firstName: String(profile.firstName ?? 'there'),
     teamName,
     itemName: params.itemName,
-    whenDisplay: formatDateForDisplay(params.date, params.startTime),
+    whenDisplay: formatDateForDisplay(startAtUtc),
     location: params.location,
   });
 
@@ -177,13 +180,13 @@ async function trySendReminder(params: {
 }
 
 async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<number> {
-  const today = toDateString(now);
-  const maxDate = toDateString(new Date(now.getTime() + MAX_LEAD_TIME_MS + CRON_WINDOW_MS));
+  const nowIso = now.toISOString();
+  const maxIso = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000).toISOString();
 
   const eventsSnap = await db
     .collection('events')
-    .where('date', '>=', today)
-    .where('date', '<=', maxDate)
+    .where('startAtUtc', '>=', nowIso)
+    .where('startAtUtc', '<=', maxIso)
     .get();
 
   let sent = 0;
@@ -210,8 +213,55 @@ async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<
         entityType: 'event',
         entityId: eventId,
         itemName: event.name,
-        date: event.date,
-        startTime: event.startTime,
+        schedule: event,
+        location: event.location ?? '',
+        now,
+      });
+      if (didSend) sent += 1;
+    }
+  }
+
+  return sent;
+}
+
+async function processLegacyEventsWithoutUtcIndex(db: admin.firestore.Firestore, now: Date): Promise<number> {
+  const today = now.toISOString().slice(0, 10);
+  const maxDate = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const eventsSnap = await db
+    .collection('events')
+    .where('date', '>=', today)
+    .where('date', '<=', maxDate)
+    .get();
+
+  let sent = 0;
+
+  for (const eventDoc of eventsSnap.docs) {
+    const event = eventDoc.data() as EventDoc;
+    if (event.startAtUtc) continue;
+
+    const eventId = eventDoc.id;
+    const yesSnap = await db
+      .collection('availabilities')
+      .where('eventId', '==', eventId)
+      .where('status', '==', 'YES')
+      .get();
+
+    for (const availDoc of yesSnap.docs) {
+      const avail = availDoc.data();
+      const userId = String(avail.userId);
+      const teamId = String(avail.teamId ?? event.teamId);
+
+      const didSend = await trySendReminder({
+        db,
+        userId,
+        teamId,
+        entityType: 'event',
+        entityId: eventId,
+        itemName: event.name,
+        schedule: event,
         location: event.location ?? '',
         now,
       });
@@ -223,13 +273,13 @@ async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<
 }
 
 async function processTasks(db: admin.firestore.Firestore, now: Date): Promise<number> {
-  const today = toDateString(now);
-  const maxDate = toDateString(new Date(now.getTime() + MAX_LEAD_TIME_MS + CRON_WINDOW_MS));
+  const nowIso = now.toISOString();
+  const maxIso = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000).toISOString();
 
   const tasksSnap = await db
     .collection('tasks')
-    .where('date', '>=', today)
-    .where('date', '<=', maxDate)
+    .where('startAtUtc', '>=', nowIso)
+    .where('startAtUtc', '<=', maxIso)
     .get();
 
   let sent = 0;
@@ -247,8 +297,45 @@ async function processTasks(db: admin.firestore.Firestore, now: Date): Promise<n
         entityType: 'task',
         entityId: taskDoc.id,
         itemName: task.name,
-        date: task.date,
-        startTime: task.startTime,
+        schedule: task,
+        location: task.location ?? '',
+        now,
+      });
+      if (didSend) sent += 1;
+    }
+  }
+
+  return sent;
+}
+
+async function processLegacyTasksWithoutUtc(db: admin.firestore.Firestore, now: Date): Promise<number> {
+  const today = now.toISOString().slice(0, 10);
+  const maxDate = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const tasksSnap = await db
+    .collection('tasks')
+    .where('date', '>=', today)
+    .where('date', '<=', maxDate)
+    .get();
+
+  let sent = 0;
+
+  for (const taskDoc of tasksSnap.docs) {
+    const task = taskDoc.data() as TaskDoc;
+    if (task.startAtUtc) continue;
+
+    const signedUp = task.signedUpUserIds ?? [];
+    for (const userId of signedUp) {
+      const didSend = await trySendReminder({
+        db,
+        userId,
+        teamId: task.teamId,
+        entityType: 'task',
+        entityId: taskDoc.id,
+        itemName: task.name,
+        schedule: task,
         location: task.location ?? '',
         now,
       });
@@ -262,7 +349,26 @@ async function processTasks(db: admin.firestore.Firestore, now: Date): Promise<n
 export async function runProcessReminders(): Promise<{ eventsSent: number; tasksSent: number }> {
   const db = admin.firestore();
   const now = new Date();
-  const eventsSent = await processEvents(db, now);
-  const tasksSent = await processTasks(db, now);
+
+  let eventsSent = 0;
+  let tasksSent = 0;
+
+  try {
+    eventsSent += await processEvents(db, now);
+  } catch (err) {
+    console.warn('startAtUtc event query failed, using legacy date scan', err);
+    eventsSent += await processLegacyEventsWithoutUtcIndex(db, now);
+  }
+
+  try {
+    tasksSent += await processTasks(db, now);
+  } catch (err) {
+    console.warn('startAtUtc task query failed, using legacy date scan', err);
+    tasksSent += await processLegacyTasksWithoutUtc(db, now);
+  }
+
+  eventsSent += await processLegacyEventsWithoutUtcIndex(db, now);
+  tasksSent += await processLegacyTasksWithoutUtc(db, now);
+
   return { eventsSent, tasksSent };
 }

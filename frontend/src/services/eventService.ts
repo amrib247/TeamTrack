@@ -12,39 +12,73 @@ import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/Eve
 import { db } from '../firebase';
 import { deleteQueryBatch, docToData, nowIso, omitUndefined, queryByField } from '../lib/firestoreUtils';
 import { filterAndSortByDate } from '../lib/dateUtils';
+import { normalizeScheduledFields, type ScheduledFields } from '../lib/timezoneUtils';
 
 type EventDoc = Omit<Event, 'id'>;
+
+function normalizeEvent(id: string, data: EventDoc): Event {
+  const schedule = normalizeScheduledFields(data as ScheduledFields);
+  return {
+    id,
+    ...data,
+    ...schedule,
+  };
+}
+
+function buildEventDoc(
+  data: CreateEventRequest | (UpdateEventRequest & ScheduledFields),
+  existing?: Partial<EventDoc>
+): EventDoc {
+  const merged: ScheduledFields = {
+    date: data.date ?? existing?.date ?? '',
+    startTime: data.startTime ?? existing?.startTime ?? '',
+    timeZone: data.timeZone ?? existing?.timeZone,
+    startAtUtc: existing?.startAtUtc,
+  };
+  const schedule = normalizeScheduledFields(merged);
+  return {
+    ...(existing as EventDoc | undefined),
+    ...(data as Partial<EventDoc>),
+    ...schedule,
+  } as EventDoc;
+}
 
 class EventService {
   async createEvent(eventData: CreateEventRequest): Promise<Event> {
     const eventRef = doc(collection(db, 'events'));
     const timestamp = nowIso();
+    const docFields = buildEventDoc(eventData);
     const event: Event = {
       id: eventRef.id,
-      ...eventData,
+      ...docFields,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
-    await setDoc(eventRef, {
-      teamId: event.teamId,
-      name: event.name,
-      tournamentId: event.tournamentId ?? null,
-      opposingTeamId: event.opposingTeamId ?? null,
-      date: event.date,
-      startTime: event.startTime,
-      lengthMinutes: event.lengthMinutes,
-      location: event.location,
-      description: event.description ?? null,
-      score: event.score ?? null,
-      createdAt: event.createdAt,
-      updatedAt: event.updatedAt,
-    });
+    await setDoc(
+      eventRef,
+      omitUndefined({
+        teamId: event.teamId,
+        name: event.name,
+        tournamentId: event.tournamentId ?? null,
+        opposingTeamId: event.opposingTeamId ?? null,
+        date: event.date,
+        startTime: event.startTime,
+        timeZone: event.timeZone,
+        startAtUtc: event.startAtUtc,
+        lengthMinutes: event.lengthMinutes,
+        location: event.location,
+        description: event.description ?? null,
+        score: event.score ?? null,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+      })
+    );
     return event;
   }
 
   async getEventsByTeamId(teamId: string): Promise<Event[]> {
     const events = await queryByField<EventDoc>('events', 'teamId', teamId);
-    const mapped = events.map(({ id, ...rest }) => ({ id, ...rest }));
+    const mapped = events.map(({ id, ...rest }) => normalizeEvent(id, rest));
     return filterAndSortByDate(mapped, async (id) => {
       await deleteQueryBatch('availabilities', [where('eventId', '==', id)]);
       await deleteDoc(doc(db, 'events', id));
@@ -58,7 +92,7 @@ class EventService {
       throw new Error('Event not found');
     }
     const { id, ...rest } = data;
-    return { id, ...rest };
+    return normalizeEvent(id, rest);
   }
 
   async updateEvent(eventId: string, eventData: UpdateEventRequest): Promise<Event> {
@@ -67,13 +101,21 @@ class EventService {
     if (!existing.exists()) {
       throw new Error('Event not found');
     }
-    const merged = {
-      ...existing.data(),
+    const existingData = existing.data() as EventDoc;
+    const docFields = buildEventDoc(
+      { ...eventData, date: eventData.date ?? existingData.date, startTime: eventData.startTime ?? existingData.startTime },
+      existingData
+    );
+    const merged: EventDoc = {
+      ...existingData,
       ...eventData,
+      ...docFields,
       updatedAt: nowIso(),
     };
-    await setDoc(eventRef, omitUndefined(merged as Record<string, unknown>) as Record<string, unknown>, { merge: true });
-    return { id: eventId, ...(merged as EventDoc) };
+    await setDoc(eventRef, omitUndefined(merged as Record<string, unknown>) as Record<string, unknown>, {
+      merge: true,
+    });
+    return normalizeEvent(eventId, merged);
   }
 
   async deleteEvent(eventId: string): Promise<void> {
@@ -91,17 +133,13 @@ class EventService {
       )
     );
     return snapshot.docs
-      .map((d) => ({ id: d.id, ...(d.data() as EventDoc) }))
-      .sort((a, b) => {
-        const keyA = `${a.date}T${a.startTime}`;
-        const keyB = `${b.date}T${b.startTime}`;
-        return keyB.localeCompare(keyA);
-      });
+      .map((d) => normalizeEvent(d.id, d.data() as EventDoc))
+      .sort((a, b) => new Date(b.startAtUtc).getTime() - new Date(a.startAtUtc).getTime());
   }
 
   async getEventsByTournamentId(tournamentId: string): Promise<Event[]> {
     const events = await queryByField<EventDoc>('events', 'tournamentId', tournamentId);
-    return events.map(({ id, ...rest }) => ({ id, ...rest }));
+    return events.map(({ id, ...rest }) => normalizeEvent(id, rest));
   }
 
   async deleteEventsByTournamentId(tournamentId: string): Promise<void> {

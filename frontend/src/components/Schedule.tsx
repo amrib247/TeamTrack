@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, CreateEventRequest } from '../types/Event';
-
+import {
+  calendarDateInZone,
+  formatScheduledDate,
+  formatScheduledTime,
+  getTimeZoneOptions,
+  getUserTimeZone,
+  utcIsoToLocalParts,
+} from '../lib/timezoneUtils';
 import { eventService } from '../services/eventService';
 import { tournamentService } from '../services/tournamentService';
 import AvailabilityModal from './AvailabilityModal';
@@ -15,28 +22,16 @@ const getFirstDayOfMonth = (year: number, month: number) => {
   return new Date(year, month, 1).getDay();
 };
 
-const formatDateForCalendar = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0];
+const getEventsForDate = (events: Event[], date: string, viewerTimeZone: string) => {
+  return events.filter(
+    (event) => calendarDateInZone(event.startAtUtc, viewerTimeZone) === date
+  );
 };
 
-const getEventsForDate = (events: Event[], date: string) => {
-  return events.filter(event => formatDateForCalendar(event.date) === date);
-};
-
-// Event sorting helper function
-// Sorts events by date and time in ascending order (oldest first)
 const sortEventsByDateTime = (events: Event[]): Event[] => {
-  return events.sort((a, b) => {
-    try {
-      const dateTimeA = new Date(a.date + 'T' + a.startTime);
-      const dateTimeB = new Date(b.date + 'T' + b.startTime);
-      return dateTimeA.getTime() - dateTimeB.getTime(); // Ascending order (oldest first)
-    } catch (error) {
-      // If parsing fails, keep original order
-      return 0;
-    }
-  });
+  return [...events].sort(
+    (a, b) => new Date(a.startAtUtc).getTime() - new Date(b.startAtUtc).getTime()
+  );
 };
 
 interface ScheduleProps {
@@ -64,12 +59,16 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   const [tournamentNames, setTournamentNames] = useState<Record<string, string>>({});
 
   // Form state for creating/editing events
+  const [viewerTimeZone] = useState(() => getUserTimeZone());
+  const timeZoneOptions = getTimeZoneOptions();
+
   const [formData, setFormData] = useState<CreateEventRequest>({
     teamId: teamId,
     name: '',
     tournamentId: '',
     date: '',
     startTime: '',
+    timeZone: getUserTimeZone(),
     lengthMinutes: 60,
     location: '',
     description: '',
@@ -215,6 +214,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
       tournamentId: '',
       date: '',
       startTime: '',
+      timeZone: getUserTimeZone(),
       lengthMinutes: 60,
       location: '',
       description: '',
@@ -224,12 +224,14 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
 
   const openEditModal = (event: Event) => {
     setSelectedEvent(event);
+    const parts = utcIsoToLocalParts(event.startAtUtc, event.timeZone);
     setFormData({
       teamId: event.teamId,
       name: event.name,
       tournamentId: event.tournamentId || '',
-      date: event.date.split('T')[0], // Convert ISO date to YYYY-MM-DD
-      startTime: event.startTime,
+      date: parts.date,
+      startTime: parts.startTime,
+      timeZone: event.timeZone,
       lengthMinutes: event.lengthMinutes,
       location: event.location,
       description: event.description || '',
@@ -241,29 +243,6 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   const openCreateModal = () => {
     resetForm();
     setShowCreateModal(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    try {
-      // Parse the time string (assuming format like "14:30" or "14:30:00")
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minutes} ${ampm}`;
-    } catch (error) {
-      // Fallback to original format if parsing fails
-      return timeString;
-    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -402,7 +381,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                           </div>
                           <div className="event-info">
                             <span className="event-label">Date</span>
-                            <span className="event-value">{formatDate(event.date)}</span>
+                            <span className="event-value">{formatScheduledDate(event.startAtUtc, viewerTimeZone)}</span>
                           </div>
                           {event.description && (
                             <div className="event-info">
@@ -415,7 +394,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                         <div className="event-column">
                           <div className="event-info">
                             <span className="event-label">Time</span>
-                            <span className="event-value">{formatTime(event.startTime)} ({formatDuration(event.lengthMinutes)})</span>
+                            <span className="event-value">{formatScheduledTime(event.startAtUtc, viewerTimeZone)} ({formatDuration(event.lengthMinutes)})</span>
                           </div>
                           <div className="event-info">
                             <span className="event-label">Location</span>
@@ -475,7 +454,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                     // Add cells for each day of the month
                     for (let day = 1; day <= daysInMonth; day++) {
                       const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const dayEvents = getEventsForDate(events, dateString);
+                      const dayEvents = getEventsForDate(events, dateString, viewerTimeZone);
                       const isToday = dateString === new Date().toISOString().split('T')[0];
                       
                       days.push(
@@ -492,7 +471,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                                   onClick={() => openEventDetails(event)}
                                 >
                                   <div className="calendar-event-name">{event.name}</div>
-                                  <div className="calendar-event-time">{formatTime(event.startTime)}</div>
+                                  <div className="calendar-event-time">{formatScheduledTime(event.startAtUtc, viewerTimeZone)}</div>
                                 </div>
                                 <button
                                   className="calendar-availability-btn"
@@ -570,6 +549,23 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="timeZone">Time zone *</label>
+                <select
+                  id="timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="form-hint">Defaults to your device time zone. Stored in UTC so everyone sees the correct local time.</p>
               </div>
               
               <div className="form-row">
@@ -695,6 +691,22 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                   />
                 </div>
               </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-timeZone">Time zone *</label>
+                <select
+                  id="edit-timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
               <div className="form-row">
                 <div className="form-group">
@@ -795,11 +807,11 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Date</span>
-                  <span className="detail-value">{formatDate(selectedEvent.date)}</span>
+                  <span className="detail-value">{formatScheduledDate(selectedEvent.startAtUtc, viewerTimeZone)}</span>
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Time</span>
-                  <span className="detail-value">{formatTime(selectedEvent.startTime)} ({formatDuration(selectedEvent.lengthMinutes)})</span>
+                  <span className="detail-value">{formatScheduledTime(selectedEvent.startAtUtc, viewerTimeZone)} ({formatDuration(selectedEvent.lengthMinutes)})</span>
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Location</span>

@@ -103,6 +103,16 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
+          "fieldPath": "startAtUtc",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "tasks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
           "fieldPath": "teamId",
           "order": "ASCENDING"
         },
@@ -122,6 +132,16 @@
         },
         {
           "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "startAtUtc",
           "order": "ASCENDING"
         }
       ]

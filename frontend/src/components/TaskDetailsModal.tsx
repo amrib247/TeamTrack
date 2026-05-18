@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Task, TaskUser } from '../types/Task';
+import { formatScheduledDate, formatScheduledTime, getUserTimeZone } from '../lib/timezoneUtils';
 import { taskService } from '../services/taskService';
 import './TaskDetailsModal.css';
 
@@ -31,30 +32,7 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose }) =>
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric',
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    try {
-      // Parse the time string (assuming format like "14:30" or "14:30:00")
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minutes} ${ampm}`;
-    } catch (error) {
-      // Fallback to original format if parsing fails
-      return timeString;
-    }
-  };
-
+  const viewerTimeZone = getUserTimeZone();
   const currentSignups = task.signedUpUserIds.length;
   const hasMinimumSignups = currentSignups >= task.minSignups;
 
@@ -84,12 +62,12 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose }) =>
             <div className="task-info-grid">
               <div className="task-info-item">
                 <span className="info-label">Date</span>
-                <span className="info-value">{formatDate(task.date)}</span>
+                <span className="info-value">{formatScheduledDate(task.startAtUtc, viewerTimeZone)}</span>
               </div>
               
               <div className="task-info-item">
                 <span className="info-label">Time</span>
-                <span className="info-value">{formatTime(task.startTime)}</span>
+                <span className="info-value">{formatScheduledTime(task.startAtUtc, viewerTimeZone)}</span>
               </div>
               
               <div className="task-info-item">

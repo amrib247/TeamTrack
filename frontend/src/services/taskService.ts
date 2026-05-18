@@ -12,20 +12,28 @@ import type { Task, CreateTaskRequest, TaskUser } from '../types/Task';
 import { db } from '../firebase';
 import { docToData, nowIso, omitUndefined, queryByField } from '../lib/firestoreUtils';
 import { filterAndSortByDate } from '../lib/dateUtils';
+import { normalizeScheduledFields, type ScheduledFields } from '../lib/timezoneUtils';
 
 type TaskDoc = Omit<Task, 'id' | 'getCurrentSignups' | 'isFull' | 'hasMinimumSignups' | 'isUserSignedUp' | 'canSignUp'>;
 
+function normalizeTaskDoc(data: TaskDoc & { id: string }): TaskDoc {
+  const schedule = normalizeScheduledFields(data as ScheduledFields);
+  return { ...data, ...schedule };
+}
+
 function enrichTask(data: TaskDoc & { id: string }): Task {
-  const signedUpUserIds = data.signedUpUserIds ?? [];
+  const normalized = normalizeTaskDoc(data);
+  const signedUpUserIds = normalized.signedUpUserIds ?? [];
   const currentSignups = signedUpUserIds.length;
   return {
-    ...data,
+    id: data.id,
+    ...normalized,
     signedUpUserIds,
     getCurrentSignups: currentSignups,
-    isFull: currentSignups >= data.maxSignups,
-    hasMinimumSignups: currentSignups >= data.minSignups,
+    isFull: currentSignups >= normalized.maxSignups,
+    hasMinimumSignups: currentSignups >= normalized.minSignups,
     isUserSignedUp: (userId: string) => signedUpUserIds.includes(userId),
-    canSignUp: currentSignups < data.maxSignups,
+    canSignUp: currentSignups < normalized.maxSignups,
   };
 }
 
@@ -33,8 +41,10 @@ class TaskService {
   async createTask(taskData: CreateTaskRequest): Promise<Task> {
     const taskRef = doc(collection(db, 'tasks'));
     const timestamp = nowIso();
+    const schedule = normalizeScheduledFields(taskData);
     const taskDoc: TaskDoc = {
       ...taskData,
+      ...schedule,
       signedUpUserIds: [],
       createdAt: timestamp,
       updatedAt: timestamp,
@@ -46,10 +56,7 @@ class TaskService {
   async getTasksByTeamId(teamId: string): Promise<Task[]> {
     const tasks = await queryByField<TaskDoc>('tasks', 'teamId', teamId);
     const mapped = tasks.map((t) => enrichTask(t));
-    const filtered = await filterAndSortByDate(
-      mapped.map(({ id, date, startTime }) => ({ id, date, startTime })),
-      async (id) => deleteDoc(doc(db, 'tasks', id))
-    );
+    const filtered = await filterAndSortByDate(mapped, async (id) => deleteDoc(doc(db, 'tasks', id)));
     const keptIds = new Set(filtered.map((t) => t.id));
     return mapped.filter((t) => keptIds.has(t.id));
   }
@@ -70,26 +77,39 @@ class TaskService {
       throw new Error('Maximum signups cannot be less than current signups');
     }
 
+    const schedule = normalizeScheduledFields({
+      date: taskData.date ?? existing.date,
+      startTime: taskData.startTime ?? existing.startTime,
+      timeZone: taskData.timeZone ?? existing.timeZone,
+      startAtUtc: existing.startAtUtc,
+    });
+
     const taskRef = doc(db, 'tasks', taskId);
     const merged = {
       ...existing,
       ...taskData,
+      ...schedule,
       updatedAt: nowIso(),
     };
-    await setDoc(taskRef, omitUndefined({
-      teamId: merged.teamId,
-      name: merged.name,
-      location: merged.location,
-      description: merged.description,
-      date: merged.date,
-      startTime: merged.startTime,
-      maxSignups: merged.maxSignups,
-      minSignups: merged.minSignups,
-      signedUpUserIds: merged.signedUpUserIds,
-      createdBy: merged.createdBy,
-      createdAt: merged.createdAt,
-      updatedAt: merged.updatedAt,
-    }));
+    await setDoc(
+      taskRef,
+      omitUndefined({
+        teamId: merged.teamId,
+        name: merged.name,
+        location: merged.location,
+        description: merged.description,
+        date: merged.date,
+        startTime: merged.startTime,
+        timeZone: merged.timeZone,
+        startAtUtc: merged.startAtUtc,
+        maxSignups: merged.maxSignups,
+        minSignups: merged.minSignups,
+        signedUpUserIds: merged.signedUpUserIds,
+        createdBy: merged.createdBy,
+        createdAt: merged.createdAt,
+        updatedAt: merged.updatedAt,
+      })
+    );
     return enrichTask({ id: taskId, ...(merged as TaskDoc) });
   }
 

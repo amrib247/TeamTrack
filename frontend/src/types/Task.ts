@@ -6,6 +6,8 @@ export interface Task {
   description: string;
   date: string;
   startTime: string;
+  timeZone: string;
+  startAtUtc: string;
   maxSignups: number;
   minSignups: number;
   signedUpUserIds: string[];
@@ -28,6 +30,7 @@ export interface CreateTaskRequest {
   description: string;
   date: string;
   startTime: string;
+  timeZone?: string;
   maxSignups: number;
   minSignups: number;
   createdBy: string;

@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import type { Task, CreateTaskRequest } from '../types/Task';
+import {
+  formatScheduledDate,
+  formatScheduledTime,
+  getTimeZoneOptions,
+  getUserTimeZone,
+  utcIsoToLocalParts,
+} from '../lib/timezoneUtils';
 import { taskService } from '../services/taskService';
 import TaskDetailsModal from './TaskDetailsModal';
 import './TaskList.css';
 
 // Task sorting helper function
 // Sorts tasks by date and time in ascending order (oldest first)
-const sortTasksByDateTime = (tasks: Task[]): Task[] => {
-  return tasks.sort((a, b) => {
-    try {
-      const dateTimeA = new Date(a.date + 'T' + a.startTime);
-      const dateTimeB = new Date(b.date + 'T' + b.startTime);
-      return dateTimeA.getTime() - dateTimeB.getTime(); // Ascending order (oldest first)
-    } catch (error) {
-      // If parsing fails, keep original order
-      return 0;
-    }
-  });
-};
+const sortTasksByDateTime = (tasks: Task[]): Task[] =>
+  [...tasks].sort((a, b) => new Date(a.startAtUtc).getTime() - new Date(b.startAtUtc).getTime());
 
 interface TaskListProps {
   teamId: string;
@@ -36,6 +33,9 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
   const [error, setError] = useState('');
   
   // Form state for creating/editing tasks
+  const [viewerTimeZone] = useState(() => getUserTimeZone());
+  const timeZoneOptions = getTimeZoneOptions();
+
   const [formData, setFormData] = useState<CreateTaskRequest>({
     teamId: teamId,
     name: '',
@@ -43,6 +43,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
     description: '',
     date: '',
     startTime: '',
+    timeZone: getUserTimeZone(),
     maxSignups: 10,
     minSignups: 1,
     createdBy: currentUserId
@@ -198,6 +199,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
       description: '',
       date: '',
       startTime: '',
+      timeZone: getUserTimeZone(),
       maxSignups: 10,
       minSignups: 1,
       createdBy: currentUserId
@@ -206,13 +208,15 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
 
   const openEditModal = (task: Task) => {
     setSelectedTask(task);
+    const parts = utcIsoToLocalParts(task.startAtUtc, task.timeZone);
     setFormData({
       teamId: task.teamId,
       name: task.name,
       location: task.location,
       description: task.description,
-      date: task.date.split('T')[0], // Convert ISO date to YYYY-MM-DD
-      startTime: task.startTime,
+      date: parts.date,
+      startTime: parts.startTime,
+      timeZone: task.timeZone,
       maxSignups: task.maxSignups,
       minSignups: task.minSignups,
       createdBy: task.createdBy
@@ -233,29 +237,6 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
   const closeDetailsModal = () => {
     setSelectedTask(null);
     setShowDetailsModal(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    try {
-      // Parse the time string (assuming format like "14:30" or "14:30:00")
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minutes} ${ampm}`;
-    } catch (error) {
-      // Fallback to original format if parsing fails
-      return timeString;
-    }
   };
 
   const canManageTasks = () => {
@@ -368,7 +349,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
                       <div className="task-column">
                         <div className="task-info">
                           <span className="task-label">Date</span>
-                          <span className="task-value">{formatDate(task.date)}</span>
+                          <span className="task-value">{formatScheduledDate(task.startAtUtc, viewerTimeZone)}</span>
                         </div>
                         {task.description && (
                           <div className="task-info">
@@ -381,7 +362,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
                       <div className="task-column">
                         <div className="task-info">
                           <span className="task-label">Time</span>
-                          <span className="task-value">{formatTime(task.startTime)}</span>
+                          <span className="task-value">{formatScheduledTime(task.startAtUtc, viewerTimeZone)}</span>
                         </div>
                         <div className="task-info">
                           <span className="task-label">Location</span>
@@ -473,6 +454,22 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="timeZone">Time zone *</label>
+                <select
+                  id="timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-group">
@@ -590,6 +587,22 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-timeZone">Time zone *</label>
+                <select
+                  id="edit-timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-group">

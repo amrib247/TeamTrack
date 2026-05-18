@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import type { Event, CreateEventRequest } from '../types/Event';
+import {
+  calendarDateInZone,
+  formatScheduledDate,
+  formatScheduledTime,
+  getTimeZoneOptions,
+  getUserTimeZone,
+  utcIsoToLocalParts,
+} from '../lib/timezoneUtils';
 import { eventService } from '../services/eventService';
 import { tournamentService } from '../services/tournamentService';
 import { teamService } from '../services/teamService';
@@ -19,27 +27,11 @@ const getWeekDates = (date: Date) => {
   return weekDates;
 };
 
-const formatDateForCalendar = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0];
-};
+const getEventsForDate = (events: Event[], date: string, viewerTimeZone: string) =>
+  events.filter((event) => calendarDateInZone(event.startAtUtc, viewerTimeZone) === date);
 
-const getEventsForDate = (events: Event[], date: string) => {
-  return events.filter(event => formatDateForCalendar(event.date) === date);
-};
-
-// Event sorting helper function
-const sortEventsByDateTime = (events: Event[]): Event[] => {
-  return events.sort((a, b) => {
-    try {
-      const dateTimeA = new Date(a.date + 'T' + a.startTime);
-      const dateTimeB = new Date(b.date + 'T' + b.startTime);
-      return dateTimeA.getTime() - dateTimeB.getTime();
-    } catch (error) {
-      return 0;
-    }
-  });
-};
+const sortEventsByDateTime = (events: Event[]): Event[] =>
+  [...events].sort((a, b) => new Date(a.startAtUtc).getTime() - new Date(b.startAtUtc).getTime());
 
 // Group events that represent the same game
 const groupGameEvents = (events: Event[]): Event[][] => {
@@ -56,8 +48,7 @@ const groupGameEvents = (events: Event[]): Event[][] => {
       
       // Check if events represent the same game (same date, time, location, tournament)
       return (
-        otherEvent.date === event.date &&
-        otherEvent.startTime === event.startTime &&
+        otherEvent.startAtUtc === event.startAtUtc &&
         otherEvent.location === event.location &&
         otherEvent.tournamentId === event.tournamentId &&
         otherEvent.lengthMinutes === event.lengthMinutes
@@ -122,6 +113,9 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   const [tournamentTeams, setTournamentTeams] = useState<Team[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
 
+  const [viewerTimeZone] = useState(() => getUserTimeZone());
+  const timeZoneOptions = getTimeZoneOptions();
+
   // Form state for creating/editing events
   const [formData, setFormData] = useState<CreateEventRequest>({
     teamId: '',
@@ -129,6 +123,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     tournamentId: tournamentId,
     date: '',
     startTime: '',
+    timeZone: getUserTimeZone(),
     lengthMinutes: 60,
     location: '',
     description: '',
@@ -296,8 +291,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     try {
       // Find all events that represent the same game
       const sameGameEvents = events.filter(event => 
-        event.date === selectedEvent.date &&
-        event.startTime === selectedEvent.startTime &&
+        event.startAtUtc === selectedEvent.startAtUtc &&
         event.location === selectedEvent.location &&
         event.tournamentId === selectedEvent.tournamentId &&
         event.lengthMinutes === selectedEvent.lengthMinutes
@@ -353,6 +347,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
       tournamentId: tournamentId,
       date: '',
       startTime: '',
+      timeZone: getUserTimeZone(),
       lengthMinutes: 60,
       location: '',
       description: '',
@@ -365,12 +360,14 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
 
      const openEditModal = (event: Event) => {
      setSelectedEvent(event);
+     const parts = utcIsoToLocalParts(event.startAtUtc, event.timeZone);
      setFormData({
        teamId: event.teamId,
-       name: '', // Name is not editable in tournaments
+       name: '',
        tournamentId: event.tournamentId || '',
-       date: event.date.split('T')[0],
-       startTime: event.startTime,
+       date: parts.date,
+       startTime: parts.startTime,
+       timeZone: event.timeZone,
        lengthMinutes: event.lengthMinutes,
        location: event.location,
        description: event.description || '',
@@ -382,27 +379,6 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   const openCreateModal = () => {
     resetForm();
     setShowCreateModal(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    try {
-      const [hours, minutes] = timeString.split(':');
-      const hour = parseInt(hours);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minutes} ${ampm}`;
-    } catch (error) {
-      return timeString;
-    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -548,7 +524,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                </div>
                                <div className="event-info">
                                  <span className="event-label">Date</span>
-                                 <span className="event-value">{formatDate(firstEvent.date)}</span>
+                                 <span className="event-value">{formatScheduledDate(firstEvent.startAtUtc, viewerTimeZone)}</span>
                                </div>
                                {firstEvent.description && (
                                  <div className="event-info">
@@ -561,7 +537,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                              <div className="event-column">
                                <div className="event-info">
                                  <span className="event-label">Time</span>
-                                 <span className="event-value">{formatTime(firstEvent.startTime)} ({formatDuration(firstEvent.lengthMinutes)})</span>
+                                 <span className="event-value">{formatScheduledTime(firstEvent.startAtUtc, viewerTimeZone)} ({formatDuration(firstEvent.lengthMinutes)})</span>
                                </div>
                                <div className="event-info">
                                  <span className="event-label">Location</span>
@@ -620,7 +596,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                  <div className="calendar-days weekly">
                    {weekDates.map(date => {
                      const dateString = date.toISOString().split('T')[0];
-                     const dayEvents = getEventsForDate(events, dateString);
+                     const dayEvents = getEventsForDate(events, dateString, viewerTimeZone);
                      const isToday = dateString === new Date().toISOString().split('T')[0];
                      
                      return (
@@ -642,7 +618,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                       onClick={() => openEventDetails(firstEvent)}
                                     >
                                       <div className="calendar-event-name weekly">{displayName}</div>
-                                      <div className="calendar-event-time weekly">{formatTime(firstEvent.startTime)}</div>
+                                      <div className="calendar-event-time weekly">{formatScheduledTime(firstEvent.startAtUtc, viewerTimeZone)}</div>
                                     </div>
                                   </div>
                                 );
@@ -745,6 +721,22 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     required
                   />
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="timeZone">Time zone *</label>
+                <select
+                  id="timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               
               <div className="form-row">
@@ -865,6 +857,22 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                   />
                 </div>
               </div>
+
+              <div className="form-group">
+                <label htmlFor="edit-timeZone">Time zone *</label>
+                <select
+                  id="edit-timeZone"
+                  value={formData.timeZone ?? viewerTimeZone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
+                  required
+                >
+                  {timeZoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               
               <div className="form-row">
                 <div className="form-group">
@@ -957,8 +965,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                  {(() => {
                    // Check if this is part of a game with multiple teams
                    const sameGameEvents = events.filter(event => 
-                     event.date === selectedEvent.date &&
-                     event.startTime === selectedEvent.startTime &&
+                     event.startAtUtc === selectedEvent.startAtUtc &&
                      event.location === selectedEvent.location &&
                      event.tournamentId === selectedEvent.tournamentId &&
                      event.lengthMinutes === selectedEvent.lengthMinutes
@@ -991,11 +998,11 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                  })()}
                 <div className="event-detail-item">
                   <span className="detail-label">Date</span>
-                  <span className="detail-value">{formatDate(selectedEvent.date)}</span>
+                  <span className="detail-value">{formatScheduledDate(selectedEvent.startAtUtc, viewerTimeZone)}</span>
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Time</span>
-                  <span className="detail-value">{formatTime(selectedEvent.startTime)} ({formatDuration(selectedEvent.lengthMinutes)})</span>
+                  <span className="detail-value">{formatScheduledTime(selectedEvent.startAtUtc, viewerTimeZone)} ({formatDuration(selectedEvent.lengthMinutes)})</span>
                 </div>
                 <div className="event-detail-item">
                   <span className="detail-label">Location</span>

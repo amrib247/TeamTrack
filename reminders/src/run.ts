@@ -24,7 +24,20 @@ function initFirebase(): void {
 async function main(): Promise<void> {
   initFirebase();
   const result = await runProcessReminders();
-  console.log(JSON.stringify({ ok: true, ...result }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      ...result,
+      ranAt: new Date().toISOString(),
+    })
+  );
+  if (result.eventsSent === 0 && result.tasksSent === 0) {
+    console.log(
+      'No reminders sent. Common causes: start time still more than lead time away; ' +
+        'availability not YES / not signed up for task; notifications disabled; wrong timezone; ' +
+        'or reminder already recorded in reminderDeliveries.'
+    );
+  }
 }
 
 main().catch((err) => {
