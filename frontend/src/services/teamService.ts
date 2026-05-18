@@ -11,7 +11,15 @@ import {
   where,
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import type { ReminderLeadTime } from '../types/Auth';
 import { deleteQueryBatch, docData, docToData, nowIso, omitUndefined, queryByField, toNumber } from '../lib/firestoreUtils';
+
+export const DEFAULT_REMINDER_LEAD_TIME: ReminderLeadTime = '1d';
+
+export interface NotificationPreferences {
+  emailNotificationsEnabled: boolean;
+  reminderLeadTime: ReminderLeadTime;
+}
 
 export interface CreateTeamRequest {
   teamName: string;
@@ -82,7 +90,23 @@ type UserTeamDoc = {
   joinDate?: string;
   isActive: boolean;
   inviteAccepted: boolean;
+  emailNotificationsEnabled?: boolean;
+  reminderLeadTime?: ReminderLeadTime;
 };
+
+function notificationDefaults(): Pick<UserTeamDoc, 'emailNotificationsEnabled' | 'reminderLeadTime'> {
+  return {
+    emailNotificationsEnabled: true,
+    reminderLeadTime: DEFAULT_REMINDER_LEAD_TIME,
+  };
+}
+
+export function resolveNotificationPreferences(data: UserTeamDoc): NotificationPreferences {
+  return {
+    emailNotificationsEnabled: data.emailNotificationsEnabled !== false,
+    reminderLeadTime: data.reminderLeadTime ?? DEFAULT_REMINDER_LEAD_TIME,
+  };
+}
 
 type TeamDoc = {
   teamName: string;
@@ -156,6 +180,7 @@ class TeamService {
       joinedAt: timestamp,
       isActive: true,
       inviteAccepted: true,
+      ...notificationDefaults(),
     });
 
     return mapTeam(teamId, teamData);
@@ -298,9 +323,19 @@ class TeamService {
         joinedAt: nowIso(),
         isActive: true,
         inviteAccepted: false,
+        ...notificationDefaults(),
       });
 
-      return { id: userTeamRef.id, userId, teamId, role, joinedAt: nowIso(), isActive: true, inviteAccepted: false };
+      return {
+        id: userTeamRef.id,
+        userId,
+        teamId,
+        role,
+        joinedAt: nowIso(),
+        isActive: true,
+        inviteAccepted: false,
+        ...notificationDefaults(),
+      };
     })();
   }
 
@@ -332,6 +367,29 @@ class TeamService {
       }
     }
     await deleteDoc(doc(db, 'userTeams', userTeamId));
+  }
+
+  async updateNotificationPreferences(
+    userTeamId: string,
+    userId: string,
+    prefs: NotificationPreferences
+  ): Promise<NotificationPreferences> {
+    const userTeamRef = doc(db, 'userTeams', userTeamId);
+    const snap = await getDoc(userTeamRef);
+    const data = docToData<UserTeamDoc>(snap);
+    if (!data) {
+      throw new Error('UserTeam not found');
+    }
+    if (data.userId !== userId) {
+      throw new Error('You can only update your own notification preferences');
+    }
+
+    await updateDoc(userTeamRef, {
+      emailNotificationsEnabled: prefs.emailNotificationsEnabled,
+      reminderLeadTime: prefs.reminderLeadTime,
+    });
+
+    return prefs;
   }
 
   async leaveTeam(userTeamId: string, userId: string): Promise<void> {

@@ -1,0 +1,22 @@
+{
+  "name": "teamtrack-reminders",
+  "private": true,
+  "type": "commonjs",
+  "main": "lib/run.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node lib/run.js",
+    "reminders": "npm run build && npm run start"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.17",
+    "typescript": "^5.7.0"
+  }
+}

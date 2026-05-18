@@ -21,6 +21,16 @@ export interface UpdateUserRequest {
   profilePhotoUrl?: string;
 }
 
+export type ReminderLeadTime = '1h' | '6h' | '1d' | '2d' | '3d';
+
+export const REMINDER_LEAD_TIME_OPTIONS: { value: ReminderLeadTime; label: string }[] = [
+  { value: '1h', label: '1 hour before' },
+  { value: '6h', label: '6 hours before' },
+  { value: '1d', label: '1 day before' },
+  { value: '2d', label: '2 days before' },
+  { value: '3d', label: '3 days before' },
+];
+
 export interface UserTeam {
   id: string;
   userId: string;
@@ -29,6 +39,8 @@ export interface UserTeam {
   joinedAt: string;
   isActive: boolean;
   inviteAccepted: boolean;
+  emailNotificationsEnabled: boolean;
+  reminderLeadTime: ReminderLeadTime;
 }
 
 export interface AuthResponse {

@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { LoginRequest, RegisterRequest, AuthResponse, UpdateUserRequest } from '../types/Auth';
+import { resolveNotificationPreferences } from './teamService';
 import { EmailNotVerifiedError, type RegisterResult } from '../types/authErrors';
 
 class FirebaseAuthService {
@@ -202,6 +203,15 @@ class FirebaseAuthService {
 
     return teamsSnapshot.docs.map((teamDoc) => {
       const data = teamDoc.data();
+      const notifications = resolveNotificationPreferences({
+        userId: data.userId,
+        teamId: data.teamId,
+        role: data.role,
+        isActive: data.isActive !== false,
+        inviteAccepted: !!data.inviteAccepted,
+        emailNotificationsEnabled: data.emailNotificationsEnabled,
+        reminderLeadTime: data.reminderLeadTime,
+      });
       return {
         id: teamDoc.id,
         userId: data.userId,
@@ -212,6 +222,7 @@ class FirebaseAuthService {
         joinedAt: data.joinedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         isActive: data.isActive !== false,
         inviteAccepted: !!data.inviteAccepted,
+        ...notifications,
       };
     });
   }

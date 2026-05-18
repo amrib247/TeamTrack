@@ -92,6 +92,35 @@ Rules live in `firestore.rules` and `storage.rules`. They require a signed-in us
 firebase deploy --only firestore:rules,storage
 ```
 
+## Email reminders (games & tasks)
+
+Team members can enable per-team email reminders on **Team → Settings** (games marked **Going**, tasks they signed up for). Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not need to be online. This works on the Firebase **Spark** plan (no Blaze / credit card required).
+
+### Requirements
+
+1. **GitHub repository** with Actions enabled (free for public repos).
+2. **Firebase service account** JSON for Admin SDK access to Firestore.
+3. **SMTP** — Gmail with an [App Password](https://support.google.com/accounts/answer/185833) or any SMTP provider.
+
+See [Set up email reminders](#set-up-email-reminders) below for step-by-step configuration.
+
+### Run locally (optional test)
+
+```bash
+cd reminders
+npm install
+npm run build
+
+# Set env vars, then:
+# FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+# SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USER=... SMTP_PASS=... MAIL_FROM=...
+npm start
+```
+
+### Manual run on GitHub
+
+Repo → **Actions** → **Email reminders** → **Run workflow**.
+
 ## Local development
 
 ```bash
@@ -128,11 +157,59 @@ TeamTrack/
 │   │   ├── components/    # UI components
 │   │   └── lib/           # Shared Firestore utilities
 │   └── package.json
-├── firebase.json          # Firebase CLI config (indexes deploy)
+├── reminders/             # Email reminder job (run via GitHub Actions)
+├── .github/workflows/     # deploy.yml, reminders.yml
+├── firebase.json          # Firebase CLI config
+├── firestore.rules        # Firestore security rules
 ├── firestore.indexes.json # Firestore composite indexes
 └── README.md
 ```
 
+## Set up email reminders
+
+### 1. Firebase service account
+
+1. [Firebase Console](https://console.firebase.google.com/) → your project → **Project settings** → **Service accounts**.
+2. Click **Generate new private key** and save the JSON file.
+3. In GitHub: repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+4. Name: `FIREBASE_SERVICE_ACCOUNT_JSON`  
+   Value: paste the **entire** JSON file contents (one line is fine).
+
+### 2. SMTP secrets (Gmail example)
+
+Create these repository secrets:
+
+| Secret | Example value |
+|--------|----------------|
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | your Gmail address |
+| `SMTP_PASS` | [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 characters) |
+| `MAIL_FROM` | same as `SMTP_USER` |
+| `APP_URL` (optional) | `https://amrib247.github.io/TeamTrack/` |
+
+### 3. Enable the workflow
+
+1. Push `.github/workflows/reminders.yml` to your default branch (`main`).
+2. **Actions** tab → enable workflows if prompted.
+3. The job runs every **15 minutes** (UTC). Use **Run workflow** to test immediately.
+
+### 4. Firestore rules and indexes
+
+Deploy rules (includes `reminderDeliveries` and notification prefs on `userTeams`):
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+### Troubleshooting
+
+- **Workflow not running on schedule:** Scheduled workflows need recent activity on the repo; use **Run workflow** to verify secrets first.
+- **SMTP errors:** Confirm App Password (not your normal Gmail password) and that 2-Step Verification is on.
+- **Permission denied on Firestore:** Service account must be from the same Firebase project as `VITE_FIREBASE_PROJECT_ID`.
+
 ## Security note
 
 With the Java backend removed, **Firestore and Storage security rules** are your authorization layer. Review and tighten rules before production use.
+
+**Service account:** The GitHub secret grants full Admin access to your Firebase project. Never commit the JSON file or log it in Actions output.

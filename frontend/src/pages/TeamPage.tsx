@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { UserTeam } from '../types/Auth';
+import type { ReminderLeadTime, AuthResponse } from '../types/Auth';
+import { REMINDER_LEAD_TIME_OPTIONS } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
 import Schedule from '../components/Schedule';
@@ -11,22 +12,10 @@ import './TeamPage.css';
 interface TeamPageProps {
   currentUser: AuthResponse;
   onLogout: () => void;
+  onRefreshUserData?: () => Promise<void>;
 }
 
-interface AuthResponse {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  dateOfBirth?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  isActive: boolean;
-  teams: UserTeam[];
-}
-
-function TeamPage({ currentUser, onLogout }: TeamPageProps) {
+function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   const { teamId: userTeamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('roster');
@@ -100,6 +89,13 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
 
   // State for leaving tournaments
   const [leavingTournament, setLeavingTournament] = useState<string | null>(null);
+
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    emailNotificationsEnabled: true,
+    reminderLeadTime: '1d' as ReminderLeadTime,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   // Debug logging
   console.log('🔍 TeamPage Debug:', {
@@ -276,6 +272,31 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
     console.log('🔄 useEffect triggered for fetchEnrolledTournaments:', { activeTab, userTeamId: userTeam?.teamId });
     fetchEnrolledTournaments();
   }, [activeTab, userTeam]);
+
+  useEffect(() => {
+    if (!userTeam) return;
+    setNotificationPrefs({
+      emailNotificationsEnabled: userTeam.emailNotificationsEnabled !== false,
+      reminderLeadTime: userTeam.reminderLeadTime ?? '1d',
+    });
+  }, [userTeam?.id, userTeam?.emailNotificationsEnabled, userTeam?.reminderLeadTime]);
+
+  const handleSaveNotificationPrefs = async () => {
+    if (!userTeamId || !userTeam) return;
+    setSavingNotifications(true);
+    setNotificationMessage('');
+    try {
+      await teamService.updateNotificationPreferences(userTeamId, currentUser.id, notificationPrefs);
+      if (onRefreshUserData) {
+        await onRefreshUserData();
+      }
+      setNotificationMessage('Reminder preferences saved.');
+    } catch (err) {
+      setNotificationMessage(err instanceof Error ? err.message : 'Failed to save preferences');
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const handleTabChange = (tab: string) => {
     console.log('🔄 Tab changing from', activeTab, 'to', tab);
@@ -1076,6 +1097,61 @@ function TeamPage({ currentUser, onLogout }: TeamPageProps) {
               )}
               <p className="team-role">Your Role: {userTeam.role}</p>
               <p className="team-joined">Joined: {new Date(userTeam.joinedAt).toLocaleDateString()}</p>
+            </div>
+
+            <div className="settings-section notification-settings">
+              <h4>Email reminders</h4>
+              <p className="notification-settings-hint">
+                Get an email before games you marked as going and tasks you signed up for on this team.
+              </p>
+              <div className="form-group notification-toggle">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={notificationPrefs.emailNotificationsEnabled}
+                    onChange={(e) =>
+                      setNotificationPrefs((prev) => ({
+                        ...prev,
+                        emailNotificationsEnabled: e.target.checked,
+                      }))
+                    }
+                  />
+                  Email reminders for this team
+                </label>
+              </div>
+              <div className="form-group">
+                <label htmlFor="reminderLeadTime">Remind me before</label>
+                <select
+                  id="reminderLeadTime"
+                  value={notificationPrefs.reminderLeadTime}
+                  disabled={!notificationPrefs.emailNotificationsEnabled}
+                  onChange={(e) =>
+                    setNotificationPrefs((prev) => ({
+                      ...prev,
+                      reminderLeadTime: e.target.value as ReminderLeadTime,
+                    }))
+                  }
+                >
+                  {REMINDER_LEAD_TIME_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveNotificationPrefs}
+                disabled={savingNotifications}
+              >
+                {savingNotifications ? 'Saving...' : 'Save reminder preferences'}
+              </button>
+              {notificationMessage && (
+                <p className={`notification-message ${notificationMessage.includes('saved') ? 'success' : 'error'}`}>
+                  {notificationMessage}
+                </p>
+              )}
             </div>
 
             {/* Coach-only Settings */}

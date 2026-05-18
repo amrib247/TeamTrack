@@ -129,6 +129,7 @@ function App() {
                 <TeamPage 
                   currentUser={currentUser} 
                   onLogout={handleLogout}
+                  onRefreshUserData={refreshUserData}
                 />
               ) : (
                 <Navigate to="/auth" replace />

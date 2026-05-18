@@ -270,6 +270,34 @@
   font-weight: 600;
 }
 
+.notification-settings-hint {
+  color: var(--color-text-muted, #666);
+  margin: 0 0 var(--space-lg);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.notification-toggle .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.notification-message {
+  margin-top: var(--space-md);
+  font-size: 0.9rem;
+}
+
+.notification-message.success {
+  color: var(--color-success, #2e7d32);
+}
+
+.notification-message.error {
+  color: var(--color-danger, #c62828);
+}
+
 .edit-team-form {
   display: flex;
   flex-direction: column;

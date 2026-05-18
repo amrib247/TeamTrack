@@ -19,6 +19,11 @@ service cloud.firestore {
       return request.resource.data.keys().hasAll(keys);
     }
 
+    function onlyNotificationPrefKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['emailNotificationsEnabled', 'reminderLeadTime']);
+    }
+
     // Profiles: readable when signed in; writable by owner (allows profile creation at register)
     match /userProfiles/{userId} {
       allow read: if isSignedIn();
@@ -80,7 +85,16 @@ service cloud.firestore {
       allow read: if isVerified();
       allow create: if isVerified()
         && hasRequiredKeys(['userId', 'teamId', 'role']);
-      allow update, delete: if isVerified();
+      allow update: if isVerified()
+        && (
+          (resource.data.userId == request.auth.uid && onlyNotificationPrefKeys())
+          || !onlyNotificationPrefKeys()
+        );
+      allow delete: if isVerified();
+    }
+
+    match /reminderDeliveries/{deliveryId} {
+      allow read, write: if false;
     }
 
     match /events/{eventId} {
