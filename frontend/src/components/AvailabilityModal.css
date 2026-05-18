@@ -7,6 +7,30 @@
   padding: 20px 0;
 }
 
+.your-availability-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 15px;
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+}
+
+.your-availability-label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.current-user-availability {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
 .availability-summary {
   margin-bottom: 20px;
   padding: 15px;

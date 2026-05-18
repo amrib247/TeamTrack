@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   if (result.eventsSent === 0 && result.tasksSent === 0) {
     console.log(
       'No reminders sent. Common causes: start time still more than lead time away; ' +
-        'availability not YES / not signed up for task; notifications disabled; wrong timezone; ' +
+        'not signed up for task; notifications disabled; invite not accepted; wrong timezone; ' +
         'or reminder already recorded in reminderDeliveries.'
     );
   }

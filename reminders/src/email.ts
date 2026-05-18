@@ -32,6 +32,11 @@ export async function sendReminderEmail(params: ReminderEmailParams): Promise<vo
   const kindLabel = params.kind === 'event' ? 'game' : 'task';
   const subject = `TeamTrack reminder: ${params.itemName} (${params.teamName})`;
 
+  const footerText =
+    params.kind === 'event'
+      ? 'You received this email because you have reminders enabled for this team.'
+      : 'You received this email because you are signed up and have reminders enabled for this team.';
+
   const text = [
     `Hi ${params.firstName},`,
     '',
@@ -43,7 +48,7 @@ export async function sendReminderEmail(params: ReminderEmailParams): Promise<vo
     '',
     `Open TeamTrack: ${appUrl}`,
     '',
-    'You received this email because you are signed up and have reminders enabled for this team.',
+    footerText,
   ].join('\n');
 
   const html = `
@@ -55,7 +60,7 @@ export async function sendReminderEmail(params: ReminderEmailParams): Promise<vo
       <li><strong>Location:</strong> ${escapeHtml(params.location || 'TBD')}</li>
     </ul>
     <p><a href="${escapeHtml(appUrl)}">Open TeamTrack</a></p>
-    <p style="color:#666;font-size:12px;">You received this email because you are signed up and have reminders enabled for this team.</p>
+    <p style="color:#666;font-size:12px;">${escapeHtml(footerText)}</p>
   `;
 
   const transporter = nodemailer.createTransport({

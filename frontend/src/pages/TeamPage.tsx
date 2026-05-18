@@ -1102,7 +1102,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             <div className="settings-section notification-settings">
               <h4>Email reminders</h4>
               <p className="notification-settings-hint">
-                Get an email before games you marked as going and tasks you signed up for on this team.
+                Get an email before upcoming team games and tasks you signed up for on this team.
               </p>
               <div className="form-group notification-toggle">
                 <label className="checkbox-label">

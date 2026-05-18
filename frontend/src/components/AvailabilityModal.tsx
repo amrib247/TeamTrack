@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { availabilityService } from '../services/availabilityService';
 import './AvailabilityModal.css';
 
-// Define interfaces locally to avoid import issues
 interface TeamMemberAvailability {
   userId: string;
   firstName: string;
@@ -25,6 +24,32 @@ interface AvailabilityModalProps {
   currentUserId: string;
 }
 
+function getStatusColor(status: string) {
+  switch (status) {
+    case 'YES':
+      return 'status-yes';
+    case 'NO':
+      return 'status-no';
+    case 'MAYBE':
+      return 'status-maybe';
+    default:
+      return 'status-unknown';
+  }
+}
+
+function getStatusText(status: string) {
+  switch (status) {
+    case 'YES':
+      return 'Going';
+    case 'NO':
+      return 'Not Going';
+    case 'MAYBE':
+      return 'Maybe';
+    default:
+      return 'Not set yet';
+  }
+}
+
 const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
   isOpen,
   onClose,
@@ -37,13 +62,7 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
   const [error, setError] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && eventId && teamId) {
-      loadAvailability();
-    }
-  }, [isOpen, eventId, teamId]);
-
-  const loadAvailability = async () => {
+  const loadAvailability = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -55,49 +74,44 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamId, eventId, currentUserId]);
+
+  useEffect(() => {
+    if (isOpen && eventId && teamId && currentUserId) {
+      loadAvailability();
+    }
+  }, [isOpen, eventId, teamId, currentUserId, loadAvailability]);
 
   const handleStatusUpdate = async (userId: string, newStatus: 'YES' | 'NO' | 'MAYBE') => {
-    if (userId !== currentUserId) return; // Only allow users to update their own status
-    
+    if (userId !== currentUserId) return;
+
     setUpdatingStatus(userId);
+    setError('');
+
+    setAvailability((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        teamAvailability: prev.teamAvailability.map((member) =>
+          member.userId === currentUserId ? { ...member, status: newStatus } : member
+        ),
+      };
+    });
+
     try {
       await availabilityService.setAvailability(currentUserId, teamId, eventId, newStatus);
-      // Reload availability to get updated data
       await loadAvailability();
     } catch (err) {
       setError('Failed to update availability');
       console.error('Error updating availability:', err);
+      await loadAvailability();
     } finally {
       setUpdatingStatus(null);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'YES':
-        return 'status-yes';
-      case 'NO':
-        return 'status-no';
-      case 'MAYBE':
-        return 'status-maybe';
-      default:
-        return 'status-unknown';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'YES':
-        return 'Going';
-      case 'NO':
-        return 'Not Going';
-      case 'MAYBE':
-        return 'Maybe';
-      default:
-        return 'Unknown';
-    }
-  };
+  const currentUserStatus =
+    availability?.teamAvailability.find((m) => m.userId === currentUserId)?.status ?? 'UNKNOWN';
 
   if (!isOpen) return null;
 
@@ -108,22 +122,29 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
           <h3>Team Availability</h3>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
-        
+
         <div className="modal-content">
           {error && <div className="error-message">{error}</div>}
-          
+
           {loading ? (
             <div className="loading-message">Loading availability...</div>
           ) : availability ? (
             <div className="availability-content">
+              <div className="your-availability-summary">
+                <span className="your-availability-label">Your availability</span>
+                <span className={`status-display ${getStatusColor(currentUserStatus)}`}>
+                  {getStatusText(currentUserStatus)}
+                </span>
+              </div>
+
               <div className="availability-summary">
                 <p>Total Team Members: {availability.totalMembers}</p>
               </div>
-              
+
               <div className="availability-list">
                 {availability.teamAvailability.map((member) => (
-                  <div 
-                    key={member.userId} 
+                  <div
+                    key={member.userId}
                     className={`availability-member ${member.isCurrentUser ? 'current-user' : ''}`}
                   >
                     <div className="member-info">
@@ -133,35 +154,40 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
                       </div>
                       <div className="member-role">{member.role}</div>
                     </div>
-                    
+
                     <div className="member-availability">
                       {member.isCurrentUser ? (
-                        <div className="status-selector">
-                          <button
-                            className={`status-btn ${member.status === 'YES' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(member.userId, 'YES')}
-                            disabled={updatingStatus === member.userId}
-                          >
-                            Going
-                          </button>
-                          <button
-                            className={`status-btn ${member.status === 'MAYBE' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(member.userId, 'MAYBE')}
-                            disabled={updatingStatus === member.userId}
-                          >
-                            Maybe
-                          </button>
-                          <button
-                            className={`status-btn ${member.status === 'NO' ? 'active' : ''}`}
-                            onClick={() => handleStatusUpdate(member.userId, 'NO')}
-                            disabled={updatingStatus === member.userId}
-                          >
-                            Not Going
-                          </button>
+                        <div className="current-user-availability">
+                          <div className={`status-display ${getStatusColor(member.status)}`}>
+                            {getStatusText(member.status)}
+                          </div>
+                          <div className="status-selector">
+                            <button
+                              className={`status-btn ${member.status === 'YES' ? 'active' : ''}`}
+                              onClick={() => handleStatusUpdate(member.userId, 'YES')}
+                              disabled={updatingStatus === member.userId}
+                            >
+                              Going
+                            </button>
+                            <button
+                              className={`status-btn ${member.status === 'MAYBE' ? 'active' : ''}`}
+                              onClick={() => handleStatusUpdate(member.userId, 'MAYBE')}
+                              disabled={updatingStatus === member.userId}
+                            >
+                              Maybe
+                            </button>
+                            <button
+                              className={`status-btn ${member.status === 'NO' ? 'active' : ''}`}
+                              onClick={() => handleStatusUpdate(member.userId, 'NO')}
+                              disabled={updatingStatus === member.userId}
+                            >
+                              Not Going
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className={`status-display ${getStatusColor(member.status)}`}>
-                          {getStatusText(member.status)}
+                          {member.status === 'UNKNOWN' ? 'Unknown' : getStatusText(member.status)}
                         </div>
                       )}
                     </div>
@@ -175,7 +201,7 @@ const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
             </div>
           )}
         </div>
-        
+
         <div className="modal-actions">
           <button className="btn btn-secondary" onClick={onClose}>
             Close

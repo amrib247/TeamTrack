@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   setDoc,
@@ -96,7 +97,11 @@ class AvailabilityService {
     const teamMembers = await teamService.getTeamMembers(teamId);
     const availabilities = await queryByField<AvailabilityDoc>('availabilities', 'eventId', eventId);
 
-    const userAvailabilities = new Map(availabilities.map((a) => [a.userId, a.status]));
+    const userAvailabilities = new Map(
+      availabilities
+        .filter((a) => a.teamId === teamId)
+        .map((a) => [a.userId, a.status])
+    );
 
     const teamAvailability: TeamMemberAvailability[] = teamMembers.map((member) => ({
       userId: member.userId,
@@ -106,6 +111,22 @@ class AvailabilityService {
       status: (userAvailabilities.get(member.userId) as TeamMemberAvailability['status']) ?? 'UNKNOWN',
       isCurrentUser: member.userId === currentUserId,
     }));
+
+    if (!teamAvailability.some((m) => m.userId === currentUserId)) {
+      const ownAvailability = await this.getUserAvailabilityForEvent(currentUserId, teamId, eventId);
+      const profileSnap = await getDoc(doc(db, 'userProfiles', currentUserId));
+      const profile = profileSnap.data();
+      const memberTeam = teamMembers.find((m) => m.userId === currentUserId);
+
+      teamAvailability.push({
+        userId: currentUserId,
+        firstName: String(profile?.firstName ?? memberTeam?.firstName ?? 'You'),
+        lastName: String(profile?.lastName ?? memberTeam?.lastName ?? ''),
+        role: memberTeam?.role ?? 'PLAYER',
+        status: ownAvailability?.status ?? 'UNKNOWN',
+        isCurrentUser: true,
+      });
+    }
 
     teamAvailability.sort((a, b) => {
       if (a.isCurrentUser) return -1;

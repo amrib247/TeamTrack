@@ -82,24 +82,6 @@ async function getUserTeamMembership(
   return { id: doc.id, ...(doc.data() as UserTeamDoc) };
 }
 
-async function isEventGoing(
-  db: admin.firestore.Firestore,
-  userId: string,
-  teamId: string,
-  eventId: string
-): Promise<boolean> {
-  const snap = await db
-    .collection('availabilities')
-    .where('userId', '==', userId)
-    .where('teamId', '==', teamId)
-    .where('eventId', '==', eventId)
-    .limit(1)
-    .get();
-
-  if (snap.empty) return false;
-  return snap.docs[0].data().status === 'YES';
-}
-
 async function isTaskSignedUp(
   db: admin.firestore.Firestore,
   taskId: string,
@@ -139,9 +121,7 @@ async function trySendReminder(params: {
   const existing = await dedupeRef.get();
   if (existing.exists) return false;
 
-  if (entityType === 'event') {
-    if (!(await isEventGoing(db, userId, teamId, entityId))) return false;
-  } else {
+  if (entityType === 'task') {
     if (!(await isTaskSignedUp(db, entityId, userId))) return false;
   }
 
@@ -195,21 +175,18 @@ async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<
     const event = eventDoc.data() as EventDoc;
     const eventId = eventDoc.id;
 
-    const yesSnap = await db
-      .collection('availabilities')
-      .where('eventId', '==', eventId)
-      .where('status', '==', 'YES')
+    const membersSnap = await db
+      .collection('userTeams')
+      .where('teamId', '==', event.teamId)
       .get();
 
-    for (const availDoc of yesSnap.docs) {
-      const avail = availDoc.data();
-      const userId = String(avail.userId);
-      const teamId = String(avail.teamId ?? event.teamId);
+    for (const memberDoc of membersSnap.docs) {
+      const userId = String(memberDoc.data().userId);
 
       const didSend = await trySendReminder({
         db,
         userId,
-        teamId,
+        teamId: event.teamId,
         entityType: 'event',
         entityId: eventId,
         itemName: event.name,
@@ -243,21 +220,18 @@ async function processLegacyEventsWithoutUtcIndex(db: admin.firestore.Firestore,
     if (event.startAtUtc) continue;
 
     const eventId = eventDoc.id;
-    const yesSnap = await db
-      .collection('availabilities')
-      .where('eventId', '==', eventId)
-      .where('status', '==', 'YES')
+    const membersSnap = await db
+      .collection('userTeams')
+      .where('teamId', '==', event.teamId)
       .get();
 
-    for (const availDoc of yesSnap.docs) {
-      const avail = availDoc.data();
-      const userId = String(avail.userId);
-      const teamId = String(avail.teamId ?? event.teamId);
+    for (const memberDoc of membersSnap.docs) {
+      const userId = String(memberDoc.data().userId);
 
       const didSend = await trySendReminder({
         db,
         userId,
-        teamId,
+        teamId: event.teamId,
         entityType: 'event',
         entityId: eventId,
         itemName: event.name,

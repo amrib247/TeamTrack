@@ -94,7 +94,7 @@ firebase deploy --only firestore:rules,storage
 
 ## Email reminders (games & tasks)
 
-Team members can enable per-team email reminders on **Team → Settings** (games marked **Going**, tasks they signed up for). Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not need to be online. This works on the Firebase **Spark** plan (no Blaze / credit card required).
+Team members can enable per-team email reminders on **Team → Settings** (all upcoming team games, and tasks they signed up for). Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not need to be online. This works on the Firebase **Spark** plan (no Blaze / credit card required).
 
 **Event and task times** are saved with a **time zone** (defaults to your device’s zone via the browser) and a UTC instant (`startAtUtc`). Everyone sees the correct local time on their device; email reminders use UTC. Older records without UTC are treated as **Pacific Time**.
 
@@ -209,7 +209,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 - **Workflow succeeds but `eventsSent: 0` and `tasksSent: 0`:**
   - Events/tasks store **`startAtUtc`** plus the creator's **`timeZone`**; legacy items without UTC default to **Pacific** (`America/Los_Angeles`).
   - For **1 hour before**: the event must have started its reminder window — i.e. start time is **less than 1 hour away** (or the reminder was already sent; check Firestore `reminderDeliveries`).
-  - Games: availability must be **Going** (`YES`), not Maybe. Tasks: you must be in `signedUpUserIds`.
+  - Games: email reminders enabled on the team and invite accepted. Tasks: you must be in `signedUpUserIds`.
   - Team **Settings**: email reminders enabled and invite accepted.
 - **Workflow not running on schedule:** Scheduled workflows need recent activity on the repo; use **Run workflow** to verify secrets first.
 - **SMTP errors:** Confirm App Password (not your normal login password) and that 2-Step Verification is on (Gmail/Yahoo).
