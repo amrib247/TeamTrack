@@ -114,26 +114,24 @@
 
 .status-btn {
   padding: 6px 12px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface);
+  border: none;
+  background-color: var(--color-secondary-bg);
   color: var(--color-text);
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
+  transition: background var(--transition), color var(--transition);
   min-width: 60px;
   font-family: inherit;
 }
 
 .status-btn:hover {
-  background-color: var(--color-bg);
-  border-color: var(--color-border-strong);
+  background-color: #e5e5e5;
 }
 
 .status-btn.active {
-  background-color: var(--color-text);
+  background-color: var(--color-primary);
   color: var(--color-surface);
-  border-color: var(--color-text);
 }
 
 .status-btn:disabled {
@@ -152,21 +150,21 @@
 }
 
 .status-yes {
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background-color: var(--badge-going-bg);
+  color: var(--badge-going-text);
+  border: none;
 }
 
 .status-no {
-  background-color: var(--color-error-bg);
-  color: var(--color-error-text);
-  border: 1px solid var(--color-error-border);
+  background-color: var(--badge-not-going-bg);
+  color: var(--badge-not-going-text);
+  border: none;
 }
 
 .status-maybe {
-  background-color: var(--color-bg);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border-strong);
+  background-color: var(--badge-maybe-bg);
+  color: var(--badge-maybe-text);
+  border: none;
 }
 
 .status-unknown {

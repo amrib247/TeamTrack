@@ -1,15 +1,16 @@
 .tournament-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
   transition: border-color var(--transition);
   cursor: pointer;
   min-height: 0;
 }
 
 .tournament-card.clickable:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-primary);
 }
 
 .tournament-card.tournament-invite {
@@ -32,12 +33,12 @@
 }
 
 .tournament-card.tournament-invite .tournament-status .status-invite {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background: var(--badge-invite-bg);
+  color: var(--badge-invite-text);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 6px 12px;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 

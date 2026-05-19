@@ -522,7 +522,13 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 
           <section className="teams-panel">
             <div className="panel-header">
-              <h2 className="panel-title">Your Teams</h2>
+              <div className="panel-header-text">
+                <h2 className="panel-title section-heading">
+                  <AppIcon name="users" size={20} />
+                  Your Teams
+                </h2>
+                <p className="panel-subtitle">Teams you belong to as coach, player, or parent</p>
+              </div>
               <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTeam}>
                 <AppIcon name="plus" size={16} />
                 Create Team
@@ -589,37 +595,44 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               </div>
               <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTournament}>
                 <AppIcon name="plus" size={16} />
-                Create
+                Create Tournament
               </button>
             </div>
             <div className="tournaments-panel-body">
           {(tournaments.length > 0 || pendingTournamentInvites.length > 0) ? (
-            <div className="tournaments-grid">
+            <div className="tournaments-list">
               {/* Pending Tournament Invites */}
               {pendingTournamentInvites.map((invite) => (
                 <div 
                   key={invite.organizerTournamentId} 
-                  className="tournament-card tournament-invite clickable"
+                  className="team-card-compact tournament-card-compact tournament-card-invite clickable"
                   onClick={() => handlePendingTournamentInviteClick(invite)}
                 >
-                  <div className="tournament-header">
-                    <h3 className="tournament-name">{invite.tournamentName}</h3>
-                    <div className="tournament-status">
+                  <div className="team-header">
+                    <div className="team-header-left">
+                      <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
+                        <AppIcon name="mail" size={22} />
+                      </div>
+                      <div className="team-header-text">
+                        <h4>{invite.tournamentName}</h4>
+                        <span className="team-sport">Organizer invite</span>
+                      </div>
+                    </div>
+                    <div className="tournament-card-badge">
                       <span className="status-badge status-invite">
                         <AppIcon name="mail" size={14} />
                         Invite
                       </span>
                     </div>
                   </div>
-                  <div className="tournament-info-compact">
-                    <span className="meta-chip">Organizer invite</span>
+                  <div className="team-details">
                     {invite.tournamentDescription && (
-                      <span className="tournament-desc-truncate">{invite.tournamentDescription}</span>
+                      <div className="team-joined">{invite.tournamentDescription}</div>
                     )}
-                  </div>
-                  <div className="invite-status invite-pending">
-                    <AppIcon name="alert" size={14} />
-                    Tap to accept or decline
+                    <div className="invite-status invite-pending">
+                      <AppIcon name="alert" size={14} />
+                      Tap to accept or decline
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1385,3 +1398,4 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
 }
 
 export default HomePage;
+

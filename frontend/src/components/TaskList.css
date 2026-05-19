@@ -1,9 +1,9 @@
 /* Task List Section */
 .task-list-section {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  margin-bottom: 20px;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  margin-bottom: 0;
 }
 
 .task-list-header {
@@ -49,15 +49,16 @@
 }
 
 .task-card {
-  background: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   transition: border-color var(--transition);
 }
 
 .task-card:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-primary);
 }
 
 .task-card-warning {

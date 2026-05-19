@@ -74,21 +74,24 @@ code {
   max-width: 65ch;
 }
 
-/* Buttons — flat, sharp, monochromatic */
+/* Buttons — Figma-aligned */
 .btn {
-  padding: 0.625rem 1.25rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 500;
   font-family: inherit;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
   text-align: center;
-  min-width: 100px;
+  min-width: auto;
   background: transparent;
   color: var(--color-text);
 }
@@ -99,14 +102,19 @@ code {
 }
 
 .btn-primary {
-  background: var(--color-accent);
+  background: var(--color-primary);
   color: var(--color-surface);
-  border-color: var(--color-accent);
+  border-color: var(--color-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  border-color: var(--color-accent-hover);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
 }
 
 .btn-team,
@@ -123,14 +131,14 @@ code {
 }
 
 .btn-secondary {
-  background: var(--color-surface);
-  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  color: var(--color-primary);
   border-color: var(--color-border);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
+  background: #e5e5e5;
+  border-color: var(--color-border);
 }
 
 .btn-large {
@@ -152,26 +160,25 @@ code {
 .btn-ghost {
   background: transparent;
   border-color: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   min-width: auto;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--color-bg);
-  border-color: var(--color-border);
-  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  border-color: transparent;
+  color: var(--color-primary);
 }
 
 .btn-danger {
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-  border-color: var(--color-danger-border);
-}
-
-.btn-danger:hover:not(:disabled) {
   background: var(--color-danger);
   color: var(--color-surface);
   border-color: var(--color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
 }
 
 .btn-warning {
@@ -240,10 +247,10 @@ label {
   font-weight: 500;
   color: var(--color-text);
   margin-bottom: var(--space-xs);
-  font-size: 0.8125rem;
+  font-size: var(--text-sm);
   display: block;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
+  letter-spacing: var(--tracking-normal);
+  text-transform: none;
 }
 
 .form-label {
@@ -269,11 +276,11 @@ label {
 input,
 select,
 textarea {
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   min-height: 2.5rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 0.9375rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   font-family: inherit;
   transition: border-color var(--transition), box-shadow var(--transition);
   background: var(--color-surface);
@@ -293,6 +300,12 @@ textarea:focus {
   box-shadow: var(--focus-ring);
 }
 
+input.input-error:focus,
+select.input-error:focus,
+textarea.input-error:focus {
+  box-shadow: 0 0 0 2px var(--color-danger);
+}
+
 input.input-error,
 select.input-error,
 textarea.input-error {
@@ -309,13 +322,14 @@ textarea.input-error {
 .surface-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
   transition: border-color var(--transition);
 }
 
 .surface-card:hover {
-  border-color: var(--color-border-accent);
+  border-color: var(--color-primary);
 }
 
 .divider {
@@ -340,7 +354,8 @@ textarea.input-error {
 .modal {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
   width: 100%;
   max-width: var(--modal-md);
   max-height: 90vh;
@@ -403,7 +418,7 @@ textarea.input-error {
 }
 
 .empty-state svg {
-  color: var(--color-text-subtle);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-md);
 }
 
@@ -527,11 +542,12 @@ textarea.input-error {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 500;
-  padding: 0.2rem 0.5rem;
+  padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  border: none;
+  color: var(--color-surface);
 }
 
 .status-badge svg {
@@ -539,21 +555,33 @@ textarea.input-error {
 }
 
 .status-invite {
-  background: var(--color-purple-soft);
-  border-color: var(--status-invite-border);
-  color: var(--color-purple);
+  background: var(--badge-invite-bg);
+  color: var(--badge-invite-text);
 }
 
 .status-full {
-  background: var(--color-bronze-soft);
-  border-color: var(--status-full-border);
-  color: var(--color-bronze);
+  background: var(--badge-full-bg);
+  color: var(--badge-full-text);
 }
 
 .status-open {
-  background: var(--color-green-soft);
-  border-color: var(--status-open-border);
-  color: var(--color-green);
+  background: var(--badge-open-bg);
+  color: var(--badge-open-text);
+}
+
+.status-going {
+  background: var(--badge-going-bg);
+  color: var(--badge-going-text);
+}
+
+.status-not-going {
+  background: var(--badge-not-going-bg);
+  color: var(--badge-not-going-text);
+}
+
+.status-maybe {
+  background: var(--badge-maybe-bg);
+  color: var(--badge-maybe-text);
 }
 
 .status-badge--compact {
@@ -566,19 +594,18 @@ textarea.input-error {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem;
+  padding: 0.5rem;
   background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: none;
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: color var(--transition), border-color var(--transition), background var(--transition);
+  transition: color var(--transition), background var(--transition);
 }
 
 .icon-btn:hover {
-  color: var(--color-error-text);
-  border-color: var(--color-error-border);
-  background: var(--color-error-bg);
+  color: var(--color-danger);
+  background: var(--color-secondary-bg);
 }
 
 .coach-hint {
@@ -648,10 +675,10 @@ input::placeholder {
   background: var(--color-error-bg);
   color: var(--color-error-text);
   padding: var(--space-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-error-border);
   margin-bottom: var(--space-lg);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   text-align: center;
 }
 

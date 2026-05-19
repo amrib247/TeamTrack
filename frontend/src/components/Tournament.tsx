@@ -1,5 +1,4 @@
-
-import type { Tournament } from '../types/Auth';
+﻿import type { Tournament } from '../types/Auth';
 import './Tournament.css';
 import { useNavigate } from 'react-router-dom';
 import AppIcon from './icons/AppIcon';
@@ -15,44 +14,31 @@ function Tournament({ tournament }: TournamentProps) {
     navigate(`/tournament/${tournament.id}`);
   };
 
-  // Note: With the new invite system, we need to check for active tournament invites
-  // instead of directly checking teamIds. For now, we'll show basic information.
-  const isFull = tournament.teamCount >= tournament.maxSize;
-
-  // Note: Join/leave functionality removed - tournaments now use an invite system
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
   };
 
   return (
-    <div className="tournament-card clickable" onClick={handleCardClick}>
-      <div className="tournament-header">
-        <h3 className="tournament-name">{tournament.name}</h3>
-        <div className="tournament-status">
-          {isFull ? (
-            <span className="status-badge status-full status-badge--compact">
-              <AppIcon name="trophy" size={14} /> Full
+    <div className="team-card-compact tournament-card-compact clickable" onClick={handleCardClick}>
+      <div className="team-header">
+        <div className="team-header-left">
+          <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
+            <AppIcon name="trophy" size={22} />
+          </div>
+          <div className="team-header-text">
+            <h4>{tournament.name}</h4>
+            <span className="team-sport">
+              {tournament.teamCount}/{tournament.maxSize} teams
             </span>
-          ) : (
-            <span className="status-badge status-open status-badge--compact">
-              <AppIcon name="check" size={14} /> Open
-            </span>
-          )}
+          </div>
         </div>
       </div>
-
-      <div className="tournament-details">
-        <div className="tournament-info">
-          <div className="info-item">
-            <strong>Size:</strong> {tournament.teamCount}/{tournament.maxSize} teams
-          </div>
-          <div className="info-item">
-            <strong>Organizers:</strong> {tournament.organizerCount}
-          </div>
-          <div className="info-item">
-            <strong>Created:</strong> {formatDate(tournament.createdAt)}
-          </div>
+      <div className="team-details">
+        <div className="team-role">
+          <strong>Organizers:</strong> {tournament.organizerCount}
+        </div>
+        <div className="team-joined">
+          <strong>Created:</strong> {formatDate(tournament.createdAt)}
         </div>
       </div>
     </div>
