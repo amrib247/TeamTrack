@@ -7,6 +7,7 @@ import { tournamentService } from '../services/tournamentService';
 import Schedule from '../components/Schedule';
 import TaskList from '../components/TaskList';
 import Chat from '../components/Chat';
+import AppIcon from '../components/icons/AppIcon';
 import './TeamPage.css';
 
 interface TeamPageProps {
@@ -97,23 +98,17 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
 
-  // Debug logging
-  console.log('🔍 TeamPage Debug:', {
-    userTeamId,
-    userTeam,
-    allTeams: currentUser.teams.map(t => ({ id: t.id, teamId: t.teamId }))
-  });
-  
   // Early return if userTeam is not found
   if (!userTeam) {
     return (
       <div className="team-page">
-        <div className="error-message">
-          <h2>Team Not Found</h2>
-          <p>You don't have access to this team or it doesn't exist.</p>
-          <p>Debug: userTeamId = {userTeamId}</p>
-          <p>Available teams: {currentUser.teams.map(t => `(id: ${t.id}, teamId: ${t.teamId})`).join(', ')}</p>
-          <button className="btn btn-primary" onClick={() => navigate('/home')}>
+        <div className="empty-state">
+          <AppIcon name="alert" size={32} />
+          <h2 className="empty-state-title">Team not found</h2>
+          <p className="empty-state-desc">
+            You don&apos;t have access to this team or it doesn&apos;t exist.
+          </p>
+          <button type="button" className="btn btn-primary" onClick={() => navigate('/home')}>
             Back to Home
           </button>
         </div>
@@ -723,30 +718,35 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
         return (
           <div className="content-roster">
             <div className="roster-header">
-              <h2>Team Roster</h2>
-              <div className="roster-header-actions">
-                {/* Coach Count Display */}
-                <div className="coach-count-display">
-                  <span className="coach-count-label">👥 Coaches:</span>
-                  {loadingCoachCount ? (
-                    <span className="coach-count-loading">Loading...</span>
-                  ) : (
-                    <span className="coach-count-value">{coachCount}</span>
-                  )}
-                </div>
-                
-                {userTeam.role === 'COACH' && (
-                  <>
-                    <p className="coach-hint">💡 Click on any roster member (except yourself) to manage their role. Coaches can change other coaches' roles but cannot change their own.</p>
-                    <button 
+              <div className="roster-header-top">
+                <h2 className="tab-title">Team Roster</h2>
+                <div className="roster-header-actions">
+                  <div className="coach-count-display">
+                    <span className="coach-count-label">
+                      <AppIcon name="users" size={14} /> Coaches:
+                    </span>
+                    {loadingCoachCount ? (
+                      <span className="coach-count-loading">Loading...</span>
+                    ) : (
+                      <span className="coach-count-value">{coachCount}</span>
+                    )}
+                  </div>
+                  {userTeam.role === 'COACH' && (
+                    <button
+                      type="button"
                       className="btn btn-invite"
                       onClick={() => setShowInviteForm(true)}
                     >
                       Invite User
                     </button>
-                  </>
-                )}
+                  )}
+                </div>
               </div>
+              {userTeam.role === 'COACH' && (
+                <p className="coach-hint">
+                  <AppIcon name="info" size={14} /> Click on any roster member (except yourself) to manage their role.
+                </p>
+              )}
             </div>
             
             {/* Invite Form Modal */}
@@ -891,13 +891,16 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
 
                   {selectedUser.role === 'COACH' && (
                     <div className="info-message">
-                      <p>💡 <strong>Note:</strong> Coaches cannot be removed from the team, but their role can be changed by other coaches.</p>
+                      <p className="coach-hint"><AppIcon name="info" size={14} /> <strong>Note:</strong> Coaches cannot be removed from the team, but their role can be changed by other coaches.</p>
                     </div>
                   )}
 
                   {selectedUser.userId === currentUser.id && (
                     <div className="info-message">
-                      <p>⚠️ <strong>Note:</strong> You cannot change your own role.</p>
+                      <div className="notice-warning">
+                        <AppIcon name="alert" size={16} />
+                        <p><strong>Note:</strong> You cannot change your own role.</p>
+                      </div>
                     </div>
                   )}
 
@@ -977,11 +980,11 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       case 'tournaments':
         return (
           <div className="content-tournaments">
-            <h2>Team Tournaments</h2>
+            <h2 className="tab-title">Team Tournaments</h2>
             
             {/* Tournament Invites */}
             <div className="tournament-invites">
-              <h3>Tournament Invites</h3>
+              <h3 className="tab-section-title">Tournament Invites</h3>
               {loadingTournamentInvites ? (
                 <p>Loading tournament invites...</p>
               ) : tournamentInvites.length > 0 ? (
@@ -994,8 +997,8 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                         </div>
                         {tournamentDetails[invite.tournamentId] && (
                           <div className="tournament-info">
-                            <span>Max Teams: {tournamentDetails[invite.tournamentId].maxSize}</span>
-                            <span>Current Teams: {tournamentDetails[invite.tournamentId].teamCount}</span>
+                            <span className="meta-chip">Max {tournamentDetails[invite.tournamentId].maxSize} teams</span>
+                            <span className="meta-chip">Current {tournamentDetails[invite.tournamentId].teamCount}</span>
                           </div>
                         )}
                         <div className="invite-date">Invited: {new Date(invite.createdAt).toLocaleDateString()}</div>
@@ -1026,7 +1029,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
 
             {/* Enrolled Tournaments */}
             <div className="enrolled-tournaments">
-              <h3>Enrolled Tournaments</h3>
+              <h3 className="tab-section-title">Enrolled Tournaments</h3>
               {loadingEnrolledTournaments ? (
                 <p>Loading enrolled tournaments...</p>
               ) : enrolledTournaments.length > 0 ? (
@@ -1039,9 +1042,9 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                         </div>
                         {tournamentDetails[tournamentInvite.tournamentId] && (
                           <div className="tournament-details">
-                            <span>Max Teams: {tournamentDetails[tournamentInvite.tournamentId].maxSize}</span>
-                            <span>Current Teams: {tournamentDetails[tournamentInvite.tournamentId].teamCount}</span>
-                            <span>Organizers: {tournamentDetails[tournamentInvite.tournamentId].organizerCount}</span>
+                            <span className="meta-chip">Max {tournamentDetails[tournamentInvite.tournamentId].maxSize}</span>
+                            <span className="meta-chip">Teams {tournamentDetails[tournamentInvite.tournamentId].teamCount}</span>
+                            <span className="meta-chip">{tournamentDetails[tournamentInvite.tournamentId].organizerCount} organizers</span>
                           </div>
                         )}
                         <div className="enrolled-date">Joined: {new Date(tournamentInvite.createdAt).toLocaleDateString()}</div>
@@ -1102,24 +1105,23 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             <div className="settings-section notification-settings">
               <h4>Email reminders</h4>
               <p className="notification-settings-hint">
-                Get an email before upcoming team games and tasks you signed up for on this team.
+                Receive an email before upcoming games and tasks you&apos;re signed up for.
               </p>
-              <div className="form-group notification-toggle">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={notificationPrefs.emailNotificationsEnabled}
-                    onChange={(e) =>
-                      setNotificationPrefs((prev) => ({
-                        ...prev,
-                        emailNotificationsEnabled: e.target.checked,
-                      }))
-                    }
-                  />
-                  Email reminders for this team
-                </label>
-              </div>
-              <div className="form-group">
+              <label className="notification-toggle-row" htmlFor="emailNotificationsEnabled">
+                <input
+                  id="emailNotificationsEnabled"
+                  type="checkbox"
+                  checked={notificationPrefs.emailNotificationsEnabled}
+                  onChange={(e) =>
+                    setNotificationPrefs((prev) => ({
+                      ...prev,
+                      emailNotificationsEnabled: e.target.checked,
+                    }))
+                  }
+                />
+                <span>Enable email reminders</span>
+              </label>
+              <div className="form-group notification-lead-time">
                 <label htmlFor="reminderLeadTime">Remind me before</label>
                 <select
                   id="reminderLeadTime"
@@ -1258,7 +1260,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                         className="btn btn-secondary btn-small"
                         onClick={() => document.getElementById('teamPhotoInput')?.click()}
                       >
-                        📷 Upload Photo
+                        <AppIcon name="camera" size={16} /> Upload Photo
                       </button>
                     )}
                     <input
@@ -1286,7 +1288,10 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             <div className="settings-section danger-zone">
               <h4>Danger Zone</h4>
               <div className="danger-warning">
-                <p>⚠️ <strong>Warning:</strong> Terminating a team will permanently delete all team data, including roster, schedule, and chat history. This action cannot be undone.</p>
+                <div className="notice-warning">
+                  <AppIcon name="alert" size={18} />
+                  <p><strong>Warning:</strong> Terminating a team will permanently delete all team data, including roster, schedule, and chat history. This action cannot be undone.</p>
+                </div>
               </div>
               
               {!showTerminateConfirm ? (
@@ -1295,7 +1300,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                   className="btn btn-danger"
                   onClick={() => setShowTerminateConfirm(true)}
                 >
-                  🗑️ Terminate Team
+                  <AppIcon name="trash" size={16} /> Terminate Team
                 </button>
               ) : (
                 <div className="terminate-confirm">
@@ -1335,7 +1340,10 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             <div className="settings-section danger-zone">
               <h4>Leave Team</h4>
               <div className="danger-warning">
-                <p>⚠️ <strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+                <div className="notice-warning">
+                  <AppIcon name="alert" size={18} />
+                  <p><strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+                </div>
                 <p><strong>Note:</strong> As a coach, leaving the team will transfer ownership to another team member or the team may become inactive.</p>
               </div>
               
@@ -1345,7 +1353,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                   className="btn btn-danger"
                   onClick={() => setShowLeaveTeamConfirm(true)}
                 >
-                  🚪 Leave Team
+                  <AppIcon name="logout" size={16} /> Leave Team
                 </button>
               ) : (
                 <div className="leave-team-confirm">
@@ -1407,7 +1415,10 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             <div className="settings-section danger-zone">
               <h4>Leave Team</h4>
               <div className="danger-warning">
-                <p>⚠️ <strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+                <div className="notice-warning">
+                  <AppIcon name="alert" size={18} />
+                  <p><strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
+                </div>
               </div>
               
               {!showLeaveTeamConfirm ? (
@@ -1416,7 +1427,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                   className="btn btn-danger"
                   onClick={() => setShowLeaveTeamConfirm(true)}
                 >
-                  🚪 Leave Team
+                  <AppIcon name="logout" size={16} /> Leave Team
                 </button>
               ) : (
                 <div className="leave-team-confirm">
@@ -1474,7 +1485,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   return (
     <div className="team-page">
       {/* Header */}
-      <div className="team-header">
+      <div className="team-header app-shell-header">
         <button className="btn btn-back" onClick={handleBackToHome}>
           ← Back to Home
         </button>
@@ -1484,15 +1495,15 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
         </button>
       </div>
 
-      <div className="team-layout">
+      <div className="team-layout app-shell-layout">
         {/* Sidebar */}
-        <div className="team-sidebar">
+        <div className="team-sidebar app-shell-sidebar">
           <nav className="sidebar-nav">
             <button
               className={`sidebar-item ${activeTab === 'roster' ? 'active' : ''}`}
               onClick={() => handleTabChange('roster')}
             >
-              <span className="sidebar-icon">👥</span>
+              <span className="sidebar-icon"><AppIcon name="users" size={18} /></span>
               <span className="sidebar-text">Roster</span>
             </button>
             
@@ -1500,7 +1511,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
               className={`sidebar-item ${activeTab === 'schedule' ? 'active' : ''}`}
               onClick={() => handleTabChange('schedule')}
             >
-              <span className="sidebar-icon">📅</span>
+              <span className="sidebar-icon"><AppIcon name="calendar" size={18} /></span>
               <span className="sidebar-text">Schedule</span>
             </button>
             
@@ -1508,7 +1519,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
               className={`sidebar-item ${activeTab === 'tasks' ? 'active' : ''}`}
               onClick={() => handleTabChange('tasks')}
             >
-              <span className="sidebar-icon">✅</span>
+              <span className="sidebar-icon"><AppIcon name="check" size={18} /></span>
               <span className="sidebar-text">Tasks</span>
             </button>
             
@@ -1516,7 +1527,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
               className={`sidebar-item ${activeTab === 'chat' ? 'active' : ''}`}
               onClick={() => handleTabChange('chat')}
             >
-              <span className="sidebar-icon">💬</span>
+              <span className="sidebar-icon"><AppIcon name="message" size={18} /></span>
               <span className="sidebar-text">Chat</span>
             </button>
             
@@ -1525,7 +1536,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
                 className={`sidebar-item ${activeTab === 'tournaments' ? 'active' : ''}`}
                 onClick={() => handleTabChange('tournaments')}
               >
-                <span className="sidebar-icon">🏆</span>
+                <span className="sidebar-icon"><AppIcon name="trophy" size={18} /></span>
                 <span className="sidebar-text">Tournaments</span>
               </button>
             )}
@@ -1534,14 +1545,14 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
               className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => handleTabChange('settings')}
             >
-              <span className="sidebar-icon">⚙️</span>
+              <span className="sidebar-icon"><AppIcon name="settings" size={18} /></span>
               <span className="sidebar-text">Settings</span>
             </button>
           </nav>
         </div>
 
         {/* Main Content */}
-        <div className="team-content">
+        <div className="team-content app-shell-main-card">
           {renderContent()}
         </div>
       </div>
@@ -1550,12 +1561,12 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       {showCoachSafetyModal && (
         <div className="modal-overlay" onClick={() => setShowCoachSafetyModal(false)}>
           <div className="modal coach-safety-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>⚠️ Coach Safety Check</h3>
+            <h3><AppIcon name="alert" size={20} /> Coach Safety Check</h3>
             <p>You are the only coach of this team. You must take action before you can leave the team.</p>
             
             <div className="coach-safety-options">
               <div className="option-card">
-                <h4>👑 Promote Someone to Coach</h4>
+                <h4><AppIcon name="crown" size={18} /> Promote Someone to Coach</h4>
                 <p>Promote another team member to coach so you can leave safely.</p>
                 <button 
                   className="btn btn-primary"
@@ -1569,7 +1580,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
               </div>
               
               <div className="option-card">
-                <h4>🗑️ Delete Team</h4>
+                <h4><AppIcon name="trash" size={18} /> Delete Team</h4>
                 <p>Delete the entire team if you no longer want to manage it.</p>
                 <button 
                   className="btn btn-danger"

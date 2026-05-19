@@ -1,4 +1,5 @@
 import React from 'react';
+import AppIcon from './icons/AppIcon';
 import './TournamentSafetyPrompt.css';
 
 interface TournamentSafetyPromptProps {
@@ -59,7 +60,7 @@ const TournamentSafetyPrompt: React.FC<TournamentSafetyPromptProps> = ({
         </div>
         
         <div className="tournament-safety-content">
-          <div className="warning-icon">⚠️</div>
+          <div className="warning-icon"><AppIcon name="alert" size={40} /></div>
           <p className="warning-message">{getMessage()}</p>
           
           <div className="tournament-safety-actions">

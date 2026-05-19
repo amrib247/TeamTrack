@@ -446,7 +446,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
             </button>
           </div>
 
-          <button className="btn btn-primary" onClick={openCreateModal} style={{ backgroundColor: '#28a745', borderColor: '#28a745' }}>
+          <button type="button" className="btn btn-primary" onClick={openCreateModal}>
             ✚ Add Event
           </button>
         </div>
@@ -470,7 +470,7 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
               ) : events.length === 0 ? (
                 <div className="no-events">
                   <p>No events scheduled for this tournament.</p>
-                  <button className="btn btn-primary" onClick={openCreateModal} style={{ backgroundColor: '#28a745', borderColor: '#28a745' }}>
+                  <button type="button" className="btn btn-primary" onClick={openCreateModal}>
                     ✚ Add Your First Event
                   </button>
                 </div>

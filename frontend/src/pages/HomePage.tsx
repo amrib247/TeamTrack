@@ -4,7 +4,8 @@ import { teamService, type CreateTeamRequest } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import type { AuthResponse, UserTeam, Tournament, CreateTournamentRequest } from '../types/Auth';
-// Tournament component will be loaded dynamically
+import AppIcon from '../components/icons/AppIcon';
+import { formatSportName } from '../utils/formatSport';
 import './HomePage.css';
 
 interface HomePageProps {
@@ -16,6 +17,7 @@ interface HomePageProps {
 function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Settings modal states (restored)
   const [showSettings, setShowSettings] = useState(false);
@@ -76,6 +78,11 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     setIsEditMode(false);
     setError('');
     setProfilePhoto(null);
+  };
+
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message);
+    window.setTimeout(() => setSuccessMessage(''), 4000);
   };
   
   // Fetch team details for all user teams
@@ -245,7 +252,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       setProfilePhoto(null);
       
       // Show success message
-      alert('Profile updated successfully!');
+      showSuccess('Profile updated successfully.');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save changes');
@@ -377,7 +384,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       await onRefreshUserData();
       
       // Show success message
-      alert(`Team "${newTeam.teamName}" created successfully! You are now the coach.`);
+      showSuccess(`Team "${newTeam.teamName}" created. You are now the coach.`);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create team');
@@ -440,7 +447,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       await loadTournaments();
       
       // Show success message
-      alert(`Tournament "${newTournament.name}" created successfully!`);
+      showSuccess(`Tournament "${newTournament.name}" created successfully.`);
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create tournament');
@@ -457,24 +464,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       case 'MANAGER': return 'Manager';
       case 'ASSISTANT_COACH': return 'Assistant Coach';
       default: return role;
-    }
-  };
-
-  // Helper function to format sport names
-  const formatSportName = (sport: string) => {
-    if (!sport) return 'Unknown Sport';
-    
-    switch (sport.toLowerCase()) {
-      case 'soccer': return '⚽ Soccer';
-      case 'basketball': return '🏀 Basketball';
-      case 'baseball': return '⚾ Baseball';
-      case 'football': return '🏈 Football';
-      case 'volleyball': return '🏐 Volleyball';
-      case 'tennis': return '🎾 Tennis';
-      case 'swimming': return '🏊 Swimming';
-      case 'track & field': return '🏃 Track & Field';
-      case 'other': return '🏆 Other';
-      default: return `🏆 ${sport}`;
     }
   };
 
@@ -505,37 +494,49 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     });
   };
 
+  const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
+
   return (
     <div className="app home-page">
+      {successMessage && (
+        <div className="toast-banner notice-success" role="status">
+          <AppIcon name="check" size={18} />
+          <span>{successMessage}</span>
+        </div>
+      )}
       <div className="container">
-        {/* Header Navigation */}
-        <div className="header-navigation">
-          {/* Settings button at top right */}
-          <button className="btn btn-settings" onClick={openSettings}>
-            ⚙️ Settings
-          </button>
+        <div className="home-top-bar">
+          <h1 className="home-welcome">Welcome, {currentUser.firstName}</h1>
+          <div className="home-top-actions">
+            <button type="button" className="btn btn-ghost" onClick={onLogout}>
+              Logout
+            </button>
+            <button type="button" className="btn btn-secondary btn-with-icon" onClick={openSettings}>
+              <AppIcon name="settings" size={16} />
+              Settings
+            </button>
+          </div>
         </div>
 
-        <h1>Welcome, {currentUser.firstName}!</h1>
+        <div className="home-dashboard">
 
-                 {/* Teams Display (restored) */}
-         <div className="teams-section">
-           <div className="teams-header">
-             <h3>Your Teams</h3>
-             <button className="btn btn-primary" onClick={openCreateTeam}>
-               ➕ Create a Team
-             </button>
-           </div>
-           {(() => {
-             const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
-             return validTeams.length > 0 ? (
-               <div className="teams-grid">
+          <section className="teams-panel">
+            <div className="panel-header">
+              <h2 className="panel-title">Your Teams</h2>
+              <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTeam}>
+                <AppIcon name="plus" size={16} />
+                Create Team
+              </button>
+            </div>
+            <div className="teams-panel-body">
+              {validTeams.length > 0 ? (
+                <div className="teams-list">
                  {validTeams.map((userTeam: UserTeam) => {
                    const isPending = userTeam.inviteAccepted === false;
                    return (
                    <div 
                      key={userTeam.id} 
-                     className={`team-card clickable`}
+                     className="team-card-compact clickable"
                      onClick={() => handleTeamClick(userTeam.id)}
                    >
                                            <div className="team-header">
@@ -560,12 +561,8 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                           </div>
                           {isPending && (
                             <div className="invite-status invite-pending">
-                              ⚠️ Invite Pending - Tap to accept or decline
-                            </div>
-                          )}
-                          {teamDetails[userTeam.teamId]?.description && (
-                            <div className="team-description">
-                              <strong>Description:</strong> {teamDetails[userTeam.teamId]?.description}
+                              <AppIcon name="alert" size={16} />
+                              Invite pending
                             </div>
                           )}
                         </div>
@@ -573,24 +570,29 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                  );})}
                </div>
              ) : (
-               <div className="no-teams">
-                 <p>You're not currently part of any teams.</p>
-                 <p>Join or create a team to get started!</p>
+               <div className="panel-empty">
+                 <p>You&apos;re not on any teams yet.</p>
+                 <p>Create or join a team to get started.</p>
                </div>
-             );
-           })()}
-         </div>
+             )}
+            </div>
+          </section>
 
-        {/* Tournaments Section */}
-        <div className="tournaments-section">
-          <h3>🏆 Your Tournaments</h3>
-          <div className="tournaments-header">
-            <p>Create and organize tournaments for other teams!</p>
-            <button className="btn btn-primary" onClick={openCreateTournament}>
-              ➕ Create Tournament
-            </button>
-          </div>
-          
+          <section className="tournaments-panel">
+            <div className="panel-header">
+              <div className="panel-header-text">
+                <h2 className="panel-title section-heading">
+                  <AppIcon name="trophy" size={20} />
+                  Your Tournaments
+                </h2>
+                <p className="panel-subtitle">Create and organize tournaments for teams</p>
+              </div>
+              <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTournament}>
+                <AppIcon name="plus" size={16} />
+                Create
+              </button>
+            </div>
+            <div className="tournaments-panel-body">
           {(tournaments.length > 0 || pendingTournamentInvites.length > 0) ? (
             <div className="tournaments-grid">
               {/* Pending Tournament Invites */}
@@ -603,23 +605,21 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                   <div className="tournament-header">
                     <h3 className="tournament-name">{invite.tournamentName}</h3>
                     <div className="tournament-status">
-                      <span className="status-invite">📨 Invite</span>
+                      <span className="status-badge status-invite">
+                        <AppIcon name="mail" size={14} />
+                        Invite
+                      </span>
                     </div>
                   </div>
-                  <div className="tournament-details">
-                    <div className="tournament-info">
-                      <div className="info-item">
-                        <strong>Type:</strong> Tournament Organizer Invite
-                      </div>
-                      {invite.tournamentDescription && (
-                        <div className="info-item">
-                          <strong>Description:</strong> {invite.tournamentDescription}
-                        </div>
-                      )}
-                    </div>
-                    <div className="invite-status invite-pending">
-                      ⚠️ Tap to accept or decline this organizer invite
-                    </div>
+                  <div className="tournament-info-compact">
+                    <span className="meta-chip">Organizer invite</span>
+                    {invite.tournamentDescription && (
+                      <span className="tournament-desc-truncate">{invite.tournamentDescription}</span>
+                    )}
+                  </div>
+                  <div className="invite-status invite-pending">
+                    <AppIcon name="alert" size={14} />
+                    Tap to accept or decline
                   </div>
                 </div>
               ))}
@@ -639,17 +639,13 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               )}
             </div>
           ) : (
-            <div className="no-tournaments">
-              <p>No tournaments available yet.</p>
-              <p>Create the first tournament to get started!</p>
+            <div className="panel-empty">
+              <p>No tournaments yet.</p>
+              <p>Create your first tournament to get started.</p>
             </div>
           )}
-        </div>
-
-        <div className="actions">
-          <button className="btn btn-secondary" onClick={onLogout}>
-            Logout
-          </button>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -759,7 +755,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                         className="btn btn-secondary btn-small"
                         onClick={triggerTeamPhotoUpload}
                       >
-                        📷 Upload Photo
+                        <AppIcon name="camera" size={16} /> Upload Photo
                       </button>
                     )}
                     <input
@@ -1037,7 +1033,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                           className="btn btn-secondary btn-small"
                           onClick={triggerFileUpload}
                         >
-                          📷 Upload Photo
+                          <AppIcon name="camera" size={16} /> Upload Photo
                         </button>
                       )}
                       <input
@@ -1062,7 +1058,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                         </div>
                       ) : (
                         <div className="no-photo-placeholder">
-                          <span>📷 No profile photo</span>
+                          <span><AppIcon name="camera" size={14} /> No profile photo</span>
                         </div>
                       )}
                     </>
@@ -1196,7 +1192,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                     className="btn btn-primary"
                     onClick={toggleEditMode}
                   >
-                    ✏️ Edit Information
+                    <AppIcon name="edit" size={16} /> Edit Information
                   </button>
                 </div>
               )}
@@ -1205,7 +1201,10 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               <div className="account-termination">
                 <h4>Account Termination</h4>
                 <p className="warning-text">
-                  ⚠️ This action cannot be undone. All your data will be permanently deleted.
+                  <div className="notice-warning">
+                    <AppIcon name="alert" size={18} />
+                    <p>This action cannot be undone. All your data will be permanently deleted.</p>
+                  </div>
                 </p>
                 {!showTerminateConfirm ? (
                   <button
@@ -1213,7 +1212,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                     className="btn btn-danger"
                     onClick={() => setShowTerminateConfirm(true)}
                   >
-                    🗑️ Terminate Account
+                    <AppIcon name="trash" size={16} /> Terminate Account
                   </button>
                 ) : (
                   <div className="terminate-confirm">
@@ -1274,12 +1273,12 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       {showCoachSafetyModal && (
         <div className="modal-overlay" onClick={() => setShowCoachSafetyModal(false)}>
           <div className="modal coach-safety-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>⚠️ Coach Safety Check</h3>
+            <h3><AppIcon name="alert" size={20} /> Coach Safety Check</h3>
             <p>You are the only coach of a team. You must take action before you can delete your account.</p>
             
             <div className="coach-safety-options">
               <div className="option-card">
-                <h4>👑 Promote Someone to Coach</h4>
+                <h4><AppIcon name="crown" size={18} /> Promote Someone to Coach</h4>
                 <p>Promote another team member to coach so you can delete your account safely.</p>
                 <button 
                   className="btn btn-primary"
@@ -1297,7 +1296,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               </div>
               
               <div className="option-card">
-                <h4>🗑️ Delete Team</h4>
+                <h4><AppIcon name="trash" size={18} /> Delete Team</h4>
                 <p>Delete the entire team if you no longer want to manage it.</p>
                 <button 
                   className="btn btn-danger"
@@ -1331,12 +1330,12 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       {showTournamentSafetyModal && (
         <div className="modal-overlay" onClick={() => setShowTournamentSafetyModal(false)}>
           <div className="modal tournament-safety-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>⚠️ Tournament Organizer Safety Check</h3>
+            <h3><AppIcon name="alert" size={20} /> Tournament Organizer Safety Check</h3>
             <p>You are the last organizer of one or more tournaments. You must take action before you can delete your account.</p>
             
             <div className="tournament-safety-options">
               <div className="option-card">
-                <h4>✉️ Add Another Organizer</h4>
+                <h4><AppIcon name="mail" size={18} /> Add Another Organizer</h4>
                 <p>Invite someone else to be an organizer of your tournaments so you can delete your account safely.</p>
                 <button 
                   className="btn btn-primary"
@@ -1353,7 +1352,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               </div>
               
               <div className="option-card">
-                <h4>🗑️ Delete Tournaments</h4>
+                <h4><AppIcon name="trash" size={18} /> Delete Tournaments</h4>
                 <p>Delete the tournaments if you no longer want to manage them.</p>
                 <button 
                   className="btn btn-danger"

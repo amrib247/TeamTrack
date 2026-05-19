@@ -24,101 +24,23 @@
 
 .team-header h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
-.btn-back {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.btn-back:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-
-.btn-logout {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.btn-logout:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-
-.team-layout {
-  display: flex;
-  min-height: calc(100vh - 80px);
-}
-
-.team-sidebar {
-  width: 280px;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: var(--space-xl) var(--space-lg);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
-  text-align: left;
-  width: 100%;
-  color: var(--color-text-muted);
-  font-family: inherit;
-  font-size: 0.95rem;
-}
-
-.sidebar-item:hover {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border);
-}
-
-.sidebar-item.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
-.team-page .sidebar-item.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
+/* Shell layout: see AppShell.css */
 
 .sidebar-icon {
-  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
-  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: var(--color-primary);
 }
 
 .sidebar-text {
@@ -126,20 +48,12 @@
   font-size: 0.95rem;
 }
 
-.team-content {
-  flex: 1;
-  padding: var(--space-xl);
-  background: var(--color-surface);
-  margin: var(--space-md);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-}
-
 .team-content h2 {
   color: var(--color-text);
   margin-bottom: var(--space-lg);
-  font-size: 1.8rem;
+  font-size: var(--text-xl);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
 .content-settings {
@@ -151,7 +65,7 @@
   padding: var(--space-lg);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-border-strong);
+  border-left: 3px solid var(--color-primary);
   margin-bottom: var(--space-xl);
 }
 
@@ -271,18 +185,47 @@
 }
 
 .notification-settings-hint {
-  color: var(--color-text-muted, #666);
-  margin: 0 0 var(--space-lg);
-  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md);
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
-.notification-toggle .checkbox-label {
+.notification-settings .notification-toggle-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) 0;
   cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
   font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.notification-settings .notification-toggle-row input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.notification-settings .notification-toggle-row span {
+  line-height: 1.4;
+}
+
+.notification-settings .notification-lead-time {
+  margin-bottom: var(--space-md);
+}
+
+.notification-settings .notification-lead-time label {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.8125rem;
 }
 
 .notification-message {
@@ -291,11 +234,11 @@
 }
 
 .notification-message.success {
-  color: var(--color-success, #2e7d32);
+  color: var(--color-success);
 }
 
 .notification-message.error {
-  color: var(--color-danger, #c62828);
+  color: var(--color-danger);
 }
 
 .edit-team-form {
@@ -551,25 +494,27 @@
   }
 }
 
-.content-roster {
-  padding: var(--space-xl);
+.content-roster,
+.content-schedule,
+.content-tasks,
+.content-chat,
+.content-tournaments,
+.content-settings {
+  padding: var(--space-lg);
 }
 
-.content-tournaments {
-  padding: var(--space-xl);
-}
 
 .content-tournaments h2 {
   color: var(--color-text);
   margin: 0 0 var(--space-lg) 0;
-  font-size: 1.8rem;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
 .content-tournaments h3 {
   color: var(--color-text);
   margin: var(--space-lg) 0 var(--space-md) 0;
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -600,15 +545,20 @@
   gap: var(--space-md);
 }
 
-.tournament-invite-card {
+.tournament-invite-card,
+.enrolled-tournament-card {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--space-md);
   padding: var(--space-md);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
   transition: border-color var(--transition);
+}
+
+.tournament-invite-card {
+  background: var(--color-bg);
 }
 
 .tournament-invite-card:hover {
@@ -619,17 +569,22 @@
   flex: 1;
 }
 
-.invite-tournament {
+.invite-tournament,
+.tournament-name strong {
   font-weight: 600;
   color: var(--color-text);
+  font-size: 1rem;
+  display: block;
   margin-bottom: var(--space-sm);
+  word-break: break-word;
 }
 
-.tournament-info {
+.content-tournaments .tournament-info,
+.content-tournaments .tournament-details {
   display: flex;
-  gap: var(--space-md);
+  flex-wrap: wrap;
+  gap: var(--space-xs);
   margin-bottom: var(--space-sm);
-  font-size: 0.85rem;
 }
 
 .tournament-info span {
@@ -645,9 +600,12 @@
   color: var(--color-text-muted);
 }
 
-.invite-actions {
+.invite-actions,
+.enrolled-actions {
   display: flex;
   gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .enrolled-tournaments {
@@ -669,16 +627,6 @@
   gap: var(--space-md);
 }
 
-.enrolled-tournament-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-md);
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  transition: border-color var(--transition);
-}
 
 .enrolled-tournament-card:hover {
   border-color: var(--color-border-strong);
@@ -690,11 +638,8 @@
   margin-bottom: var(--space-sm);
 }
 
-.tournament-details {
-  display: flex;
-  gap: var(--space-md);
-  margin-bottom: var(--space-sm);
-  font-size: 0.85rem;
+.content-tournaments .tournament-details span {
+  font-size: 0.8125rem;
 }
 
 .tournament-details span {
@@ -741,24 +686,35 @@
 }
 
 .roster-header {
+  margin-bottom: var(--space-lg);
+}
+
+.roster-header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg);
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-sm);
 }
 
 .roster-header h2 {
   color: var(--color-text);
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.25rem;
   font-weight: 600;
 }
 
 .roster-header-actions {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.roster-header .coach-hint {
+  width: 100%;
+  margin: 0;
 }
 
 .coach-hint {
@@ -780,8 +736,11 @@
 }
 
 .coach-count-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.9rem;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -1161,9 +1120,17 @@
   padding: var(--space-2xl);
 }
 
+.coach-safety-modal h3,
+.coach-safety-modal .option-card h4 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
 .coach-safety-modal h3 {
   margin-bottom: var(--space-md);
-  color: var(--color-error-text);
+  color: var(--color-primary);
   text-align: center;
   font-size: 1.5rem;
 }
@@ -1244,7 +1211,7 @@
 
 .content-chat {
   height: 100%;
-  min-height: 600px;
+  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
@@ -1252,5 +1219,5 @@
 .content-chat .chat-container {
   flex: 1;
   height: 100%;
-  min-height: 600px;
+  min-height: 400px;
 }

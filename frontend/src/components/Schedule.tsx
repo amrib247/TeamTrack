@@ -11,6 +11,7 @@ import {
 import { eventService } from '../services/eventService';
 import { tournamentService } from '../services/tournamentService';
 import AvailabilityModal from './AvailabilityModal';
+import AppIcon from './icons/AppIcon';
 import './Schedule.css';
 
 // Calendar helper functions
@@ -482,7 +483,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                                   }}
                                   title="View Availability"
                                 >
-                                  👥
+                                  <AppIcon name="users" size={16} />
                                 </button>
                               </div>
                             ))}

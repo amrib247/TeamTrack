@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Task, TaskUser } from '../types/Task';
 import { formatScheduledDate, formatScheduledTime, getUserTimeZone } from '../lib/timezoneUtils';
 import { taskService } from '../services/taskService';
+import AppIcon from './icons/AppIcon';
 import './TaskDetailsModal.css';
 
 interface TaskDetailsModalProps {
@@ -101,7 +102,10 @@ const TaskDetailsModal: React.FC<TaskDetailsModalProps> = ({ task, onClose }) =>
                 </div>
               ) : (
                 <div className="status-badge warning">
-                  ⚠ Needs {task.minSignups - currentSignups} more signup(s)
+                  <span className="signup-warning">
+                    <AppIcon name="alert" size={14} />
+                    Needs {task.minSignups - currentSignups} more signup(s)
+                  </span>
                 </div>
               )}
               

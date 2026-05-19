@@ -2,6 +2,7 @@
 import type { Tournament } from '../types/Auth';
 import './Tournament.css';
 import { useNavigate } from 'react-router-dom';
+import AppIcon from './icons/AppIcon';
 
 interface TournamentProps {
   tournament: Tournament;
@@ -30,9 +31,13 @@ function Tournament({ tournament }: TournamentProps) {
         <h3 className="tournament-name">{tournament.name}</h3>
         <div className="tournament-status">
           {isFull ? (
-            <span className="status-full">🏆 Full</span>
+            <span className="status-badge status-full status-badge--compact">
+              <AppIcon name="trophy" size={14} /> Full
+            </span>
           ) : (
-            <span className="status-open">📝 Open</span>
+            <span className="status-badge status-open status-badge--compact">
+              <AppIcon name="check" size={14} /> Open
+            </span>
           )}
         </div>
       </div>

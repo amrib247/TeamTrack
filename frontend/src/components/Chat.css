@@ -18,8 +18,9 @@
 
 .chat-header h2 {
   margin: 0 0 var(--space-sm) 0;
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
 .chat-subtitle {

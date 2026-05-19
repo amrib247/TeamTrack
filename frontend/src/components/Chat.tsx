@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { chatService } from '../services/chatService';
 import { storageService } from '../services/storageService';
 import type { ChatMessage } from '../types/Auth';
+import AppIcon from './icons/AppIcon';
 import './Chat.css';
 
 interface ChatProps {
@@ -242,7 +243,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     return (
       <div className="chat-container">
         <div className="chat-header">
-          <h2>💬 {teamName} Chat</h2>
+          <h2 className="section-heading"><AppIcon name="message" size={22} /> {teamName} Chat</h2>
           <p className="chat-subtitle">Team communication hub</p>
         </div>
         <div className="chat-error">
@@ -258,7 +259,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2>💬 {teamName} Chat</h2>
+        <h2 className="section-heading"><AppIcon name="message" size={22} /> {teamName} Chat</h2>
         <p className="chat-subtitle">Team communication hub</p>
       </div>
 
@@ -313,7 +314,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
                 {message.messageType === 'FILE' && message.fileUrl && (
                   <div className="message-file">
                     <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
-                      📎 {message.fileName || 'Download file'}
+                      <AppIcon name="paperclip" size={14} /> {message.fileName || 'Download file'}
                     </a>
                   </div>
                 )}
@@ -325,7 +326,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
                   className="message-delete-btn"
                   title="Delete message"
                 >
-                  🗑️
+                  <AppIcon name="trash" size={16} />
                 </button>
               )}
             </div>

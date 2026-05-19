@@ -67,8 +67,10 @@
 }
 
 .warning-icon {
-  font-size: 3rem;
+  display: flex;
+  justify-content: center;
   margin-bottom: 16px;
+  color: var(--color-warning);
 }
 
 .warning-message {

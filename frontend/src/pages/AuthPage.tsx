@@ -254,7 +254,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
 
               <form onSubmit={handleSubmit} className="auth-form">
                 <div className="form-group">
-                  <label htmlFor="email">Email *</label>
+                  <label htmlFor="email" className="form-label">Email *</label>
                   <input
                     type="email"
                     id="email"
@@ -267,7 +267,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="password">Password *</label>
+                  <label htmlFor="password" className="form-label">Password *</label>
                   <input
                     type="password"
                     id="password"
@@ -284,7 +284,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
                   <>
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="firstName">First Name *</label>
+                        <label htmlFor="firstName" className="form-label">First Name *</label>
                         <input
                           type="text"
                           id="firstName"
@@ -296,7 +296,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
                         />
                       </div>
                       <div className="form-group">
-                        <label htmlFor="lastName">Last Name *</label>
+                        <label htmlFor="lastName" className="form-label">Last Name *</label>
                         <input
                           type="text"
                           id="lastName"
@@ -310,7 +310,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="phoneNumber">Phone Number</label>
+                      <label htmlFor="phoneNumber" className="form-label">Phone Number</label>
                       <input
                         type="tel"
                         id="phoneNumber"
@@ -323,7 +323,7 @@ function AuthPage({ onAuthSuccess, pendingVerificationEmail = null }: AuthPagePr
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="dateOfBirth">Date of Birth *</label>
+                      <label htmlFor="dateOfBirth" className="form-label">Date of Birth *</label>
                       <input
                         type="date"
                         id="dateOfBirth"

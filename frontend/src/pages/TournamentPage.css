@@ -17,102 +17,23 @@
 
 .tournament-header h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
-.btn-back {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.btn-back:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-
-.btn-logout {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.875rem;
-  transition: border-color var(--transition), background var(--transition);
-}
-
-.btn-logout:hover {
-  border-color: var(--color-border-strong);
-  background: var(--color-bg);
-}
-
-.tournament-layout {
-  display: flex;
-  min-height: calc(100vh - 80px);
-}
-
-.tournament-sidebar {
-  width: 280px;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: var(--space-xl) var(--space-lg);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid transparent;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), color var(--transition);
-  text-align: left;
-  width: 100%;
-  color: var(--color-text-muted);
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 500;
-}
-
-.sidebar-item:hover {
-  background: var(--color-bg);
-  border-color: var(--color-border);
-  color: var(--color-text);
-}
-
-.sidebar-item.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
-.tournament-page .sidebar-item.active {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
+/* Shell layout: see AppShell.css */
 
 .sidebar-icon {
-  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
-  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: var(--color-primary);
 }
 
 .sidebar-text {
@@ -120,15 +41,8 @@
   font-weight: 500;
 }
 
-.tournament-content {
-  flex: 1;
-  padding: var(--space-xl);
-  background: var(--color-surface);
-  margin: var(--space-xl);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
+.tournament-content .tab-content {
+  padding: var(--space-lg);
 }
 
 .tab-content {

@@ -4,6 +4,7 @@ import { tournamentService } from '../services/tournamentService';
 import type { Tournament, AuthResponse, UpdateTournamentRequest } from '../types/Auth';
 import TournamentSafetyPrompt from '../components/TournamentSafetyPrompt';
 import TournamentSchedule from '../components/TournamentSchedule';
+import AppIcon from '../components/icons/AppIcon';
 import './TournamentPage.css';
 
 interface TournamentPageProps {
@@ -450,7 +451,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                 className="btn btn-invite"
                 onClick={() => setShowInviteForm(true)}
               >
-                ✉️ Invite Organizer
+                <AppIcon name="mail" size={16} /> Invite Organizer
               </button>
             </div>
             <div className="organizers-content">
@@ -571,7 +572,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                 <h3>Tournament Teams</h3>
                 {tournament && tournament.teamCount >= tournament.maxSize ? (
                   <div className="tournament-full-notice">
-                    <span className="full-indicator">🏆 Tournament Full ({tournament.teamCount}/{tournament.maxSize})</span>
+                    <span className="status-badge status-full">
+                      <AppIcon name="trophy" size={14} />
+                      Tournament Full ({tournament.teamCount}/{tournament.maxSize})
+                    </span>
                     <button 
                       className="btn btn-invite"
                       disabled
@@ -815,7 +819,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                       className="btn btn-primary"
                       onClick={handleEditToggle}
                     >
-                      ✏️ Edit Tournament
+                      <AppIcon name="edit" size={16} /> Edit Tournament
                     </button>
                   </div>
                 )}
@@ -824,7 +828,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               {/* Delete Tournament */}
               <div className="delete-section">
                 <h4>Danger Zone</h4>
-                <p>⚠️ <strong>Warning:</strong> Deleting a tournament will permanently remove all tournament data, including team registrations and organizer information. This action cannot be undone.</p>
+                <div className="notice-warning">
+                  <AppIcon name="alert" size={18} />
+                  <p><strong>Warning:</strong> Deleting a tournament will permanently remove all tournament data, including team registrations and organizer information. This action cannot be undone.</p>
+                </div>
                 
                 {!showDeleteConfirm ? (
                   <button
@@ -832,7 +839,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                     className="btn btn-danger"
                     onClick={() => setShowDeleteConfirm(true)}
                   >
-                    🗑️ Delete Tournament
+                    <AppIcon name="trash" size={16} /> Delete Tournament
                   </button>
                 ) : (
                   <div className="delete-confirm">
@@ -873,7 +880,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               <div className="leave-section">
                 <h4>Leave Tournament</h4>
                 <div className="leave-warning">
-                  <h5>🚪 <strong>Leave Tournament:</strong></h5>
+                  <h5><AppIcon name="logout" size={16} /> <strong>Leave Tournament:</strong></h5>
                   <p>You will no longer be an organizer of this tournament. You can rejoin if invited again.</p>
                 </div>
                 
@@ -883,7 +890,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                     className="btn btn-warning"
                     onClick={() => setShowLeaveConfirm(true)}
                   >
-                    🚪 Leave Tournament
+                    <AppIcon name="logout" size={16} /> Leave Tournament
                   </button>
                 ) : (
                   <div className="leave-confirm">
@@ -938,7 +945,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   return (
     <div className="tournament-page">
       {/* Header */}
-      <div className="tournament-header">
+      <div className="tournament-header app-shell-header">
         <button className="btn btn-back" onClick={() => navigate('/home')}>
           ← Back to Home
         </button>
@@ -948,15 +955,15 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
         </button>
       </div>
 
-      <div className="tournament-layout">
+      <div className="tournament-layout app-shell-layout">
         {/* Sidebar */}
-        <div className="tournament-sidebar">
+        <div className="tournament-sidebar app-shell-sidebar">
           <nav className="sidebar-nav">
             <button
               className={`sidebar-item ${activeTab === 'organizers' ? 'active' : ''}`}
               onClick={() => setActiveTab('organizers')}
             >
-              <span className="sidebar-icon">👑</span>
+              <span className="sidebar-icon"><AppIcon name="crown" size={18} /></span>
               <span className="sidebar-text">Organizers</span>
             </button>
             
@@ -964,7 +971,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               className={`sidebar-item ${activeTab === 'teams' ? 'active' : ''}`}
               onClick={() => setActiveTab('teams')}
             >
-              <span className="sidebar-icon">👥</span>
+              <span className="sidebar-icon"><AppIcon name="users" size={18} /></span>
               <span className="sidebar-text">Teams</span>
             </button>
             
@@ -972,7 +979,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               className={`sidebar-item ${activeTab === 'scheduling' ? 'active' : ''}`}
               onClick={() => setActiveTab('scheduling')}
             >
-              <span className="sidebar-icon">📅</span>
+              <span className="sidebar-icon"><AppIcon name="calendar" size={18} /></span>
               <span className="sidebar-text">Scheduling</span>
             </button>
             
@@ -980,14 +987,14 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveTab('settings')}
             >
-              <span className="sidebar-icon">⚙️</span>
+              <span className="sidebar-icon"><AppIcon name="settings" size={18} /></span>
               <span className="sidebar-text">Settings</span>
             </button>
           </nav>
         </div>
 
         {/* Main Content */}
-        <div className="tournament-content">
+        <div className="tournament-content app-shell-main-card">
           {renderTabContent()}
         </div>
       </div>

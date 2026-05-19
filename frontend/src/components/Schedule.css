@@ -19,7 +19,9 @@
 .schedule-header h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
 .schedule-controls {
@@ -111,8 +113,8 @@
 .event-header h4 {
   margin: 0;
   color: var(--color-text);
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: 600;
 }
 
 .event-actions {
@@ -454,8 +456,8 @@
 }
 
 .score-item .detail-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: 600;
   color: var(--color-text);
 }
 

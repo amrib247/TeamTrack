@@ -17,7 +17,9 @@
 .task-list-header h3 {
   margin: 0;
   color: var(--color-text);
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
 }
 
 .task-list-controls {
