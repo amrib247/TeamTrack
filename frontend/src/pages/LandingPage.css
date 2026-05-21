@@ -593,6 +593,21 @@
   margin: 0;
 }
 
+.footer-bottom p + p {
+  margin-top: var(--space-xs);
+}
+
+.footer-section a,
+.footer-bottom a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.footer-section a:hover,
+.footer-bottom a:hover {
+  text-decoration: underline;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .hero-content {

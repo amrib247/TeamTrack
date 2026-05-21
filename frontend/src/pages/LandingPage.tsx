@@ -315,14 +315,20 @@ function LandingPage() {
               <h4>Support</h4>
               <ul>
                 <li>Help Center</li>
-                <li>Contact Us</li>
+                <li>
+                  <a href="mailto:teamtrack1234@yahoo.com">teamtrack1234@yahoo.com</a>
+                </li>
                 <li>Documentation</li>
                 <li>Community</li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2026 TeamTrack. All rights reserved.</p>
+            <p>&copy; 2025 TeamTrack. All rights reserved.</p>
+            <p>
+              Contact:{' '}
+              <a href="mailto:teamtrack1234@yahoo.com">teamtrack1234@yahoo.com</a>
+            </p>
           </div>
         </div>
       </footer>
