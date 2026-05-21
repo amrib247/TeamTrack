@@ -5,9 +5,10 @@ import AppIcon from './icons/AppIcon';
 
 interface TournamentProps {
   tournament: Tournament;
+  roleBadge?: 'Organizer' | 'Referee';
 }
 
-function Tournament({ tournament }: TournamentProps) {
+function Tournament({ tournament, roleBadge = 'Organizer' }: TournamentProps) {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
@@ -34,6 +35,9 @@ function Tournament({ tournament }: TournamentProps) {
         </div>
       </div>
       <div className="team-details">
+        <div className="team-role">
+          <strong>Your role:</strong> {roleBadge}
+        </div>
         <div className="team-role">
           <strong>Organizers:</strong> {tournament.organizerCount}
         </div>

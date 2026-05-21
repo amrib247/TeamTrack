@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tournamentService } from '../services/tournamentService';
-import type { Tournament, AuthResponse, UpdateTournamentRequest } from '../types/Auth';
+import type {
+  Tournament,
+  AuthResponse,
+  UpdateTournamentRequest,
+  ReminderLeadTime,
+} from '../types/Auth';
+import { REMINDER_LEAD_TIME_OPTIONS } from '../types/Auth';
+import { resolveRefereeNotificationPreferences } from '../services/tournamentService';
 import TournamentSafetyPrompt from '../components/TournamentSafetyPrompt';
 import TournamentSchedule from '../components/TournamentSchedule';
 import AppIcon from '../components/icons/AppIcon';
@@ -15,10 +22,15 @@ interface TournamentPageProps {
 function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   const { tournamentId } = useParams<{ tournamentId: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'organizers' | 'teams' | 'scheduling' | 'settings'>('organizers');
+  const [activeTab, setActiveTab] = useState<'organizers' | 'referees' | 'teams' | 'scheduling' | 'settings'>('organizers');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [userRole, setUserRole] = useState<'organizer' | 'referee' | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const isOrganizer = userRole === 'organizer';
+  const isReferee = userRole === 'referee';
+  const canManage = isOrganizer;
   
   // Organizers state
   const [organizers, setOrganizers] = useState<any[]>([]);
@@ -66,6 +78,29 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   const [enrolledTeams, setEnrolledTeams] = useState<any[]>([]);
   const [loadingEnrolledTeams, setLoadingEnrolledTeams] = useState(false);
 
+  // Referees state
+  const [referees, setReferees] = useState<any[]>([]);
+  const [pendingRefereeInvites, setPendingRefereeInvites] = useState<any[]>([]);
+  const [loadingReferees, setLoadingReferees] = useState(false);
+  const [showRefereeInviteForm, setShowRefereeInviteForm] = useState(false);
+  const [refereeInviteForm, setRefereeInviteForm] = useState({ email: '' });
+  const [invitingReferee, setInvitingReferee] = useState(false);
+  const [refereeInviteError, setRefereeInviteError] = useState<string>('');
+
+  // Referee leave state
+  const [showRefereeLeaveConfirm, setShowRefereeLeaveConfirm] = useState(false);
+  const [refereeLeaveConfirm, setRefereeLeaveConfirm] = useState('');
+  const [isLeavingAsReferee, setIsLeavingAsReferee] = useState(false);
+
+  // Referee notification prefs
+  const [refereeTournamentId, setRefereeTournamentId] = useState<string | null>(null);
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    emailNotificationsEnabled: true,
+    reminderLeadTime: '1d' as ReminderLeadTime,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+
   useEffect(() => {
     if (!tournamentId) {
       setError('Tournament ID is required');
@@ -76,11 +111,24 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
     const loadTournament = async () => {
       try {
         setLoading(true);
-        const tournamentData = await tournamentService.getTournamentById(tournamentId);
-        if (tournamentData) {
-          setTournament(tournamentData);
-        } else {
+        setAccessDenied(false);
+        const [tournamentData, role] = await Promise.all([
+          tournamentService.getTournamentById(tournamentId),
+          tournamentService.getUserTournamentRole(currentUser.id, tournamentId),
+        ]);
+        if (!tournamentData) {
           setError('Tournament not found');
+          return;
+        }
+        if (!role) {
+          setAccessDenied(true);
+          setTournament(tournamentData);
+          return;
+        }
+        setTournament(tournamentData);
+        setUserRole(role);
+        if (role === 'referee') {
+          setActiveTab('scheduling');
         }
       } catch (error) {
         console.error('Failed to load tournament:', error);
@@ -91,7 +139,46 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
     };
 
     loadTournament();
-  }, [tournamentId]);
+  }, [tournamentId, currentUser.id]);
+
+  useEffect(() => {
+    const loadRefereeNotificationPrefs = async () => {
+      if (!tournamentId || !isReferee) return;
+      try {
+        const membership = await tournamentService.getRefereeTournamentMembership(
+          currentUser.id,
+          tournamentId
+        );
+        if (!membership) return;
+        setRefereeTournamentId(membership.id);
+        setNotificationPrefs(resolveRefereeNotificationPreferences(membership));
+      } catch (err) {
+        console.error('Failed to load referee notification preferences:', err);
+      }
+    };
+
+    loadRefereeNotificationPrefs();
+  }, [tournamentId, currentUser.id, isReferee]);
+
+  const handleSaveRefereeNotificationPrefs = async () => {
+    if (!refereeTournamentId) return;
+    setSavingNotifications(true);
+    setNotificationMessage('');
+    try {
+      await tournamentService.updateRefereeNotificationPreferences(
+        refereeTournamentId,
+        currentUser.id,
+        notificationPrefs
+      );
+      setNotificationMessage('Reminder preferences saved.');
+    } catch (err) {
+      setNotificationMessage(
+        err instanceof Error ? err.message : 'Failed to save preferences'
+      );
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   // Fetch organizers when organizers tab is active
   useEffect(() => {
@@ -112,6 +199,36 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
     
     loadOrganizers();
   }, [activeTab, tournamentId]);
+
+  // Fetch referees when referees or scheduling tab is active
+  useEffect(() => {
+    const loadReferees = async () => {
+      if (
+        (activeTab === 'referees' || activeTab === 'scheduling') &&
+        tournamentId &&
+        userRole
+      ) {
+        try {
+          setLoadingReferees(true);
+          const [refereesData, pendingData] = await Promise.all([
+            tournamentService.getTournamentReferees(tournamentId),
+            canManage
+              ? tournamentService.getPendingRefereeInvitesForTournament(tournamentId)
+              : Promise.resolve([]),
+          ]);
+          setReferees(refereesData);
+          setPendingRefereeInvites(pendingData);
+        } catch (error) {
+          console.error('Failed to load referees:', error);
+          setError('Failed to load referees');
+        } finally {
+          setLoadingReferees(false);
+        }
+      }
+    };
+
+    loadReferees();
+  }, [activeTab, tournamentId, canManage, userRole]);
 
   // Fetch team invites when teams tab is active
   useEffect(() => {
@@ -418,10 +535,102 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
     setShowDeleteConfirm(true);
   };
 
+  const handleInviteReferee = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!refereeInviteForm.email.trim()) {
+      setRefereeInviteError('Please enter an email address');
+      return;
+    }
+
+    if (!tournamentId) return;
+
+    try {
+      setInvitingReferee(true);
+      setRefereeInviteError('');
+
+      await tournamentService.inviteRefereeToTournament(tournamentId, refereeInviteForm.email.trim());
+
+      alert('Referee invited successfully!');
+      setRefereeInviteForm({ email: '' });
+      setShowRefereeInviteForm(false);
+
+      if (activeTab === 'referees') {
+        const [refereesData, pendingData] = await Promise.all([
+          tournamentService.getTournamentReferees(tournamentId),
+          tournamentService.getPendingRefereeInvitesForTournament(tournamentId),
+        ]);
+        setReferees(refereesData);
+        setPendingRefereeInvites(pendingData);
+      }
+    } catch (err) {
+      setRefereeInviteError(err instanceof Error ? err.message : 'Failed to invite referee');
+    } finally {
+      setInvitingReferee(false);
+    }
+  };
+
+  const handleRemoveReferee = async (userId: string) => {
+    if (!tournamentId) return;
+
+    if (!window.confirm('Remove this referee from the tournament?')) {
+      return;
+    }
+
+    try {
+      await tournamentService.removeRefereeFromTournament(tournamentId, userId);
+      const [refereesData, pendingData] = await Promise.all([
+        tournamentService.getTournamentReferees(tournamentId),
+        tournamentService.getPendingRefereeInvitesForTournament(tournamentId),
+      ]);
+      setReferees(refereesData);
+      setPendingRefereeInvites(pendingData);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to remove referee');
+    }
+  };
+
+  const handleLeaveAsReferee = async () => {
+    if (!tournamentId) return;
+
+    if (refereeLeaveConfirm !== 'LEAVE') {
+      setError('Please type LEAVE to confirm leaving the tournament');
+      return;
+    }
+
+    try {
+      setIsLeavingAsReferee(true);
+      setError('');
+
+      await tournamentService.removeRefereeFromTournament(tournamentId, currentUser.id);
+
+      alert('You have left the tournament successfully!');
+      navigate('/home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to leave tournament');
+    } finally {
+      setIsLeavingAsReferee(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="tournament-page">
         <div className="loading-spinner">Loading tournament...</div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="tournament-page">
+        <div className="error-container">
+          <h2>Access Denied</h2>
+          <p>You do not have access to this tournament. Ask an organizer to invite you as a referee.</p>
+          <button className="btn btn-primary" onClick={() => navigate('/home')}>
+            Back to Home
+          </button>
+        </div>
       </div>
     );
   }
@@ -447,12 +656,14 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
           <div className="tab-content active">
             <div className="organizers-header">
               <h3>Tournament Organizers</h3>
-              <button 
-                className="btn btn-invite"
-                onClick={() => setShowInviteForm(true)}
-              >
-                <AppIcon name="mail" size={16} /> Invite Organizer
-              </button>
+              {canManage && (
+                <button 
+                  className="btn btn-invite"
+                  onClick={() => setShowInviteForm(true)}
+                >
+                  <AppIcon name="mail" size={16} /> Invite Organizer
+                </button>
+              )}
             </div>
             <div className="organizers-content">
               {/* Organizers List */}
@@ -500,9 +711,8 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                 </div>
               )}
             </div>
-            
-            {/* Invite Form Modal */}
-            {showInviteForm && (
+
+            {canManage && showInviteForm && (
               <div className="invite-form-modal">
                 <div className="invite-form-content">
                   <h3>Invite User to Tournament</h3>
@@ -554,12 +764,167 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
           </div>
         );
 
+      case 'referees':
+        return (
+          <div className="tab-content active">
+            <div className="organizers-header">
+              <h3>Tournament Referees</h3>
+              {canManage && (
+                <button
+                  type="button"
+                  className="btn btn-invite"
+                  onClick={() => setShowRefereeInviteForm(true)}
+                >
+                  <AppIcon name="mail" size={16} /> Invite Referee
+                </button>
+              )}
+            </div>
+            <div className="organizers-content">
+              {loadingReferees ? (
+                <div className="loading-message">
+                  <p>Loading referees...</p>
+                </div>
+              ) : referees.length > 0 ? (
+                <div className="organizers-container">
+                  {referees.map((referee) => (
+                    <div key={referee.refereeId} className="organizer-member">
+                      <div className="member-avatar">
+                        {referee.profilePhotoUrl ? (
+                          <img
+                            src={referee.profilePhotoUrl}
+                            alt={`${referee.firstName} ${referee.lastName}`}
+                            className="profile-photo"
+                          />
+                        ) : (
+                          <div className="profile-initials">
+                            {referee.firstName.charAt(0)}{referee.lastName.charAt(0)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="member-info">
+                        <div className="member-name">
+                          {referee.firstName} {referee.lastName}
+                        </div>
+                        <div className="member-role">Tournament Referee</div>
+                        <div className="member-details">
+                          <span className="member-email">{referee.email}</span>
+                          {referee.phoneNumber && (
+                            <span className="member-phone">Phone: {referee.phoneNumber}</span>
+                          )}
+                        </div>
+                      </div>
+                      {canManage && (
+                        <div className="member-actions">
+                          <button
+                            type="button"
+                            className="btn btn-small btn-danger"
+                            onClick={() => handleRemoveReferee(referee.userId)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-organizers">
+                  <p>No referees found for this tournament.</p>
+                </div>
+              )}
+
+              {canManage && (
+                <div className="pending-invites">
+                  <h4>Pending Referee Invites</h4>
+                  {pendingRefereeInvites.length > 0 ? (
+                    <div className="organizers-container">
+                      {pendingRefereeInvites.map((invite) => (
+                        <div key={invite.refereeTournamentId} className="organizer-member">
+                          <div className="member-avatar">
+                            <div className="profile-initials">
+                              {String(invite.firstName).charAt(0)}{String(invite.lastName).charAt(0)}
+                            </div>
+                          </div>
+                          <div className="member-info">
+                            <div className="member-name">
+                              {invite.firstName} {invite.lastName}
+                            </div>
+                            <div className="member-role">Pending Referee Invite</div>
+                            <div className="member-details">
+                              <span className="member-email">{invite.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No pending referee invites.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {canManage && showRefereeInviteForm && (
+              <div className="invite-form-modal">
+                <div className="invite-form-content">
+                  <h3>Invite Referee to Tournament</h3>
+                  <form onSubmit={handleInviteReferee}>
+                    <div className="form-group">
+                      <label htmlFor="refereeInviteEmail">Email Address</label>
+                      <input
+                        type="email"
+                        id="refereeInviteEmail"
+                        name="email"
+                        value={refereeInviteForm.email}
+                        onChange={(e) => setRefereeInviteForm((prev) => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter user's email address"
+                        required
+                      />
+                    </div>
+
+                    {refereeInviteError && (
+                      <div className="error-message">
+                        {refereeInviteError}
+                      </div>
+                    )}
+
+                    <div className="form-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowRefereeInviteForm(false);
+                          setRefereeInviteForm({ email: '' });
+                          setRefereeInviteError('');
+                        }}
+                        disabled={invitingReferee}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                        disabled={invitingReferee}
+                      >
+                        {invitingReferee ? 'Inviting...' : 'Send Invite'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
       case 'scheduling':
         return (
           <div className="tab-content active">
             <TournamentSchedule
               tournamentId={tournamentId || ''}
               tournamentName={tournament?.name || 'Tournament'}
+              canManageEvents={isOrganizer}
+              canAssignReferees={isOrganizer}
+              tournamentReferees={referees}
             />
           </div>
         );
@@ -570,32 +935,34 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
             <div className="teams-content">
               <div className="teams-header">
                 <h3>Tournament Teams</h3>
-                {tournament && tournament.teamCount >= tournament.maxSize ? (
-                  <div className="tournament-full-notice">
-                    <span className="status-badge status-full">
-                      <AppIcon name="trophy" size={14} />
-                      Tournament Full ({tournament.teamCount}/{tournament.maxSize})
-                    </span>
+                {canManage && (
+                  tournament && tournament.teamCount >= tournament.maxSize ? (
+                    <div className="tournament-full-notice">
+                      <span className="status-badge status-full">
+                        <AppIcon name="trophy" size={14} />
+                        Tournament Full ({tournament.teamCount}/{tournament.maxSize})
+                      </span>
+                      <button 
+                        className="btn btn-invite"
+                        disabled
+                        title="Tournament is at maximum capacity"
+                      >
+                        Invite Team
+                      </button>
+                    </div>
+                  ) : (
                     <button 
                       className="btn btn-invite"
-                      disabled
-                      title="Tournament is at maximum capacity"
+                      onClick={() => setShowTeamInviteForm(true)}
                     >
                       Invite Team
                     </button>
-                  </div>
-                ) : (
-                  <button 
-                    className="btn btn-invite"
-                    onClick={() => setShowTeamInviteForm(true)}
-                  >
-                    Invite Team
-                  </button>
+                  )
                 )}
               </div>
 
               {/* Team Invite Form Modal */}
-              {showTeamInviteForm && (
+              {canManage && showTeamInviteForm && (
                 <div className="invite-form-modal">
                   <div className="invite-form-content">
                     <h3>Invite Team to Tournament</h3>
@@ -690,14 +1057,16 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                           <div className="member-name">Team ID: {teamInvite.teamId.substring(0, 8)}...</div>
                           <div className="member-role">Joined: {new Date(teamInvite.createdAt).toLocaleDateString()}</div>
                         </div>
-                        <button 
-                          type="button"
-                          className="btn btn-danger"
-                          onClick={() => handleRemoveTeam(teamInvite.teamId)}
-                          disabled={invitingTeam}
-                        >
-                          Remove
-                        </button>
+                        {canManage && (
+                          <button 
+                            type="button"
+                            className="btn btn-danger"
+                            onClick={() => handleRemoveTeam(teamInvite.teamId)}
+                            disabled={invitingTeam}
+                          >
+                            Remove
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -766,6 +1135,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
               </div>
 
               {/* Edit Tournament Information */}
+              {canManage && (
               <div className="edit-mode">
                 <strong>Edit Tournament Information</strong>
                 {isEditMode ? (
@@ -824,8 +1194,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Delete Tournament */}
+              {canManage && (
               <div className="delete-section">
                 <h4>Danger Zone</h4>
                 <div className="notice-warning">
@@ -875,8 +1247,10 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                   </div>
                 )}
               </div>
+              )}
 
-              {/* Leave Tournament */}
+              {/* Leave Tournament (organizer) */}
+              {canManage && (
               <div className="leave-section">
                 <h4>Leave Tournament</h4>
                 <div className="leave-warning">
@@ -927,6 +1301,122 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                   </div>
                 )}
               </div>
+              )}
+
+              {/* Email reminders (referee only) */}
+              {isReferee && (
+              <div className="settings-section notification-settings">
+                <h4>Email reminders</h4>
+                <p className="notification-settings-hint">
+                  Receive an email before tournament games you are assigned to referee.
+                </p>
+                <label className="notification-toggle-row" htmlFor="refereeEmailNotificationsEnabled">
+                  <input
+                    id="refereeEmailNotificationsEnabled"
+                    type="checkbox"
+                    checked={notificationPrefs.emailNotificationsEnabled}
+                    onChange={(e) =>
+                      setNotificationPrefs((prev) => ({
+                        ...prev,
+                        emailNotificationsEnabled: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>Enable email reminders</span>
+                </label>
+                <div className="form-group notification-lead-time">
+                  <label htmlFor="refereeReminderLeadTime">Remind me before</label>
+                  <select
+                    id="refereeReminderLeadTime"
+                    value={notificationPrefs.reminderLeadTime}
+                    disabled={!notificationPrefs.emailNotificationsEnabled}
+                    onChange={(e) =>
+                      setNotificationPrefs((prev) => ({
+                        ...prev,
+                        reminderLeadTime: e.target.value as ReminderLeadTime,
+                      }))
+                    }
+                  >
+                    {REMINDER_LEAD_TIME_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveRefereeNotificationPrefs}
+                  disabled={savingNotifications || !refereeTournamentId}
+                >
+                  {savingNotifications ? 'Saving...' : 'Save reminder preferences'}
+                </button>
+                {notificationMessage && (
+                  <p
+                    className={`notification-message ${
+                      notificationMessage.includes('saved') ? 'success' : 'error'
+                    }`}
+                  >
+                    {notificationMessage}
+                  </p>
+                )}
+              </div>
+              )}
+
+              {/* Leave Tournament (referee) */}
+              {isReferee && (
+              <div className="leave-section">
+                <h4>Leave Tournament</h4>
+                <div className="leave-warning">
+                  <h5><AppIcon name="logout" size={16} /> <strong>Leave as Referee:</strong></h5>
+                  <p>You will no longer have referee access to this tournament. You can rejoin if invited again.</p>
+                </div>
+
+                {!showRefereeLeaveConfirm ? (
+                  <button
+                    type="button"
+                    className="btn btn-warning"
+                    onClick={() => setShowRefereeLeaveConfirm(true)}
+                  >
+                    <AppIcon name="logout" size={16} /> Leave Tournament
+                  </button>
+                ) : (
+                  <div className="leave-confirm">
+                    <p>Type "LEAVE" to confirm leaving the tournament:</p>
+                    <input
+                      type="text"
+                      value={refereeLeaveConfirm}
+                      onChange={(e) => setRefereeLeaveConfirm(e.target.value)}
+                      placeholder="Type LEAVE"
+                      className="leave-input"
+                    />
+                    <div className="leave-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowRefereeLeaveConfirm(false);
+                          setRefereeLeaveConfirm('');
+                          setError('');
+                        }}
+                        disabled={isLeavingAsReferee}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-warning"
+                        onClick={handleLeaveAsReferee}
+                        disabled={isLeavingAsReferee}
+                      >
+                        {isLeavingAsReferee ? 'Leaving...' : 'Confirm Leave'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              )}
 
               {error && (
                 <div className="error-message">
@@ -949,7 +1439,12 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
         <button className="btn btn-back" onClick={() => navigate('/home')}>
           ← Back to Home
         </button>
-        <h1>{loading ? 'Loading...' : tournament?.name || 'Unknown Tournament'}</h1>
+        <div className="tournament-header-center">
+          <h1>{loading ? 'Loading...' : tournament?.name || 'Unknown Tournament'}</h1>
+          {isReferee && (
+            <span className="referee-view-badge">Viewing as referee (read-only)</span>
+          )}
+        </div>
         <button className="btn btn-logout" onClick={onLogout}>
           Logout
         </button>
@@ -958,16 +1453,28 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
       <div className="tournament-layout app-shell-layout">
         {/* Sidebar */}
         <div className="tournament-sidebar app-shell-sidebar">
-          <nav className="sidebar-nav">
+          <nav className="sidebar-nav tournament-sidebar-nav" aria-label="Tournament sections">
             <button
+              type="button"
               className={`sidebar-item ${activeTab === 'organizers' ? 'active' : ''}`}
               onClick={() => setActiveTab('organizers')}
             >
               <span className="sidebar-icon"><AppIcon name="crown" size={18} /></span>
               <span className="sidebar-text">Organizers</span>
             </button>
-            
+
             <button
+              type="button"
+              className={`sidebar-item ${activeTab === 'referees' ? 'active' : ''}`}
+              onClick={() => setActiveTab('referees')}
+              aria-label="Referees"
+            >
+              <span className="sidebar-icon"><AppIcon name="shield" size={18} /></span>
+              <span className="sidebar-text">Referees</span>
+            </button>
+
+            <button
+              type="button"
               className={`sidebar-item ${activeTab === 'teams' ? 'active' : ''}`}
               onClick={() => setActiveTab('teams')}
             >
@@ -976,6 +1483,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
             </button>
             
             <button
+              type="button"
               className={`sidebar-item ${activeTab === 'scheduling' ? 'active' : ''}`}
               onClick={() => setActiveTab('scheduling')}
             >
@@ -984,6 +1492,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
             </button>
             
             <button
+              type="button"
               className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
               onClick={() => setActiveTab('settings')}
             >

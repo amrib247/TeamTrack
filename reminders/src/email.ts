@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export type ReminderEmailKind = 'event' | 'task';
+export type ReminderEmailKind = 'event' | 'task' | 'referee_game';
 
 export interface ReminderEmailParams {
   kind: ReminderEmailKind;
@@ -29,20 +29,32 @@ function getSmtpConfig() {
 export async function sendReminderEmail(params: ReminderEmailParams): Promise<void> {
   const { host, port, user, pass, from } = getSmtpConfig();
   const appUrl = process.env.APP_URL || 'https://amrib247.github.io/TeamTrack/';
-  const kindLabel = params.kind === 'event' ? 'game' : 'task';
-  const subject = `TeamTrack reminder: ${params.itemName} (${params.teamName})`;
 
-  const footerText =
-    params.kind === 'event'
+  const isRefereeGame = params.kind === 'referee_game';
+  const kindLabel = params.kind === 'task' ? 'task' : 'game';
+  const contextName = params.teamName;
+  const itemLabel = params.kind === 'task' ? 'Task' : 'Game';
+
+  const subject = isRefereeGame
+    ? `TeamTrack reminder: ${params.itemName} (${contextName})`
+    : `TeamTrack reminder: ${params.itemName} (${contextName})`;
+
+  const footerText = isRefereeGame
+    ? 'You received this email because you are assigned as a referee for this tournament and have reminders enabled.'
+    : params.kind === 'event'
       ? 'You received this email because you have reminders enabled for this team.'
       : 'You received this email because you are signed up and have reminders enabled for this team.';
+
+  const introLine = isRefereeGame
+    ? `This is a reminder for an upcoming tournament game you are assigned to referee (${contextName}).`
+    : `This is a reminder for your upcoming ${kindLabel} with ${contextName}.`;
 
   const text = [
     `Hi ${params.firstName},`,
     '',
-    `This is a reminder for your upcoming ${kindLabel} with ${params.teamName}.`,
+    introLine,
     '',
-    `${params.kind === 'event' ? 'Game' : 'Task'}: ${params.itemName}`,
+    `${itemLabel}: ${params.itemName}`,
     `When: ${params.whenDisplay}`,
     `Location: ${params.location || 'TBD'}`,
     '',
@@ -53,9 +65,9 @@ export async function sendReminderEmail(params: ReminderEmailParams): Promise<vo
 
   const html = `
     <p>Hi ${escapeHtml(params.firstName)},</p>
-    <p>This is a reminder for your upcoming <strong>${kindLabel}</strong> with <strong>${escapeHtml(params.teamName)}</strong>.</p>
+    <p>${escapeHtml(introLine)}</p>
     <ul>
-      <li><strong>${params.kind === 'event' ? 'Game' : 'Task'}:</strong> ${escapeHtml(params.itemName)}</li>
+      <li><strong>${itemLabel}:</strong> ${escapeHtml(params.itemName)}</li>
       <li><strong>When:</strong> ${escapeHtml(params.whenDisplay)}</li>
       <li><strong>Location:</strong> ${escapeHtml(params.location || 'TBD')}</li>
     </ul>

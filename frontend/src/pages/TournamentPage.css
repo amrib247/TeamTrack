@@ -15,6 +15,23 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+.tournament-header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+  padding: 0 var(--space-md);
+}
+
+.tournament-header-center h1 {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
 .tournament-header h1 {
   margin: 0;
   font-size: var(--text-2xl);
@@ -85,6 +102,9 @@
 }
 
 .organizer-member {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
   background: var(--color-surface);
   padding: var(--space-md);
   border-radius: 0;
@@ -104,8 +124,13 @@
 .member-avatar {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.member-actions {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .organizers-content .profile-photo {
@@ -169,6 +194,40 @@
   text-align: center;
   padding: var(--space-2xl) var(--space-md);
   color: var(--color-text-muted);
+}
+
+.referee-view-badge {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-secondary-bg);
+  border: 1px solid var(--color-border);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* Ensure all sidebar tabs are visible (scroll on narrow viewports) */
+.tournament-sidebar-nav {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .tournament-sidebar .tournament-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: var(--space-xs);
+  }
+
+  .tournament-sidebar .sidebar-item {
+    flex: 0 0 auto;
+    min-width: 7.5rem;
+  }
 }
 
 .empty-organizers p {
@@ -599,6 +658,16 @@
     text-align: center;
   }
 
+  .tournament-header-center {
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: 0;
+  }
+
+  .tournament-header-center h1 {
+    font-size: 1.5rem;
+  }
+
   .tournament-header h1 {
     font-size: 1.5rem;
   }
@@ -638,4 +707,61 @@
   .leave-actions {
     flex-direction: column;
   }
+}
+
+.notification-settings-hint {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-md);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.notification-settings .notification-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-sm) 0;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.notification-settings .notification-toggle-row input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.notification-settings .notification-toggle-row span {
+  line-height: 1.4;
+}
+
+.notification-settings .notification-lead-time {
+  margin-bottom: var(--space-md);
+}
+
+.notification-settings .notification-lead-time label {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.8125rem;
+}
+
+.notification-message {
+  margin-top: var(--space-md);
+  font-size: 0.9rem;
+}
+
+.notification-message.success {
+  color: var(--color-success);
+}
+
+.notification-message.error {
+  color: var(--color-danger);
 }

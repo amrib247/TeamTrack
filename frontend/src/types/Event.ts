@@ -12,6 +12,7 @@ export interface Event {
   location: string;
   description?: string;
   score?: string;
+  refereeUserIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -28,6 +29,7 @@ export interface CreateEventRequest {
   location: string;
   description?: string;
   score?: string;
+  refereeUserIds?: string[];
 }
 
 export interface UpdateEventRequest {
@@ -39,5 +41,6 @@ export interface UpdateEventRequest {
   lengthMinutes?: number;
   location?: string;
   score?: string;
+  refereeUserIds?: string[];
 }
 

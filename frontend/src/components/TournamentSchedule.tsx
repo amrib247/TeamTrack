@@ -81,9 +81,19 @@ const getGameDisplayName = (gameEvents: Event[], tournamentTeams: Team[]): strin
   return firstEvent.name;
 };
 
+export interface TournamentRefereeProfile {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email?: string;
+}
+
 interface TournamentScheduleProps {
   tournamentId: string;
   tournamentName: string;
+  canManageEvents?: boolean;
+  canAssignReferees?: boolean;
+  tournamentReferees?: TournamentRefereeProfile[];
 }
 
 interface Team {
@@ -93,9 +103,34 @@ interface Team {
   ageGroup: string;
 }
 
+function mapRefereeProfile(record: Record<string, unknown>): TournamentRefereeProfile {
+  return {
+    userId: String(record.userId),
+    firstName: String(record.firstName ?? ''),
+    lastName: String(record.lastName ?? ''),
+    email: record.email ? String(record.email) : undefined,
+  };
+}
+
+const getRefereeNames = (
+  refereeUserIds: string[] | undefined,
+  tournamentReferees: TournamentRefereeProfile[]
+): string => {
+  if (!refereeUserIds || refereeUserIds.length === 0) return 'None assigned';
+  return refereeUserIds
+    .map((id) => {
+      const ref = tournamentReferees.find((r) => r.userId === id);
+      return ref ? `${ref.firstName} ${ref.lastName}` : 'Unknown';
+    })
+    .join(', ');
+};
+
 const TournamentSchedule: React.FC<TournamentScheduleProps> = ({ 
   tournamentId, 
-  tournamentName
+  tournamentName,
+  canManageEvents = true,
+  canAssignReferees = false,
+  tournamentReferees = [],
 }) => {
   const [events, setEvents] = useState<Event[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
@@ -108,6 +143,10 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showEventDetails, setShowEventDetails] = useState(false);
+  const [showAssignRefereesModal, setShowAssignRefereesModal] = useState(false);
+  const [refereesList, setRefereesList] = useState<TournamentRefereeProfile[]>(tournamentReferees);
+  const [loadingReferees, setLoadingReferees] = useState(false);
+  const [assignRefereeGameTitle, setAssignRefereeGameTitle] = useState('');
 
   // Tournament teams state
   const [tournamentTeams, setTournamentTeams] = useState<Team[]>([]);
@@ -133,6 +172,35 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   // Team selection state
   const [selectedTeam1, setSelectedTeam1] = useState<string>('');
   const [selectedTeam2, setSelectedTeam2] = useState<string>('');
+
+  // Referee assignment state
+  const [selectedGameEvents, setSelectedGameEvents] = useState<Event[]>([]);
+  const [selectedRefereeIds, setSelectedRefereeIds] = useState<string[]>([]);
+  const [savingReferees, setSavingReferees] = useState(false);
+
+  useEffect(() => {
+    if (tournamentReferees.length > 0) {
+      setRefereesList(tournamentReferees);
+    }
+  }, [tournamentReferees]);
+
+  useEffect(() => {
+    if (!canAssignReferees || !tournamentId) return;
+
+    const loadReferees = async () => {
+      try {
+        setLoadingReferees(true);
+        const data = await tournamentService.getTournamentReferees(tournamentId);
+        setRefereesList(data.map((r) => mapRefereeProfile(r)));
+      } catch (err) {
+        console.error('Failed to load tournament referees:', err);
+      } finally {
+        setLoadingReferees(false);
+      }
+    };
+
+    loadReferees();
+  }, [canAssignReferees, tournamentId]);
 
   useEffect(() => {
     if (tournamentId) {
@@ -389,8 +457,149 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
     return `${hours}h ${mins}m`;
   };
 
-  const canManageEvents = () => {
-    return true; // All tournament users are organizers
+  const handleRefereeToggle = (userId: string) => {
+    setSelectedRefereeIds((prev) => {
+      if (prev.includes(userId)) {
+        return prev.filter((id) => id !== userId);
+      }
+      if (prev.length >= 3) return prev;
+      return [...prev, userId];
+    });
+  };
+
+  const handleSaveReferees = async (closeDetails = true) => {
+    if (!selectedGameEvents.length) return;
+
+    setSavingReferees(true);
+    setError('');
+    try {
+      await eventService.assignRefereesToGame(
+        selectedGameEvents.map((e) => e.id),
+        selectedRefereeIds,
+        tournamentId
+      );
+      await loadEvents();
+      setShowAssignRefereesModal(false);
+      if (closeDetails) {
+        setShowEventDetails(false);
+        setSelectedEvent(null);
+        setSelectedGameEvents([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign referees');
+    } finally {
+      setSavingReferees(false);
+    }
+  };
+
+  const openAssignRefereesForGame = (gameEvents: Event[]) => {
+    const firstEvent = gameEvents[0];
+    setSelectedGameEvents(gameEvents);
+    setSelectedRefereeIds(firstEvent?.refereeUserIds ?? []);
+    setAssignRefereeGameTitle(getGameDisplayName(gameEvents, tournamentTeams));
+    setShowAssignRefereesModal(true);
+    setError('');
+  };
+
+  const closeAssignRefereesModal = () => {
+    setShowAssignRefereesModal(false);
+    setError('');
+  };
+
+  const renderRefereeAssignment = (options?: {
+    closeDetailsOnSave?: boolean;
+    showSaveButton?: boolean;
+    variant?: 'modal' | 'inline';
+  }) => {
+    const closeDetailsOnSave = options?.closeDetailsOnSave ?? true;
+    const showSaveButton = options?.showSaveButton ?? true;
+    const variant = options?.variant ?? 'inline';
+
+    if (!canAssignReferees) {
+      return (
+        <p className="referee-readonly-value">
+          {getRefereeNames(selectedGameEvents[0]?.refereeUserIds, refereesList)}
+        </p>
+      );
+    }
+
+    if (loadingReferees) {
+      return (
+        <div className="referee-assignment-state">
+          <p>Loading referees...</p>
+        </div>
+      );
+    }
+
+    if (refereesList.length === 0) {
+      return (
+        <div className="referee-assignment-empty notice-empty">
+          <p>No tournament referees yet.</p>
+          <p className="referee-assignment-empty-hint">
+            Open the <strong>Referees</strong> tab to invite referees, then return here to assign them to games.
+          </p>
+        </div>
+      );
+    }
+
+    const atMax = selectedRefereeIds.length >= 3;
+
+    return (
+      <div className={`referee-assignment ${variant === 'modal' ? 'referee-assignment--modal' : 'referee-assignment--inline'}`}>
+        <div className="referee-assignment-toolbar">
+          <span className="referee-assignment-label">Select referees</span>
+          <span className={`referee-selection-count ${atMax ? 'referee-selection-count--full' : ''}`}>
+            {selectedRefereeIds.length} / 3
+          </span>
+        </div>
+
+        <div className="referee-picker-grid" role="group" aria-label="Tournament referees">
+          {refereesList.map((referee) => {
+            const selected = selectedRefereeIds.includes(referee.userId);
+            const disabled = !selected && atMax;
+            return (
+              <button
+                key={referee.userId}
+                type="button"
+                className={`referee-picker-card ${selected ? 'referee-picker-card--selected' : ''}`}
+                onClick={() => handleRefereeToggle(referee.userId)}
+                disabled={disabled}
+                aria-pressed={selected}
+              >
+                <span className="referee-picker-avatar" aria-hidden="true">
+                  {referee.firstName.charAt(0)}
+                  {referee.lastName.charAt(0)}
+                </span>
+                <span className="referee-picker-info">
+                  <span className="referee-picker-name">
+                    {referee.firstName} {referee.lastName}
+                  </span>
+                  {referee.email && (
+                    <span className="referee-picker-email">{referee.email}</span>
+                  )}
+                </span>
+                <span className="referee-picker-indicator" aria-hidden="true">
+                  {selected ? '✓' : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {showSaveButton && (
+          <div className="referee-assignment-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handleSaveReferees(closeDetailsOnSave)}
+              disabled={savingReferees || selectedGameEvents.length === 0}
+            >
+              {savingReferees ? 'Saving...' : 'Save Referees'}
+            </button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Calendar navigation functions
@@ -415,13 +624,20 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
   };
 
   const openEventDetails = (event: Event) => {
+    const gameGroup = groupGameEvents(events).find((group) =>
+      group.some((e) => e.id === event.id)
+    ) ?? [event];
     setSelectedEvent(event);
+    setSelectedGameEvents(gameGroup);
+    setSelectedRefereeIds(gameGroup[0]?.refereeUserIds ?? []);
     setShowEventDetails(true);
   };
 
   const closeEventDetails = () => {
     setShowEventDetails(false);
     setSelectedEvent(null);
+    setSelectedGameEvents([]);
+    setSelectedRefereeIds([]);
   };
 
   const weekDates = getWeekDates(currentDate);
@@ -446,9 +662,11 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
             </button>
           </div>
 
-          <button type="button" className="btn btn-primary" onClick={openCreateModal}>
-            ✚ Add Event
-          </button>
+          {canManageEvents && (
+            <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+              ✚ Add Event
+            </button>
+          )}
         </div>
       </div>
 
@@ -470,9 +688,11 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
               ) : events.length === 0 ? (
                 <div className="no-events">
                   <p>No events scheduled for this tournament.</p>
-                  <button type="button" className="btn btn-primary" onClick={openCreateModal}>
-                    ✚ Add Your First Event
-                  </button>
+                  {canManageEvents && (
+                    <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+                      ✚ Add Your First Event
+                    </button>
+                  )}
                 </div>
                              ) : (
                  (() => {
@@ -486,18 +706,28 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                          <div className="event-header">
                            <h4>{displayName}</h4>
                            <div className="event-actions">
-                             {canManageEvents() && (
+                             {canAssignReferees && (
+                               <button
+                                 type="button"
+                                 className="btn btn-small btn-referees-assign"
+                                 onClick={() => openAssignRefereesForGame(gameEvents)}
+                               >
+                                 Referees
+                               </button>
+                             )}
+                             {canManageEvents && (
                                <>
                                  <button 
+                                   type="button"
                                    className="btn btn-small btn-secondary"
                                    onClick={() => openEditModal(firstEvent)}
                                  >
                                    Edit
                                  </button>
                                  <button 
+                                   type="button"
                                    className="btn btn-small btn-danger"
                                    onClick={() => {
-                                     // Delete all events in the game group
                                      if (window.confirm('Are you sure you want to delete this game? This will remove it from all teams.')) {
                                        gameEvents.forEach(event => handleDeleteEvent(event.id));
                                      }
@@ -551,6 +781,12 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                                  <span className="event-score-value">{firstEvent.score}</span>
                                </div>
                              )}
+                             <div className="event-info">
+                               <span className="event-label">Referees</span>
+                               <span className="event-value">
+                                 {getRefereeNames(firstEvent.refereeUserIds, refereesList)}
+                               </span>
+                             </div>
                            </div>
                          </div>
                        </div>
@@ -656,7 +892,8 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                  ×
                </button>
             </div>
-            <form onSubmit={handleCreateEvent} className="event-form">
+            <form onSubmit={handleCreateEvent} className="event-modal-form">
+              <div className="event-form-fields">
               {tournamentTeams.length === 0 ? (
                 <div className="error-message">
                   No teams have joined this tournament yet. Please invite teams first.
@@ -790,31 +1027,28 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                   <div className="error-message">Score must be in format: number-number (e.g., 3-1)</div>
                 )}
               </div>
-              
-                             <div className="modal-actions">
-                 <div className="modal-actions-left">
-                   {error && <div className="error-message">{error}</div>}
-                 </div>
-                 <div className="modal-actions-right">
-                   <button 
-                     type="button" 
-                     className="btn btn-secondary"
-                     onClick={() => {
-                       setShowCreateModal(false);
-                       setError(''); // Clear error when modal is closed
-                     }}
-                   >
-                     Cancel
-                   </button>
-                   <button 
-                     type="submit" 
-                     className="btn btn-primary"
-                     disabled={loading || tournamentTeams.length === 0}
-                   >
-                     {loading ? 'Creating...' : 'Create Game'}
-                   </button>
-                 </div>
-               </div>
+              </div>
+
+              <div className="modal-footer event-modal-actions">
+                {error && <div className="error-message event-modal-error">{error}</div>}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setError('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading || tournamentTeams.length === 0}
+                >
+                  {loading ? 'Creating...' : 'Create Game'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -833,7 +1067,8 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                 ×
               </button>
             </div>
-                         <form onSubmit={handleUpdateEvent} className="event-form">
+            <form onSubmit={handleUpdateEvent} className="event-modal-form">
+              <div className="event-form-fields">
                <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="edit-date">Date *</label>
@@ -925,24 +1160,69 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                   <div className="error-message">Score must be in format: number-number (e.g., 3-1)</div>
                 )}
               </div>
-              
-              <div className="modal-actions">
-                <button 
-                  type="button" 
+              </div>
+
+              <div className="modal-footer event-modal-actions">
+                {error && <div className="error-message event-modal-error">{error}</div>}
+                <button
+                  type="button"
                   className="btn btn-secondary"
                   onClick={() => setShowEditModal(false)}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-primary"
                   disabled={loading}
                 >
-                  {loading ? 'Updating...' : 'Update Event'}
+                  {loading ? 'Updating...' : 'Update Game'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Referees Modal */}
+      {showAssignRefereesModal && selectedGameEvents.length > 0 && (
+        <div className="modal-overlay" onClick={closeAssignRefereesModal}>
+          <div className="modal assign-referees-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="assign-referees-header-text">
+                <h3 className="modal-title">Assign Referees</h3>
+                <p className="assign-referees-subtitle">{assignRefereeGameTitle}</p>
+              </div>
+              <button
+                type="button"
+                className="close-button"
+                onClick={closeAssignRefereesModal}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body assign-referees-body">
+              {error && <div className="error-message assign-referees-error">{error}</div>}
+              {renderRefereeAssignment({
+                closeDetailsOnSave: false,
+                showSaveButton: false,
+                variant: 'modal',
+              })}
+            </div>
+            <div className="modal-footer assign-referees-footer">
+              <button type="button" className="btn btn-secondary" onClick={closeAssignRefereesModal}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => handleSaveReferees(false)}
+                disabled={savingReferees || loadingReferees || refereesList.length === 0}
+              >
+                {savingReferees ? 'Saving...' : 'Save Referees'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1020,9 +1300,15 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                     <span className="detail-value score-value">{selectedEvent.score}</span>
                   </div>
                 )}
+                <div className="event-detail-item event-detail-item-referees">
+                  <span className="detail-label">Referees</span>
+                  <div className="referee-assignment-panel">
+                    {renderRefereeAssignment({ variant: 'inline' })}
+                  </div>
+                </div>
               </div>
               
-              {canManageEvents() && (
+              {canManageEvents && (
                 <div className="event-details-actions">
                   <button 
                     className="btn btn-secondary"
@@ -1036,8 +1322,8 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
                   <button 
                     className="btn btn-danger"
                     onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this event?')) {
-                        handleDeleteEvent(selectedEvent.id);
+                      if (window.confirm('Are you sure you want to delete this game?')) {
+                        selectedGameEvents.forEach((ev) => handleDeleteEvent(ev.id));
                         closeEventDetails();
                       }
                     }}

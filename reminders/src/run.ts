@@ -31,11 +31,11 @@ async function main(): Promise<void> {
       ranAt: new Date().toISOString(),
     })
   );
-  if (result.eventsSent === 0 && result.tasksSent === 0) {
+  if (result.eventsSent === 0 && result.tasksSent === 0 && result.refereeEventsSent === 0) {
     console.log(
       'No reminders sent. Common causes: start time still more than lead time away; ' +
-        'not signed up for task; notifications disabled; invite not accepted; wrong timezone; ' +
-        'or reminder already recorded in reminderDeliveries.'
+        'not signed up for task; not assigned as referee; notifications disabled; invite not accepted; ' +
+        'wrong timezone; or reminder already recorded in reminderDeliveries.'
     );
   }
 }

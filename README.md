@@ -20,7 +20,8 @@ There is **no separate backend server**. All data access uses the Firebase Clien
 
 - User authentication and profiles
 - Team creation, invites, roles, and coach safety checks
-- Tournament organization and team enrollment
+- Tournament organization, referee invites (read-only access), and team enrollment
+- Game referee assignment (up to 3 per game, organizer-only)
 - Event scheduling with availability tracking
 - Task management with sign-ups
 - Team chat with file sharing
@@ -92,11 +93,17 @@ Rules live in `firestore.rules` and `storage.rules`. They require a signed-in us
 firebase deploy --only firestore:rules,storage
 ```
 
-## Email reminders (games & tasks)
+## Email reminders (games, tasks & referee assignments)
 
-Team members can enable per-team email reminders on **Team → Settings** (all upcoming team games, and tasks they signed up for). Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not need to be online. This works on the Firebase **Spark** plan (no Blaze / credit card required).
+**Team members** can enable per-team email reminders on **Team → Settings** (all upcoming team games, and tasks they signed up for).
+
+**Tournament referees** can enable per-tournament email reminders on **Tournament → Settings** (only when viewing as a referee). Referees receive emails before games where they appear in `refereeUserIds` on the schedule, using the same lead-time options as team reminders.
+
+Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not need to be online. This works on the Firebase **Spark** plan (no Blaze / credit card required).
 
 **Event and task times** are saved with a **time zone** (defaults to your device’s zone via the browser) and a UTC instant (`startAtUtc`). Everyone sees the correct local time on their device; email reminders use UTC. Older records without UTC are treated as **Pacific Time**.
+
+Referee reminder preferences are stored on each user’s `refereeTournaments` membership document (`emailNotificationsEnabled`, `reminderLeadTime`). The reminder job deduplicates by tournament and start time so paired team event rows for the same matchup do not send duplicate referee emails.
 
 ### Requirements
 

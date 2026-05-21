@@ -16,6 +16,16 @@ type EventDoc = {
   timeZone?: string;
   startAtUtc?: string;
   location?: string;
+  tournamentId?: string;
+  refereeUserIds?: string[];
+};
+
+type RefereeTournamentDoc = {
+  userId: string;
+  tournamentId: string;
+  isActive?: boolean;
+  emailNotificationsEnabled?: boolean;
+  reminderLeadTime?: ReminderLeadTime;
 };
 
 type TaskDoc = {
@@ -42,7 +52,9 @@ type UserProfileDoc = {
   firstName?: string;
 };
 
-function resolveLeadTime(data: UserTeamDoc): ReminderLeadTime {
+function resolveLeadTime(data: {
+  reminderLeadTime?: ReminderLeadTime;
+}): ReminderLeadTime {
   const value = data.reminderLeadTime;
   if (value && value in LEAD_TIME_MS) {
     return value;
@@ -57,6 +69,15 @@ function deliveryId(
   leadTime: ReminderLeadTime
 ): string {
   return `${userId}_${entityType}_${entityId}_${leadTime}`;
+}
+
+function refereeDeliveryId(
+  userId: string,
+  tournamentId: string,
+  startAtUtc: string,
+  leadTime: ReminderLeadTime
+): string {
+  return `${userId}_referee_event_${tournamentId}_${startAtUtc}_${leadTime}`;
 }
 
 function isInReminderWindow(start: Date, leadTime: ReminderLeadTime, now: Date): boolean {
@@ -80,6 +101,23 @@ async function getUserTeamMembership(
   if (snap.empty) return null;
   const doc = snap.docs[0];
   return { id: doc.id, ...(doc.data() as UserTeamDoc) };
+}
+
+async function getRefereeTournamentMembership(
+  db: admin.firestore.Firestore,
+  userId: string,
+  tournamentId: string
+): Promise<(RefereeTournamentDoc & { id: string }) | null> {
+  const snap = await db
+    .collection('refereeTournaments')
+    .where('userId', '==', userId)
+    .where('tournamentId', '==', tournamentId)
+    .limit(1)
+    .get();
+
+  if (snap.empty) return null;
+  const docSnap = snap.docs[0];
+  return { id: docSnap.id, ...(docSnap.data() as RefereeTournamentDoc) };
 }
 
 async function isTaskSignedUp(
@@ -157,6 +195,153 @@ async function trySendReminder(params: {
   });
 
   return true;
+}
+
+async function trySendRefereeReminder(params: {
+  db: admin.firestore.Firestore;
+  userId: string;
+  tournamentId: string;
+  itemName: string;
+  schedule: EventDoc;
+  location: string;
+  now: Date;
+}): Promise<boolean> {
+  const { db, userId, tournamentId, now, schedule } = params;
+
+  const membership = await getRefereeTournamentMembership(db, userId, tournamentId);
+  if (!membership || membership.isActive === false) return false;
+  if (membership.emailNotificationsEnabled === false) return false;
+
+  const leadTime = resolveLeadTime(membership);
+  const startAtUtc = resolveStartAtUtc(schedule);
+  const start = new Date(startAtUtc);
+  if (!isInReminderWindow(start, leadTime, now)) return false;
+
+  const dedupeRef = db
+    .collection('reminderDeliveries')
+    .doc(refereeDeliveryId(userId, tournamentId, startAtUtc, leadTime));
+  const existing = await dedupeRef.get();
+  if (existing.exists) return false;
+
+  const profileSnap = await db.collection('userProfiles').doc(userId).get();
+  if (!profileSnap.exists) return false;
+  const profile = profileSnap.data() as UserProfileDoc;
+  const recipientEmail = profile.email?.trim();
+  if (!recipientEmail) return false;
+
+  const tournamentSnap = await db.collection('tournaments').doc(tournamentId).get();
+  const tournamentName = tournamentSnap.exists
+    ? String((tournamentSnap.data() as { name?: string }).name ?? 'Tournament')
+    : 'Tournament';
+
+  await sendReminderEmail({
+    kind: 'referee_game',
+    recipientEmail,
+    firstName: String(profile.firstName ?? 'there'),
+    teamName: tournamentName,
+    itemName: params.itemName,
+    whenDisplay: formatDateForDisplay(startAtUtc),
+    location: params.location,
+  });
+
+  await dedupeRef.set({
+    userId,
+    teamId: schedule.teamId,
+    entityType: 'referee_event',
+    entityId: tournamentId,
+    leadTime,
+    sentAt: admin.firestore.FieldValue.serverTimestamp(),
+    recipientEmail,
+    tournamentId,
+    startAtUtc,
+  });
+
+  return true;
+}
+
+async function processRefereeAssignmentsFromEvents(
+  db: admin.firestore.Firestore,
+  eventsSnap: admin.firestore.QuerySnapshot,
+  now: Date
+): Promise<number> {
+  let sent = 0;
+
+  for (const eventDoc of eventsSnap.docs) {
+    const event = eventDoc.data() as EventDoc;
+    const tournamentId = event.tournamentId;
+    const refereeUserIds = event.refereeUserIds ?? [];
+    if (!tournamentId || refereeUserIds.length === 0) continue;
+
+    for (const userId of refereeUserIds) {
+      const didSend = await trySendRefereeReminder({
+        db,
+        userId,
+        tournamentId,
+        itemName: event.name,
+        schedule: event,
+        location: event.location ?? '',
+        now,
+      });
+      if (didSend) sent += 1;
+    }
+  }
+
+  return sent;
+}
+
+async function processRefereeAssignments(db: admin.firestore.Firestore, now: Date): Promise<number> {
+  const nowIso = now.toISOString();
+  const maxIso = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000).toISOString();
+
+  const eventsSnap = await db
+    .collection('events')
+    .where('startAtUtc', '>=', nowIso)
+    .where('startAtUtc', '<=', maxIso)
+    .get();
+
+  return processRefereeAssignmentsFromEvents(db, eventsSnap, now);
+}
+
+async function processLegacyRefereeAssignmentsWithoutUtc(
+  db: admin.firestore.Firestore,
+  now: Date
+): Promise<number> {
+  const today = now.toISOString().slice(0, 10);
+  const maxDate = new Date(now.getTime() + MAX_LEAD_TIME_MS + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const eventsSnap = await db
+    .collection('events')
+    .where('date', '>=', today)
+    .where('date', '<=', maxDate)
+    .get();
+
+  let sent = 0;
+
+  for (const eventDoc of eventsSnap.docs) {
+    const event = eventDoc.data() as EventDoc;
+    if (event.startAtUtc) continue;
+
+    const tournamentId = event.tournamentId;
+    const refereeUserIds = event.refereeUserIds ?? [];
+    if (!tournamentId || refereeUserIds.length === 0) continue;
+
+    for (const userId of refereeUserIds) {
+      const didSend = await trySendRefereeReminder({
+        db,
+        userId,
+        tournamentId,
+        itemName: event.name,
+        schedule: event,
+        location: event.location ?? '',
+        now,
+      });
+      if (didSend) sent += 1;
+    }
+  }
+
+  return sent;
 }
 
 async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<number> {
@@ -320,18 +505,30 @@ async function processLegacyTasksWithoutUtc(db: admin.firestore.Firestore, now: 
   return sent;
 }
 
-export async function runProcessReminders(): Promise<{ eventsSent: number; tasksSent: number }> {
+export async function runProcessReminders(): Promise<{
+  eventsSent: number;
+  tasksSent: number;
+  refereeEventsSent: number;
+}> {
   const db = admin.firestore();
   const now = new Date();
 
   let eventsSent = 0;
   let tasksSent = 0;
+  let refereeEventsSent = 0;
 
   try {
     eventsSent += await processEvents(db, now);
   } catch (err) {
     console.warn('startAtUtc event query failed, using legacy date scan', err);
     eventsSent += await processLegacyEventsWithoutUtcIndex(db, now);
+  }
+
+  try {
+    refereeEventsSent += await processRefereeAssignments(db, now);
+  } catch (err) {
+    console.warn('startAtUtc referee event query failed, using legacy date scan', err);
+    refereeEventsSent += await processLegacyRefereeAssignmentsWithoutUtc(db, now);
   }
 
   try {
@@ -342,7 +539,8 @@ export async function runProcessReminders(): Promise<{ eventsSent: number; tasks
   }
 
   eventsSent += await processLegacyEventsWithoutUtcIndex(db, now);
+  refereeEventsSent += await processLegacyRefereeAssignmentsWithoutUtc(db, now);
   tasksSent += await processLegacyTasksWithoutUtc(db, now);
 
-  return { eventsSent, tasksSent };
+  return { eventsSent, tasksSent, refereeEventsSent };
 }

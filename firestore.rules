@@ -24,6 +24,11 @@ service cloud.firestore {
         .hasOnly(['emailNotificationsEnabled', 'reminderLeadTime']);
     }
 
+    function onlyRefereeNotificationPrefKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['emailNotificationsEnabled', 'reminderLeadTime']);
+    }
+
     // Profiles: readable when signed in; writable by owner (allows profile creation at register)
     match /userProfiles/{userId} {
       allow read: if isSignedIn();
@@ -68,10 +73,26 @@ service cloud.firestore {
 
     match /organizerTournaments/{orgId} {
       allow read: if isVerified();
+      // Self membership (e.g. tournament creator) or pending invite for another user
       allow create: if isVerified()
-        && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isVerified()
-        && resource.data.userId == request.auth.uid;
+        && request.resource.data.keys().hasAll(['id', 'userId', 'tournamentId', 'createdAt', 'isActive'])
+        && (
+          request.resource.data.userId == request.auth.uid
+          || request.resource.data.isActive == false
+        );
+      allow update, delete: if isVerified();
+    }
+
+    match /refereeTournaments/{refId} {
+      allow read: if isVerified();
+      allow create: if isVerified()
+        && request.resource.data.keys().hasAll(['id', 'userId', 'tournamentId', 'createdAt', 'isActive']);
+      allow update: if isVerified()
+        && (
+          (resource.data.userId == request.auth.uid && onlyRefereeNotificationPrefKeys())
+          || !onlyRefereeNotificationPrefKeys()
+        );
+      allow delete: if isVerified();
     }
 
     match /teams/{teamId} {

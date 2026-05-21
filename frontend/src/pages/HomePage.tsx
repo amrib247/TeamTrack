@@ -52,7 +52,9 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   
   // Tournament states
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [refereeTournaments, setRefereeTournaments] = useState<Tournament[]>([]);
   const [pendingTournamentInvites, setPendingTournamentInvites] = useState<any[]>([]);
+  const [pendingRefereeInvites, setPendingRefereeInvites] = useState<any[]>([]);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [createTournamentForm, setCreateTournamentForm] = useState<CreateTournamentRequest>({
     name: '',
@@ -150,8 +152,12 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   // Fetch tournaments organized by current user
   const loadTournaments = async () => {
     try {
-      const tournamentsData = await tournamentService.getTournamentsByOrganizer(currentUser.id);
-      setTournaments(tournamentsData);
+      const [organizerData, refereeData] = await Promise.all([
+        tournamentService.getTournamentsByOrganizer(currentUser.id),
+        tournamentService.getTournamentsByReferee(currentUser.id),
+      ]);
+      setTournaments(organizerData);
+      setRefereeTournaments(refereeData);
     } catch (error) {
       console.error('Failed to load tournaments:', error);
       setError('Failed to load tournaments');
@@ -180,6 +186,19 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     };
     
     loadPendingTournamentInvites();
+  }, [currentUser.id]);
+
+  useEffect(() => {
+    const loadPendingRefereeInvites = async () => {
+      try {
+        const pendingInvites = await tournamentService.getPendingRefereeInvites(currentUser.id);
+        setPendingRefereeInvites(pendingInvites);
+      } catch (error) {
+        console.error('Failed to load pending referee invites:', error);
+      }
+    };
+
+    loadPendingRefereeInvites();
   }, [currentUser.id]);
 
   // Dynamically load Tournament component
@@ -470,6 +489,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   // Pending invite modal state
   const [pendingInvite, setPendingInvite] = useState<{ userTeamId: string; teamName: string } | null>(null);
   const [pendingTournamentInvite, setPendingTournamentInvite] = useState<{ organizerTournamentId: string; tournamentName: string } | null>(null);
+  const [pendingRefereeInvite, setPendingRefereeInvite] = useState<{ refereeTournamentId: string; tournamentName: string } | null>(null);
   const [showCoachSafetyModal, setShowCoachSafetyModal] = useState(false);
   const [showTournamentSafetyModal, setShowTournamentSafetyModal] = useState(false);
 
@@ -490,6 +510,13 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const handlePendingTournamentInviteClick = (invite: any) => {
     setPendingTournamentInvite({
       organizerTournamentId: invite.organizerTournamentId,
+      tournamentName: invite.tournamentName
+    });
+  };
+
+  const handlePendingRefereeInviteClick = (invite: any) => {
+    setPendingRefereeInvite({
+      refereeTournamentId: invite.refereeTournamentId,
       tournamentName: invite.tournamentName
     });
   };
@@ -599,7 +626,7 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
               </button>
             </div>
             <div className="tournaments-panel-body">
-          {(tournaments.length > 0 || pendingTournamentInvites.length > 0) ? (
+          {(tournaments.length > 0 || refereeTournaments.length > 0 || pendingTournamentInvites.length > 0 || pendingRefereeInvites.length > 0) ? (
             <div className="tournaments-list">
               {/* Pending Tournament Invites */}
               {pendingTournamentInvites.map((invite) => (
@@ -636,16 +663,68 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                   </div>
                 </div>
               ))}
+
+              {/* Pending Referee Invites */}
+              {pendingRefereeInvites.map((invite) => (
+                <div
+                  key={invite.refereeTournamentId}
+                  className="team-card-compact tournament-card-compact tournament-card-invite clickable"
+                  onClick={() => handlePendingRefereeInviteClick(invite)}
+                >
+                  <div className="team-header">
+                    <div className="team-header-left">
+                      <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
+                        <AppIcon name="mail" size={22} />
+                      </div>
+                      <div className="team-header-text">
+                        <h4>{invite.tournamentName}</h4>
+                        <span className="team-sport">Referee invite</span>
+                      </div>
+                    </div>
+                    <div className="tournament-card-badge">
+                      <span className="status-badge status-invite">
+                        <AppIcon name="mail" size={14} />
+                        Invite
+                      </span>
+                    </div>
+                  </div>
+                  <div className="team-details">
+                    {invite.tournamentDescription && (
+                      <div className="team-joined">{invite.tournamentDescription}</div>
+                    )}
+                    <div className="invite-status invite-pending">
+                      <AppIcon name="alert" size={14} />
+                      Tap to accept or decline
+                    </div>
+                  </div>
+                </div>
+              ))}
               
-              {/* Regular Tournaments */}
+              {/* Organizer Tournaments */}
               {tournaments.map((tournament) => 
                 TournamentComponent ? (
                   <TournamentComponent
-                    key={tournament.id}
+                    key={`org-${tournament.id}`}
                     tournament={tournament}
+                    roleBadge="Organizer"
                   />
                 ) : (
-                  <div key={tournament.id} className="tournament-loading">
+                  <div key={`org-${tournament.id}`} className="tournament-loading">
+                    Loading tournament component...
+                  </div>
+                )
+              )}
+
+              {/* Referee Tournaments */}
+              {refereeTournaments.map((tournament) =>
+                TournamentComponent ? (
+                  <TournamentComponent
+                    key={`ref-${tournament.id}`}
+                    tournament={tournament}
+                    roleBadge="Referee"
+                  />
+                ) : (
+                  <div key={`ref-${tournament.id}`} className="tournament-loading">
                     Loading tournament component...
                   </div>
                 )
@@ -1000,6 +1079,62 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
                     await loadTournaments();
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'Failed to accept tournament invite');
+                  }
+                }}
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Tournament Referee Invite Modal */}
+      {pendingRefereeInvite && (
+        <div className="modal-overlay" onClick={() => setPendingRefereeInvite(null)}>
+          <div className="modal pending-invite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Tournament Referee Invitation</h2>
+              <button className="close-button" onClick={() => setPendingRefereeInvite(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p>You have been invited to be a referee for <strong>{pendingRefereeInvite.tournamentName}</strong>.</p>
+              <p>You will have read-only access to view tournament information and schedules.</p>
+              <p>Would you like to accept this invitation?</p>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setPendingRefereeInvite(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={async () => {
+                  try {
+                    await tournamentService.declineRefereeInvite(pendingRefereeInvite.refereeTournamentId);
+                    setPendingRefereeInvite(null);
+                    const pendingInvites = await tournamentService.getPendingRefereeInvites(currentUser.id);
+                    setPendingRefereeInvites(pendingInvites);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to decline referee invite');
+                  }
+                }}
+              >
+                Decline
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await tournamentService.acceptRefereeInvite(pendingRefereeInvite.refereeTournamentId);
+                    setPendingRefereeInvite(null);
+                    const pendingInvites = await tournamentService.getPendingRefereeInvites(currentUser.id);
+                    setPendingRefereeInvites(pendingInvites);
+                    await loadTournaments();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to accept referee invite');
                   }
                 }}
               >

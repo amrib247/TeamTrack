@@ -26,6 +26,64 @@
   flex-wrap: wrap;
 }
 
+/* Create/edit game modal: scrollable body + sticky footer buttons */
+.event-modal.modal {
+  max-width: 800px;
+  width: 95%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-modal .event-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.event-modal .event-form-fields {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.event-modal .event-form-fields .form-row {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.event-modal .event-form-fields .form-row .form-group {
+  flex: 1;
+  min-width: 140px;
+}
+
+.event-modal .modal-footer.event-modal-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: 0;
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.event-modal .event-modal-error {
+  flex: 1 1 100%;
+  margin: 0 0 var(--space-xs);
+  text-align: left;
+}
+
 .modal-actions {
   display: flex;
   justify-content: space-between;
@@ -90,6 +148,26 @@
   font-weight: 500;
 }
 
+.game-card .event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.btn-referees-assign {
+  background: var(--color-secondary-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.btn-referees-assign:hover {
+  background: var(--color-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .calendar-event-card.game-event {
   background-color: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -120,23 +198,11 @@
 
 .calendar-weekday.weekly {
   background-color: var(--color-bg);
-  padding: 12px 8px;
+  padding: 0.75rem 0.5rem;
   text-align: center;
-  border-bottom: 1px solid var(--color-border);
   font-weight: 600;
-  color: var(--color-text);
-}
-
-.weekday-name {
-  font-size: 0.9rem;
-  margin-bottom: 4px;
   color: var(--color-text-muted);
-}
-
-.weekday-date {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
+  font-size: 0.85rem;
 }
 
 .calendar-days.weekly {
@@ -145,168 +211,87 @@
 
 .calendar-day.weekly {
   background-color: var(--color-surface);
-  min-height: 300px;
-  padding: 8px;
-  border-right: 1px solid var(--color-border);
-  position: relative;
-}
-
-.calendar-day.weekly:last-child {
-  border-right: none;
+  min-height: 120px;
+  padding: 0.5rem;
 }
 
 .calendar-day.weekly.today {
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border-strong);
+  background-color: var(--color-secondary-bg);
 }
 
 .calendar-day-events.weekly {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  height: 100%;
+  gap: 0.25rem;
 }
 
 .calendar-event-card.weekly {
-  background-color: var(--color-bg);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  padding: 6px 8px;
+  padding: 0.25rem;
   cursor: pointer;
-  transition: border-color var(--transition);
-  font-size: 0.8rem;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .calendar-event-card.weekly:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-primary);
 }
 
 .calendar-event-info.weekly {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  padding: 0.25rem 0.5rem;
 }
 
 .calendar-event-name.weekly {
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text);
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 0.125rem;
 }
 
 .calendar-event-time.weekly {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
 }
 
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  background-color: var(--color-surface);
-  color: var(--color-text);
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
-.form-group select:focus {
-  outline: none;
-  border-color: var(--color-border-strong);
-}
-
-.event-card.tournament {
-  border-left: 3px solid var(--color-border-strong);
-}
-
-.event-card.tournament .event-header h4 {
-  color: var(--color-text-muted);
-}
-
-@media (max-width: 768px) {
-  .calendar-grid.weekly {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .calendar-weekday.weekly {
-    padding: 8px 4px;
-  }
-
-  .weekday-name {
-    font-size: 0.8rem;
-  }
-
-  .weekday-date {
-    font-size: 1rem;
-  }
-
-  .calendar-day.weekly {
-    min-height: 150px;
-    padding: 6px;
-  }
-
-  .calendar-event-card.weekly {
-    padding: 4px 6px;
-    font-size: 0.75rem;
-  }
-
-  .schedule-content {
-    min-height: 600px;
-  }
-
-  .events-list {
-    min-height: 500px;
-    padding: 15px 0;
-  }
-
-  .event-card {
-    margin-bottom: 15px;
-    min-height: 100px;
-  }
-
-  .game-card {
-    margin-bottom: 20px;
-  }
-}
-
-.calendar-header .calendar-nav-btn {
-  padding: 8px 12px;
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-
-.calendar-header .calendar-title {
+.calendar-title {
+  margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--color-text);
+  flex: 1;
+  text-align: center;
 }
 
-.calendar-day.weekly {
-  overflow: hidden;
-}
-
-.calendar-day-events.weekly {
-  overflow-y: auto;
-  max-height: 100%;
-}
-
-.calendar-day-events.weekly::-webkit-scrollbar {
-  width: 4px;
-}
-
-.calendar-day-events.weekly::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
-
-.calendar-day-events.weekly::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+.calendar-nav-btn,
+.calendar-today-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--color-text);
+  transition: background var(--transition), border-color var(--transition);
 }
 
-.calendar-day-events.weekly::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+.calendar-nav-btn:hover,
+.calendar-today-btn:hover {
+  background: var(--color-bg);
+  border-color: var(--color-border-strong);
+}
+
+.calendar-today-btn {
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .team-schedule-item {
@@ -367,4 +352,268 @@
 
 .view-btn.active:hover {
   border-color: var(--color-text);
+}
+
+/* —— Assign referees modal —— */
+.assign-referees-modal {
+  max-width: 520px;
+  width: 100%;
+}
+
+.assign-referees-modal .modal-header {
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.assign-referees-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.assign-referees-subtitle {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.assign-referees-body {
+  padding: var(--space-lg) var(--space-xl);
+}
+
+.assign-referees-error {
+  margin-bottom: var(--space-md);
+}
+
+.assign-referees-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.assign-referees-footer .btn {
+  min-width: 7.5rem;
+}
+
+/* —— Referee picker (modal + inline) —— */
+.referee-assignment--inline {
+  margin-top: 0;
+}
+
+.referee-assignment-panel {
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.referee-assignment-state {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.referee-assignment-empty {
+  padding: var(--space-lg);
+  text-align: center;
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.referee-assignment-empty p {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.referee-assignment-empty-hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.referee-readonly-value {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.referee-assignment-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.referee-assignment-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.referee-selection-count {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  border: 1px solid var(--color-border);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full, 999px);
+}
+
+.referee-selection-count--full {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.referee-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.referee-picker-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
+  text-align: left;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color var(--transition),
+    background var(--transition),
+    box-shadow var(--transition);
+}
+
+.referee-picker-card:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg);
+}
+
+.referee-picker-card--selected {
+  border-color: var(--color-primary);
+  background: var(--color-secondary-bg);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.referee-picker-card:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.referee-picker-avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full, 50%);
+  background: var(--color-primary);
+  color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.referee-picker-card--selected .referee-picker-avatar {
+  background: var(--color-text);
+}
+
+.referee-picker-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.referee-picker-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.referee-picker-email {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.referee-picker-indicator {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full, 50%);
+  background: var(--color-surface);
+}
+
+.referee-picker-card--selected .referee-picker-indicator {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.referee-assignment-actions {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.referee-assignment-actions .btn {
+  min-width: 8rem;
+}
+
+.event-detail-item-referees {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.event-detail-item-referees .detail-label {
+  margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .assign-referees-footer {
+    flex-direction: column-reverse;
+  }
+
+  .assign-referees-footer .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .referee-assignment-actions .btn {
+    width: 100%;
+  }
 }

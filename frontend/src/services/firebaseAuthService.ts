@@ -320,6 +320,7 @@ class FirebaseAuthService {
 
       await teamService.removeAllTeamsForUser(user.uid);
       await tournamentService.cleanupUserOrganizerRelationships(user.uid);
+      await tournamentService.cleanupUserRefereeRelationships(user.uid);
       await deleteDoc(doc(db, 'userProfiles', user.uid));
       await deleteUser(user);
 

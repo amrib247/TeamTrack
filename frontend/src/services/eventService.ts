@@ -6,6 +6,7 @@ import {
   getDocs,
   query,
   setDoc,
+  updateDoc,
   where,
 } from 'firebase/firestore';
 import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/Event';
@@ -69,11 +70,44 @@ class EventService {
         location: event.location,
         description: event.description ?? null,
         score: event.score ?? null,
+        refereeUserIds: event.refereeUserIds ?? null,
         createdAt: event.createdAt,
         updatedAt: event.updatedAt,
       })
     );
     return event;
+  }
+
+  async assignRefereesToGame(
+    eventIds: string[],
+    refereeUserIds: string[],
+    tournamentId: string
+  ): Promise<void> {
+    if (refereeUserIds.length > 3) {
+      throw new Error('A game can have at most 3 referees');
+    }
+
+    const uniqueIds = [...new Set(refereeUserIds)];
+    const { tournamentService } = await import('./tournamentService');
+    const activeRefereeIds = await tournamentService.getActiveRefereeUserIds(tournamentId);
+    for (const userId of uniqueIds) {
+      if (!activeRefereeIds.includes(userId)) {
+        throw new Error('All assigned users must be active referees for this tournament');
+      }
+    }
+
+    const timestamp = nowIso();
+    for (const eventId of eventIds) {
+      const eventRef = doc(db, 'events', eventId);
+      const snap = await getDoc(eventRef);
+      if (!snap.exists()) {
+        throw new Error(`Event not found: ${eventId}`);
+      }
+      await updateDoc(eventRef, {
+        refereeUserIds: uniqueIds.length > 0 ? uniqueIds : [],
+        updatedAt: timestamp,
+      });
+    }
   }
 
   async getEventsByTeamId(teamId: string): Promise<Event[]> {
