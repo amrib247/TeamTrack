@@ -1,7 +1,8 @@
-﻿import type { Tournament } from '../types/Auth';
-import './Tournament.css';
-import { useNavigate } from 'react-router-dom';
-import AppIcon from './icons/AppIcon';
+﻿import { useNavigate } from 'react-router-dom';
+import { Trophy, Calendar } from 'lucide-react';
+import type { Tournament } from '../types/Auth';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/components/ui/utils';
 
 interface TournamentProps {
   tournament: Tournament;
@@ -11,41 +12,34 @@ interface TournamentProps {
 function Tournament({ tournament, roleBadge = 'Organizer' }: TournamentProps) {
   const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    navigate(`/tournament/${tournament.id}`);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
   return (
-    <div className="team-card-compact tournament-card-compact clickable" onClick={handleCardClick}>
-      <div className="team-header">
-        <div className="team-header-left">
-          <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
-            <AppIcon name="trophy" size={22} />
-          </div>
-          <div className="team-header-text">
-            <h4>{tournament.name}</h4>
-            <span className="team-sport">
+    <button
+      type="button"
+      onClick={() => navigate(`/tournament/${tournament.id}`)}
+      className={cn(
+        'w-full text-left block border border-border p-4',
+        'hover:border-primary/40 hover:shadow-sm transition-all'
+      )}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-foreground truncate">{tournament.name}</h4>
+          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <Calendar className="size-3 shrink-0" />
+            <span>
               {tournament.teamCount}/{tournament.maxSize} teams
             </span>
           </div>
         </div>
+        <Badge variant={roleBadge === 'Referee' ? 'secondary' : 'default'}>
+          {roleBadge === 'Referee' ? 'Read-only' : 'Organizer'}
+        </Badge>
       </div>
-      <div className="team-details">
-        <div className="team-role">
-          <strong>Your role:</strong> {roleBadge}
-        </div>
-        <div className="team-role">
-          <strong>Organizers:</strong> {tournament.organizerCount}
-        </div>
-        <div className="team-joined">
-          <strong>Created:</strong> {formatDate(tournament.createdAt)}
-        </div>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Trophy className="size-3 shrink-0" />
+        <span>Created {new Date(tournament.createdAt).toLocaleDateString()}</span>
       </div>
-    </div>
+    </button>
   );
 }
 

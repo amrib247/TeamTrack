@@ -1,335 +1,214 @@
-import { useNavigate } from 'react-router-dom';
-import LandingIcon from '../components/landing/LandingIcon';
-import './LandingPage.css';
+import { Link } from 'react-router-dom';
+import {
+  Target,
+  Users,
+  Trophy,
+  Calendar,
+  MessageSquare,
+  CheckCircle2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LandingAppPreview } from '@/components/landing/LandingAppPreview';
 
 function LandingPage() {
-  const navigate = useNavigate();
-
-  const handleGetStarted = () => {
-    navigate('/auth');
-  };
-
-  const handleLearnMore = () => {
-    const featuresSection = document.getElementById('features-section');
-    if (featuresSection) {
-      featuresSection.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
-  };
-
   return (
-    <div className="landing-page">
-      <header className="landing-header">
-        <div className="header-inner">
-          <div className="header-brand">
-            <img
-              src={`${import.meta.env.BASE_URL}logo-login.png`}
-              alt=""
-              className="header-logo"
-            />
-            <span className="header-wordmark">TeamTrack</span>
+    <div className="min-h-screen w-full overflow-x-hidden bg-white">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex shrink-0 items-center gap-2">
+            <Target className="size-8 shrink-0 text-blue-600" aria-hidden />
+            <span className="text-xl font-semibold text-gray-900">TeamTrack</span>
           </div>
-          <nav className="header-nav">
-            <button type="button" className="header-link" onClick={handleLearnMore}>
-              Learn more
-            </button>
-            <button type="button" className="btn btn-primary" onClick={handleGetStarted}>
-              Get Started
-            </button>
-          </nav>
+          <div className="flex shrink-0 items-center gap-4">
+            <a
+              href="#features"
+              className="whitespace-nowrap text-gray-600 hover:text-gray-900"
+            >
+              Learn More
+            </a>
+            <Button
+              asChild
+              className="shrink-0 bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Link to="/auth">Get Started</Link>
+            </Button>
+          </div>
         </div>
       </header>
 
-      <section className="hero-section">
-        <div className="hero-content">
-          <div className="hero-text">
-            <p className="hero-eyebrow">Sports team management</p>
-            <h1 className="hero-title">
-              Elevate your sports team
-              <span className="highlight"> management</span>
+      <section className="mx-auto max-w-7xl px-6 py-16">
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+          <div className="text-center lg:text-left">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-blue-600">
+              Sports team management
+            </p>
+            <h1 className="mb-5 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Manage Your Teams and Tournaments with Ease
             </h1>
-            <p className="hero-description">
-              TeamTrack is the platform for coaches, players, and administrators.
-              Manage multiple teams, organize tournaments, track availability, and
-              keep everyone aligned with one professional toolkit.
+            <p className="mb-6 text-lg leading-relaxed text-gray-600">
+              TeamTrack is the all-in-one platform for coaches, players, and organizers to
+              coordinate teams, schedule events, and run seamless tournaments.
             </p>
-            <div className="hero-buttons">
-              <button type="button" className="btn btn-primary btn-large" onClick={handleGetStarted}>
-                Get Started
-              </button>
-              <button type="button" className="btn btn-secondary btn-large" onClick={handleLearnMore}>
-                Learn More
-              </button>
+            <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+              <Button
+                asChild
+                className="h-10 bg-blue-600 px-6 text-base text-white hover:bg-blue-700"
+              >
+                <Link to="/auth">Start for Free</Link>
+              </Button>
+              <Button asChild variant="outline" className="h-10 border-gray-300 px-6 text-base">
+                <a href="#features">Learn More</a>
+              </Button>
             </div>
           </div>
+          <div className="mx-auto w-full max-w-lg lg:max-w-none">
+            <LandingAppPreview />
+          </div>
+        </div>
+      </section>
 
-          <div className="hero-visual" aria-hidden="true">
-            <div className="app-preview">
-              <div className="app-preview-titlebar">
-                <div className="app-preview-dots">
-                  <span />
-                  <span />
-                  <span />
+      <section id="features" className="bg-gray-50 py-16">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="mb-10 text-center text-2xl font-bold text-gray-900 sm:text-3xl">
+            Everything You Need
+          </h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Users,
+                title: 'Team Management',
+                text: 'Organize rosters, invite members, assign roles, and keep everyone connected in one place.',
+              },
+              {
+                icon: Calendar,
+                title: 'Smart Scheduling',
+                text: 'Create events, track availability, and coordinate volunteer tasks with email reminders.',
+              },
+              {
+                icon: Trophy,
+                title: 'Tournament Tools',
+                text: 'Run tournaments with team registration, game scheduling, and referee assignment.',
+              },
+              {
+                icon: MessageSquare,
+                title: 'Team Chat',
+                text: 'Messaging for teams and tournaments with file sharing to keep everyone in sync.',
+              },
+              {
+                icon: CheckCircle2,
+                title: 'Task Coordination',
+                text: "Assign volunteer tasks with capacity limits and track who's helping out.",
+              },
+              {
+                icon: Target,
+                title: 'Role-Based Access',
+                text: 'Customized views and permissions for coaches, players, referees, and organizers.',
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <div
+                key={title}
+                className="min-w-0 border border-gray-200 bg-white p-6 shadow-sm"
+              >
+                <Icon className="mb-3 size-10 text-blue-600" aria-hidden />
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">{title}</h3>
+                <p className="break-words text-gray-600 leading-relaxed">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="mb-10 text-center text-2xl font-bold text-gray-900 sm:text-3xl">How It Works</h2>
+          <div className="space-y-10">
+            {[
+              {
+                step: '1',
+                title: 'Create Your Account',
+                text: 'Sign up in seconds with just your email and basic information.',
+              },
+              {
+                step: '2',
+                title: 'Build Your Teams',
+                text: 'Create teams, invite members via email, and assign coach or player roles.',
+              },
+              {
+                step: '3',
+                title: 'Organize Events',
+                text: 'Schedule practices, games, and volunteer tasks. Track availability automatically.',
+              },
+              {
+                step: '4',
+                title: 'Run Tournaments',
+                text: 'Create tournaments, invite teams, assign referees, and manage the entire competition.',
+              },
+            ].map(({ step, title, text }) => (
+              <div key={step} className="flex items-start gap-8">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-base font-bold text-white">
+                  {step}
                 </div>
-                <span className="app-preview-title">TeamTrack</span>
-              </div>
-              <div className="app-preview-body">
-                <div className="app-preview-sidebar">
-                  <button type="button" className="app-preview-nav-item active" tabIndex={-1}>
-                    <LandingIcon name="users" size={18} />
-                  </button>
-                  <button type="button" className="app-preview-nav-item" tabIndex={-1}>
-                    <LandingIcon name="calendar" size={18} />
-                  </button>
-                  <button type="button" className="app-preview-nav-item" tabIndex={-1}>
-                    <LandingIcon name="message" size={18} />
-                  </button>
-                  <button type="button" className="app-preview-nav-item" tabIndex={-1}>
-                    <LandingIcon name="check" size={18} />
-                  </button>
-                  <button type="button" className="app-preview-nav-item" tabIndex={-1}>
-                    <LandingIcon name="trophy" size={18} />
-                  </button>
-                </div>
-                <div className="app-preview-main">
-                  <div className="preview-block">
-                    <span className="preview-label">Upcoming</span>
-                    <div className="preview-row preview-row--teal">
-                      <LandingIcon name="calendar" size={16} />
-                      <span>Practice · Tue 6:00 PM</span>
-                    </div>
-                    <div className="preview-row preview-row--bronze">
-                      <LandingIcon name="trophy" size={16} />
-                      <span>League game · Sat 2:00 PM</span>
-                    </div>
-                  </div>
-                  <div className="preview-block">
-                    <span className="preview-label">Team chat</span>
-                    <div className="preview-row preview-row-muted preview-row--purple">
-                      <LandingIcon name="message" size={16} />
-                      <span>Coach: Bring cleats for Saturday</span>
-                    </div>
-                  </div>
-                  <div className="preview-block">
-                    <span className="preview-label">Tasks</span>
-                    <div className="preview-row preview-row--green">
-                      <LandingIcon name="check" size={16} />
-                      <span>Snack signup · 3 of 8 spots filled</span>
-                    </div>
-                  </div>
+                <div className="min-w-0">
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">{title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{text}</p>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section id="features-section" className="features-section">
-        <div className="container">
-          <h2 className="section-title">Professional features for modern sports teams</h2>
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="users" />
+      <section className="bg-gray-50 py-16">
+        <div className="mx-auto max-w-7xl px-6">
+          <h2 className="mb-10 text-center text-2xl font-bold text-gray-900 sm:text-3xl">Perfect For</h2>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {[
+              {
+                icon: Users,
+                title: 'Youth Leagues',
+                text: 'Coordinate parent volunteers, practice schedules, and game days.',
+              },
+              {
+                icon: Trophy,
+                title: 'Tournament Organizers',
+                text: 'Manage multi-team events, assign referees, and streamline communication.',
+              },
+              {
+                icon: Target,
+                title: 'Club Teams',
+                text: 'Keep competitive teams organized with advanced scheduling and roster tools.',
+              },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="min-w-0 text-center">
+                <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-blue-100">
+                  <Icon className="size-7 text-blue-600" aria-hidden />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">{title}</h3>
+                <p className="text-gray-600 leading-relaxed">{text}</p>
               </div>
-              <h3>Multi-Team Management</h3>
-              <p>
-                Join multiple teams with different roles — be a player on one team and a
-                coach on another. Perfect for multi-sport athletes and coaches.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="trophy" />
-              </div>
-              <h3>Tournament & League Management</h3>
-              <p>
-                Create and manage tournaments with advanced scheduling, bracket
-                management, and team enrollment. Track standings and results in real-time.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="calendar" />
-              </div>
-              <h3>Advanced Scheduling</h3>
-              <p>
-                Schedule practices, games, and events with location tracking, duration
-                management, and conflict detection. Perfect for busy sports seasons.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="message" />
-              </div>
-              <h3>Team Communication Hub</h3>
-              <p>
-                Real-time chat with file sharing, image support, and read receipts. Keep
-                everyone connected and informed instantly.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="check" />
-              </div>
-              <h3>Task & Availability Management</h3>
-              <p>
-                Create tasks with signup limits, track player availability, and manage team
-                commitments efficiently. Never miss a practice or game.
-              </p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="shield" />
-              </div>
-              <h3>Enterprise Security</h3>
-              <p>
-                Firebase-powered authentication with role-based access control. Secure user
-                management for coaches, players, parents, and administrators.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="how-it-works-section">
-        <div className="container">
-          <h2 className="section-title">Get started in seconds</h2>
-          <div className="steps-container">
-            <div className="step">
-              <div className="step-number">1</div>
-              <LandingIcon name="users" size={18} className="step-icon" />
-              <h3>Create Your Account</h3>
-              <p>
-                Sign up with your email and basic information. Choose your role as Coach,
-                Player, Parent, or Administrator.
-              </p>
-            </div>
-            <div className="step">
-              <div className="step-number">2</div>
-              <LandingIcon name="trophy" size={18} className="step-icon" />
-              <h3>Join or Create Teams</h3>
-              <p>
-                Join existing teams or create new ones. Set up roles, permissions, and team
-                information in seconds.
-              </p>
-            </div>
-            <div className="step">
-              <div className="step-number">3</div>
-              <LandingIcon name="calendar" size={18} className="step-icon" />
-              <h3>Start Managing</h3>
-              <p>
-                Begin scheduling events, managing tournaments, communicating with your team,
-                and tracking performance.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="use-cases-section">
-        <div className="container">
-          <h2 className="section-title">Perfect for every sports organization</h2>
-          <div className="use-cases-grid">
-            <div className="use-case-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="building" />
-              </div>
-              <h3>Youth Sports Leagues</h3>
-              <p>
-                Manage multiple age groups, coordinate practices, and organize seasonal
-                tournaments with ease.
-              </p>
-            </div>
-            <div className="use-case-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="users" />
-              </div>
-              <h3>Club Teams</h3>
-              <p>
-                Handle tryouts, manage rosters, schedule games, and track player development
-                across multiple teams.
-              </p>
-            </div>
-            <div className="use-case-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="school" />
-              </div>
-              <h3>School Athletics</h3>
-              <p>
-                Coordinate between coaches, manage facilities, schedule games, and communicate
-                with parents effectively.
-              </p>
-            </div>
-            <div className="use-case-card">
-              <div className="feature-icon-wrap">
-                <LandingIcon name="leisure" />
-              </div>
-              <h3>Recreational Sports</h3>
-              <p>
-                Organize casual leagues, manage player registrations, and keep everyone
-                informed about schedules and events.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="cta-section">
-        <div className="container">
-          <h2>Ready to transform your team management?</h2>
-          <p>
-            Join coaches and administrators who trust TeamTrack to manage their sports
-            organizations.
+      <section className="bg-blue-600 py-12">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="mb-3 text-2xl font-bold text-white sm:text-3xl">Ready to Get Started?</h2>
+          <p className="mb-6 text-lg text-blue-100">
+            Join coaches and organizers using TeamTrack today.
           </p>
-          <button type="button" className="btn btn-primary btn-large" onClick={handleGetStarted}>
-            Get Started Now
-          </button>
+          <Button
+            asChild
+            className="h-10 bg-white px-6 text-base text-blue-600 hover:bg-gray-100"
+          >
+            <Link to="/auth">Create Your Account</Link>
+          </Button>
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-section">
-              <h3>TeamTrack</h3>
-              <p>
-                Empowering sports teams with professional-grade management tools and seamless
-                communication.
-              </p>
-            </div>
-            <div className="footer-section">
-              <h4>Core Features</h4>
-              <ul>
-                <li>Team Management</li>
-                <li>Tournament Organization</li>
-                <li>Event Scheduling</li>
-                <li>Team Communication</li>
-                <li>Task Management</li>
-                <li>Performance Tracking</li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Support</h4>
-              <ul>
-                <li>Help Center</li>
-                <li>
-                  <a href="mailto:teamtrack1234@yahoo.com">teamtrack1234@yahoo.com</a>
-                </li>
-                <li>Documentation</li>
-                <li>Community</li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 TeamTrack. All rights reserved.</p>
-            <p>
-              Contact:{' '}
-              <a href="mailto:teamtrack1234@yahoo.com">teamtrack1234@yahoo.com</a>
-            </p>
-          </div>
+      <footer className="border-t border-gray-200 py-8">
+        <div className="mx-auto max-w-7xl px-6 text-center text-gray-600">
+          <p>&copy; {new Date().getFullYear()} TeamTrack. All rights reserved.</p>
         </div>
       </footer>
     </div>

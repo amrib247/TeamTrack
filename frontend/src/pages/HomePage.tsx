@@ -4,9 +4,14 @@ import { teamService, type CreateTeamRequest } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
 import { firebaseAuthService } from '../services/firebaseAuthService';
 import type { AuthResponse, UserTeam, Tournament, CreateTournamentRequest } from '../types/Auth';
+import { Settings, LogOut, Plus, Users, Trophy, Mail, AlertCircle } from 'lucide-react';
 import AppIcon from '../components/icons/AppIcon';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ToastBanner } from '@/components/layout/ToastBanner';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { PanelCard } from '@/components/layout/PanelCard';
 import { formatSportName } from '../utils/formatSport';
-import './HomePage.css';
 
 interface HomePageProps {
   currentUser: AuthResponse;
@@ -214,11 +219,6 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
     loadTournamentComponent();
   }, []);
 
-  // Debug profile photo URL
-  useEffect(() => {
-    console.log('Current user profile photo URL:', currentUser.profilePhotoUrl);
-  }, [currentUser.profilePhotoUrl]);
-
   const toggleEditMode = () => {
     setIsEditMode(!isEditMode);
   };
@@ -310,25 +310,14 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to terminate account';
-      console.log('🔍 Account termination error:', errorMessage);
-      
-      // Check if this is a coach safety error
-      if (errorMessage.includes("You are the only coach")) {
-        console.log('✅ Coach safety error detected, showing modal');
-        // Show the coach safety modal instead of error message
+
+      if (errorMessage.includes('You are the only coach')) {
         setShowCoachSafetyModal(true);
-        // Clear any existing error message
         setError('');
-      } else if (errorMessage.includes("Cannot delete account - you are the last organizer")) {
-        console.log('✅ Tournament organizer safety error detected, showing modal');
-        // Show the tournament safety modal instead of error message
+      } else if (errorMessage.includes('Cannot delete account - you are the last organizer')) {
         setShowTournamentSafetyModal(true);
-        // Clear any existing error message
         setError('');
       } else {
-        console.log('❌ Not a safety error, showing error message');
-        console.log('❌ Error message was:', errorMessage);
-        // Only show error message if it's not a safety issue
         setError(errorMessage);
       }
     }
@@ -524,222 +513,228 @@ function HomePage({ currentUser, onLogout, onRefreshUserData }: HomePageProps) {
   const validTeams = currentUser.teams.filter((team: UserTeam) => teamDetails[team.teamId] !== null);
 
   return (
-    <div className="app home-page">
-      {successMessage && (
-        <div className="toast-banner notice-success" role="status">
-          <AppIcon name="check" size={18} />
-          <span>{successMessage}</span>
-        </div>
-      )}
-      <div className="container">
-        <div className="home-top-bar">
-          <h1 className="home-welcome">Welcome, {currentUser.firstName}</h1>
-          <div className="home-top-actions">
-            <button type="button" className="btn btn-ghost" onClick={onLogout}>
+    <div className="min-h-screen w-full overflow-x-hidden bg-gray-50">
+      <ToastBanner message={successMessage} onDismiss={() => setSuccessMessage('')} />
+
+      <header className="border-b border-gray-200 bg-white">
+        <PageContainer className="flex items-center justify-between py-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Welcome back, {currentUser.firstName}
+            </h1>
+            <p className="text-gray-600">Manage your teams and tournaments</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="border-gray-300"
+              onClick={openSettings}
+              aria-label="Settings"
+            >
+              <Settings className="size-5" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-gray-300"
+              onClick={onLogout}
+            >
+              <LogOut className="size-4 mr-2" />
               Logout
-            </button>
-            <button type="button" className="btn btn-secondary btn-with-icon" onClick={openSettings}>
-              <AppIcon name="settings" size={16} />
-              Settings
-            </button>
+            </Button>
+          </div>
+        </PageContainer>
+      </header>
+
+      <PageContainer className="py-8">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <PanelCard
+            title="Your Teams"
+            description="Teams you belong to as coach or player"
+            action={
+              <Button
+                type="button"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={openCreateTeam}
+              >
+                <Plus className="size-4 mr-2" />
+                Create Team
+              </Button>
+            }
+          >
+            <div className="space-y-4">
+              {validTeams.length > 0 ? (
+                validTeams.map((userTeam: UserTeam) => {
+                  const isPending = userTeam.inviteAccepted === false;
+                  const details = teamDetails[userTeam.teamId];
+                  return (
+                    <button
+                      key={userTeam.id}
+                      type="button"
+                      onClick={() => handleTeamClick(userTeam.id)}
+                      className="w-full text-left border border-border p-4 hover:border-primary/40 hover:shadow-sm transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {details?.profilePhotoUrl && (
+                            <img
+                              src={details.profilePhotoUrl}
+                              alt=""
+                              className="size-10 rounded object-cover shrink-0"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-foreground truncate">
+                              {details?.teamName || 'Loading...'}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatSportName(details?.sport || 'Unknown')}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={userTeam.role === 'COACH' ? 'default' : 'secondary'}>
+                          {getRoleDisplayName(userTeam.role)}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Joined {new Date(userTeam.joinedAt).toLocaleDateString()}
+                      </p>
+                      {isPending && (
+                        <Badge variant="outline" className="mt-2 border-amber-300 text-amber-800 bg-amber-50">
+                          <AlertCircle className="size-3 mr-1" />
+                          Invite pending
+                        </Badge>
+                      )}
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Users className="size-12 mx-auto mb-3 opacity-40" />
+                  <p>No teams yet. Create your first team to get started!</p>
+                </div>
+              )}
+            </div>
+          </PanelCard>
+
+          <div className="border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-200 p-6">
+              <div className="flex items-center gap-2">
+                <Trophy className="size-5 text-blue-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Your Tournaments</h2>
+              </div>
+              <Button
+                type="button"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={openCreateTournament}
+              >
+                <Plus className="size-4 mr-2" />
+                Create Tournament
+              </Button>
+            </div>
+            <div className="p-6 space-y-6">
+              {(tournaments.length > 0 ||
+                refereeTournaments.length > 0 ||
+                pendingTournamentInvites.length > 0 ||
+                pendingRefereeInvites.length > 0) ? (
+                <>
+                  {pendingTournamentInvites.map((invite) => (
+                    <button
+                      key={invite.organizerTournamentId}
+                      type="button"
+                      onClick={() => handlePendingTournamentInviteClick(invite)}
+                      className="w-full text-left border border-border p-4 hover:border-primary/40 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold">{invite.tournamentName}</h4>
+                          <p className="text-sm text-muted-foreground">Organizer invite</p>
+                        </div>
+                        <Badge variant="outline" className="border-purple-300 text-purple-700">
+                          <Mail className="size-3 mr-1" />
+                          Invite
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                  {pendingRefereeInvites.map((invite) => (
+                    <button
+                      key={invite.refereeTournamentId}
+                      type="button"
+                      onClick={() => handlePendingRefereeInviteClick(invite)}
+                      className="w-full text-left border border-border p-4 hover:border-primary/40 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-semibold">{invite.tournamentName}</h4>
+                          <p className="text-sm text-muted-foreground">Referee invite</p>
+                        </div>
+                        <Badge variant="outline" className="border-purple-300 text-purple-700">
+                          <Mail className="size-3 mr-1" />
+                          Invite
+                        </Badge>
+                      </div>
+                    </button>
+                  ))}
+                  {tournaments.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <Trophy className="size-4" />
+                        As Organizer
+                      </h3>
+                      <div className="space-y-3">
+                        {tournaments.map((tournament) =>
+                          TournamentComponent ? (
+                            <TournamentComponent
+                              key={`org-${tournament.id}`}
+                              tournament={tournament}
+                              roleBadge="Organizer"
+                            />
+                          ) : (
+                            <p key={`org-${tournament.id}`} className="text-sm text-muted-foreground">
+                              Loading...
+                            </p>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {refereeTournaments.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                        <Users className="size-4" />
+                        As Referee
+                      </h3>
+                      <div className="space-y-3">
+                        {refereeTournaments.map((tournament) =>
+                          TournamentComponent ? (
+                            <TournamentComponent
+                              key={`ref-${tournament.id}`}
+                              tournament={tournament}
+                              roleBadge="Referee"
+                            />
+                          ) : (
+                            <p key={`ref-${tournament.id}`} className="text-sm text-muted-foreground">
+                              Loading...
+                            </p>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Trophy className="size-12 mx-auto mb-3 opacity-40" />
+                  <p>No tournaments yet. Create or join one!</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        <div className="home-dashboard">
-
-          <section className="teams-panel">
-            <div className="panel-header">
-              <div className="panel-header-text">
-                <h2 className="panel-title section-heading">
-                  <AppIcon name="users" size={20} />
-                  Your Teams
-                </h2>
-                <p className="panel-subtitle">Teams you belong to as coach, player, or parent</p>
-              </div>
-              <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTeam}>
-                <AppIcon name="plus" size={16} />
-                Create Team
-              </button>
-            </div>
-            <div className="teams-panel-body">
-              {validTeams.length > 0 ? (
-                <div className="teams-list">
-                 {validTeams.map((userTeam: UserTeam) => {
-                   const isPending = userTeam.inviteAccepted === false;
-                   return (
-                   <div 
-                     key={userTeam.id} 
-                     className="team-card-compact clickable"
-                     onClick={() => handleTeamClick(userTeam.id)}
-                   >
-                                           <div className="team-header">
-                        <div className="team-header-left">
-                          {teamDetails[userTeam.teamId]?.profilePhotoUrl && (
-                            <div className="team-photo-small">
-                              <img src={teamDetails[userTeam.teamId]?.profilePhotoUrl} alt="Team photo" />
-                            </div>
-                          )}
-                          <div className="team-header-text">
-                            <h4>{teamDetails[userTeam.teamId]?.teamName || 'Loading...'}</h4>
-                            <span className="team-sport">{formatSportName(teamDetails[userTeam.teamId]?.sport || 'Unknown')}</span>
-                          </div>
-                        </div>
-                      </div>
-                                           <div className="team-details">
-                          <div className="team-role">
-                            <strong>Role:</strong> {getRoleDisplayName(userTeam.role)}
-                          </div>
-                          <div className="team-joined">
-                            <strong>Joined:</strong> {new Date(userTeam.joinedAt).toLocaleDateString()}
-                          </div>
-                          {isPending && (
-                            <div className="invite-status invite-pending">
-                              <AppIcon name="alert" size={16} />
-                              Invite pending
-                            </div>
-                          )}
-                        </div>
-                   </div>
-                 );})}
-               </div>
-             ) : (
-               <div className="panel-empty">
-                 <p>You&apos;re not on any teams yet.</p>
-                 <p>Create or join a team to get started.</p>
-               </div>
-             )}
-            </div>
-          </section>
-
-          <section className="tournaments-panel">
-            <div className="panel-header">
-              <div className="panel-header-text">
-                <h2 className="panel-title section-heading">
-                  <AppIcon name="trophy" size={20} />
-                  Your Tournaments
-                </h2>
-                <p className="panel-subtitle">Create and organize tournaments for teams</p>
-              </div>
-              <button type="button" className="btn btn-primary btn-with-icon" onClick={openCreateTournament}>
-                <AppIcon name="plus" size={16} />
-                Create Tournament
-              </button>
-            </div>
-            <div className="tournaments-panel-body">
-          {(tournaments.length > 0 || refereeTournaments.length > 0 || pendingTournamentInvites.length > 0 || pendingRefereeInvites.length > 0) ? (
-            <div className="tournaments-list">
-              {/* Pending Tournament Invites */}
-              {pendingTournamentInvites.map((invite) => (
-                <div 
-                  key={invite.organizerTournamentId} 
-                  className="team-card-compact tournament-card-compact tournament-card-invite clickable"
-                  onClick={() => handlePendingTournamentInviteClick(invite)}
-                >
-                  <div className="team-header">
-                    <div className="team-header-left">
-                      <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
-                        <AppIcon name="mail" size={22} />
-                      </div>
-                      <div className="team-header-text">
-                        <h4>{invite.tournamentName}</h4>
-                        <span className="team-sport">Organizer invite</span>
-                      </div>
-                    </div>
-                    <div className="tournament-card-badge">
-                      <span className="status-badge status-invite">
-                        <AppIcon name="mail" size={14} />
-                        Invite
-                      </span>
-                    </div>
-                  </div>
-                  <div className="team-details">
-                    {invite.tournamentDescription && (
-                      <div className="team-joined">{invite.tournamentDescription}</div>
-                    )}
-                    <div className="invite-status invite-pending">
-                      <AppIcon name="alert" size={14} />
-                      Tap to accept or decline
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Pending Referee Invites */}
-              {pendingRefereeInvites.map((invite) => (
-                <div
-                  key={invite.refereeTournamentId}
-                  className="team-card-compact tournament-card-compact tournament-card-invite clickable"
-                  onClick={() => handlePendingRefereeInviteClick(invite)}
-                >
-                  <div className="team-header">
-                    <div className="team-header-left">
-                      <div className="team-card-avatar team-card-avatar-placeholder" aria-hidden="true">
-                        <AppIcon name="mail" size={22} />
-                      </div>
-                      <div className="team-header-text">
-                        <h4>{invite.tournamentName}</h4>
-                        <span className="team-sport">Referee invite</span>
-                      </div>
-                    </div>
-                    <div className="tournament-card-badge">
-                      <span className="status-badge status-invite">
-                        <AppIcon name="mail" size={14} />
-                        Invite
-                      </span>
-                    </div>
-                  </div>
-                  <div className="team-details">
-                    {invite.tournamentDescription && (
-                      <div className="team-joined">{invite.tournamentDescription}</div>
-                    )}
-                    <div className="invite-status invite-pending">
-                      <AppIcon name="alert" size={14} />
-                      Tap to accept or decline
-                    </div>
-                  </div>
-                </div>
-              ))}
-              
-              {/* Organizer Tournaments */}
-              {tournaments.map((tournament) => 
-                TournamentComponent ? (
-                  <TournamentComponent
-                    key={`org-${tournament.id}`}
-                    tournament={tournament}
-                    roleBadge="Organizer"
-                  />
-                ) : (
-                  <div key={`org-${tournament.id}`} className="tournament-loading">
-                    Loading tournament component...
-                  </div>
-                )
-              )}
-
-              {/* Referee Tournaments */}
-              {refereeTournaments.map((tournament) =>
-                TournamentComponent ? (
-                  <TournamentComponent
-                    key={`ref-${tournament.id}`}
-                    tournament={tournament}
-                    roleBadge="Referee"
-                  />
-                ) : (
-                  <div key={`ref-${tournament.id}`} className="tournament-loading">
-                    Loading tournament component...
-                  </div>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="panel-empty">
-              <p>No tournaments yet.</p>
-              <p>Create your first tournament to get started.</p>
-            </div>
-          )}
-            </div>
-          </section>
-        </div>
-      </div>
+      </PageContainer>
 
       {/* Create Team Modal */}
       {showCreateTeam && (

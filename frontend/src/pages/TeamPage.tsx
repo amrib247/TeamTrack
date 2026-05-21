@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { ReminderLeadTime, AuthResponse } from '../types/Auth';
-import { REMINDER_LEAD_TIME_OPTIONS } from '../types/Auth';
 import { teamService, type TeamMember } from '../services/teamService';
 import { tournamentService } from '../services/tournamentService';
 import Schedule from '../components/Schedule';
 import TaskList from '../components/TaskList';
 import Chat from '../components/Chat';
 import AppIcon from '../components/icons/AppIcon';
-import './TeamPage.css';
+import { WorkspaceHeader } from '@/components/layout/WorkspaceHeader';
+import { PageContainer } from '@/components/layout/PageContainer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ToastBanner } from '@/components/layout/ToastBanner';
+import { TeamRosterPanel } from '@/components/team/TeamRosterPanel';
+import { TeamTournamentsPanel } from '@/components/team/TeamTournamentsPanel';
+import { TeamSettingsPanel } from '@/components/team/TeamSettingsPanel';
+import {
+  workspaceTabsListClass,
+  workspaceTabsTriggerClass,
+} from '@/components/team/workspaceTabs';
 
 interface TeamPageProps {
   currentUser: AuthResponse;
@@ -20,7 +29,13 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   const { teamId: userTeamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('roster');
-  
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(''), 4000);
+  };
+
   // Team editing states
   const [editTeamForm, setEditTeamForm] = useState({
     teamName: '',
@@ -30,15 +45,10 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
     profilePhotoUrl: ''
   });
   const [editingTeam, setEditingTeam] = useState(false);
-  const [showTerminateConfirm, setShowTerminateConfirm] = useState(false);
-  const [terminateConfirm, setTerminateConfirm] = useState('');
   const [error, setError] = useState<string>('');
   const [teamPhotoPreview, setTeamPhotoPreview] = useState<string | null>(null);
   const [teamPhotoFile, setTeamPhotoFile] = useState<File | null>(null);
 
-  // Leave team states
-  const [showLeaveTeamConfirm, setShowLeaveTeamConfirm] = useState(false);
-  const [leaveTeamConfirm, setLeaveTeamConfirm] = useState('');
   
   // Find the team data for the current user
   // Note: teamId in URL is actually the userTeams document ID
@@ -59,18 +69,12 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   const [loadingTeamMembers, setLoadingTeamMembers] = useState(false);
   
   // State for invite form
-  const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: '',
     role: 'PLAYER'
   });
   const [invitingUser, setInvitingUser] = useState(false);
   const [inviteError, setInviteError] = useState<string>('');
-
-  // State for user management (coaches only)
-  const [selectedUser, setSelectedUser] = useState<TeamMember | null>(null);
-  const [showUserManagementModal, setShowUserManagementModal] = useState(false);
-  const [newRole, setNewRole] = useState('');
 
   // State for coach count
   const [coachCount, setCoachCount] = useState<number>(0);
@@ -152,10 +156,8 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       if (activeTab === 'roster' && userTeam?.teamId) {
         try {
           setLoadingTeamMembers(true);
-          console.log('🔍 Fetching team members for teamId:', userTeam.teamId);
           const members = await teamService.getTeamMembers(userTeam.teamId);
           setTeamMembers(members);
-          console.log('✅ Team members fetched:', members);
         } catch (error) {
           console.error('❌ Failed to fetch team members:', error);
           setError('Failed to load team roster');
@@ -174,10 +176,8 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       if (activeTab === 'roster' && userTeam?.teamId) {
         try {
           setLoadingCoachCount(true);
-          console.log('👥 Fetching coach count for teamId:', userTeam.teamId);
           const count = await teamService.getCoachCount(userTeam.teamId);
           setCoachCount(count);
-          console.log('✅ Coach count fetched:', count);
         } catch (error) {
           console.error('❌ Failed to fetch coach count:', error);
           setError('Failed to load coach count');
@@ -196,10 +196,8 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       if (activeTab === 'tournaments' && userTeam?.teamId) {
         try {
           setLoadingTournamentInvites(true);
-          console.log('🏆 Fetching tournament invites for teamId:', userTeam.teamId);
           const invites = await teamService.getTournamentInvites(userTeam.teamId);
           setTournamentInvites(invites);
-          console.log('✅ Tournament invites fetched:', invites);
           
           // Fetch tournament details for each invite
           const tournamentDetailsMap: {[key: string]: any} = {};
@@ -228,14 +226,11 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
 
   // Fetch enrolled tournaments when tournaments tab is active
   const fetchEnrolledTournaments = async () => {
-    console.log('🔄 fetchEnrolledTournaments called with:', { activeTab, userTeamId: userTeam?.teamId });
     
     if (userTeam?.teamId) {
       try {
         setLoadingEnrolledTournaments(true);
-        console.log('🏆 Fetching enrolled tournaments for teamId:', userTeam.teamId);
         const tournaments = await teamService.getAcceptedTournamentInvites(userTeam.teamId);
-        console.log('✅ Enrolled tournaments fetched:', tournaments);
         setEnrolledTournaments(tournaments);
         
         // Fetch tournament details for each enrolled tournament
@@ -250,7 +245,6 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
             console.error('❌ Failed to fetch tournament details for:', tournamentInvite.tournamentId, error);
           }
         }
-        console.log('📊 Tournament details map updated:', tournamentDetailsMap);
         setTournamentDetails(prev => ({ ...prev, ...tournamentDetailsMap }));
       } catch (error) {
         console.error('❌ Failed to fetch enrolled tournaments:', error);
@@ -259,12 +253,10 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
         setLoadingEnrolledTournaments(false);
       }
     } else {
-      console.log('⚠️ fetchEnrolledTournaments skipped - no userTeam.teamId');
     }
   };
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered for fetchEnrolledTournaments:', { activeTab, userTeamId: userTeam?.teamId });
     fetchEnrolledTournaments();
   }, [activeTab, userTeam]);
 
@@ -294,12 +286,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   };
 
   const handleTabChange = (tab: string) => {
-    console.log('🔄 Tab changing from', activeTab, 'to', tab);
     setActiveTab(tab);
-  };
-
-  const handleBackToHome = () => {
-    navigate('/home');
   };
 
   const handleEditTeamInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -373,10 +360,6 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       };
       
       // Call the backend API to update team
-      console.log('🔄 Updating team with actual teamId:', userTeam.teamId, 'and data:', updateRequest);
-      console.log('🔍 Debug - userTeam object:', userTeam);
-      console.log('🔍 Debug - userTeam.teamId type:', typeof userTeam.teamId);
-      console.log('🔍 Debug - userTeam.teamId value:', userTeam.teamId);
       
       if (!userTeam.teamId) {
         throw new Error('Team ID is missing from userTeam object');
@@ -408,7 +391,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
        }
        
        // Show success message
-       alert('Team updated successfully!');
+       showToast('Team updated successfully!');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update team');
@@ -418,20 +401,14 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   };
 
   const handleTerminateTeam = async () => {
-    if (terminateConfirm !== 'DELETE') {
-      setError('Please type DELETE to confirm team termination');
-      return;
-    }
-
     try {
       setError('');
       
       // Call the backend API to terminate team
-      console.log('🗑️ Terminating team with actual teamId:', userTeam.teamId);
       await teamService.terminateTeam(userTeam.teamId);
       
       // Show success message and redirect
-      alert('Team terminated successfully!');
+      showToast('Team terminated successfully!');
       navigate('/home');
       
     } catch (err) {
@@ -440,20 +417,14 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   };
 
   const handleLeaveTeam = async () => {
-    if (leaveTeamConfirm !== 'LEAVE') {
-      setError('Please type LEAVE to confirm leaving the team');
-      return;
-    }
-
     try {
       setError('');
       
       // Call the backend API to leave team
-      console.log('👋 Leaving team with userTeamId:', userTeamId);
       await teamService.leaveTeam(userTeamId!, currentUser.id);
       
       // Show success message and redirect
-      alert('You have left the team successfully!');
+      showToast('You have left the team successfully!');
       
       // Refresh user data to update the home page
       // We need to navigate back to home first, then refresh
@@ -464,53 +435,45 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to leave team';
-      console.log('🔍 Leave team error:', errorMessage);
       
       // Check if this is a coach safety error
       if (errorMessage.includes("You are the only coach")) {
-        console.log('✅ Coach safety error detected, showing modal');
         // Show the coach safety modal instead of error message
         setShowCoachSafetyModal(true);
         // Clear any existing error message
         setError('');
       } else {
-        console.log('❌ Not a coach safety error, showing error message');
-        console.log('❌ Error message was:', errorMessage);
         // Only show error message if it's not a coach safety issue
         setError(errorMessage);
       }
     }
   };
 
-  const handleInviteUser = async (e: React.FormEvent) => {
+  const handleInviteUser = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
-    
+
     if (!inviteForm.email.trim() || !inviteForm.role) {
       setInviteError('Please fill in all fields');
-      return;
+      return false;
     }
 
     try {
       setInvitingUser(true);
       setInviteError('');
-      
+
       await teamService.inviteUserToTeam(userTeam.teamId, inviteForm.email, inviteForm.role);
-      
-      // Show success message
-      alert('User invited successfully!');
-      
-      // Reset form and close
+
+      showToast('User invited successfully!');
       setInviteForm({ email: '', role: 'PLAYER' });
-      setShowInviteForm(false);
-      
-      // Refresh team members to show the new invite
+
       if (activeTab === 'roster') {
         const members = await teamService.getTeamMembers(userTeam.teamId);
         setTeamMembers(members);
       }
-      
+      return true;
     } catch (err) {
       setInviteError(err instanceof Error ? err.message : 'Failed to invite user');
+      return false;
     } finally {
       setInvitingUser(false);
     }
@@ -518,11 +481,8 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
 
   // Tournament invite handlers
   const handleAcceptTournamentInvite = async (inviteId: string) => {
-    console.log('🎯 handleAcceptTournamentInvite called with inviteId:', inviteId);
-    console.log('🔍 Current state:', { userTeamId: userTeam?.teamId, activeTab });
     
     if (!userTeam?.teamId) {
-      console.log('❌ No userTeam.teamId, returning early');
       return;
     }
     
@@ -532,22 +492,17 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       
       // Import tournamentService dynamically to avoid circular dependencies
       const { tournamentService } = await import('../services/tournamentService');
-      console.log('✅ tournamentService imported successfully');
       
       await tournamentService.acceptTournamentInvite(inviteId);
-      console.log('✅ Tournament invite accepted successfully');
       
       // Show success message
-      alert('Tournament invite accepted successfully!');
+      showToast('Tournament invite accepted successfully!');
       
       // Remove the accepted invite from the list
       setTournamentInvites(prev => prev.filter(invite => invite.id !== inviteId));
-      console.log('✅ Tournament invite removed from invites list');
       
       // Refresh enrolled tournaments to show the newly accepted tournament
-      console.log('🔄 About to call fetchEnrolledTournaments...');
       await fetchEnrolledTournaments();
-      console.log('✅ fetchEnrolledTournaments completed');
       
     } catch (err) {
       console.error('❌ Error in handleAcceptTournamentInvite:', err);
@@ -567,7 +522,7 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       await tournamentService.declineTournamentInvite(inviteId);
       
       // Show success message
-      alert('Tournament invite declined successfully!');
+      showToast('Tournament invite declined successfully!');
       
       // Remove the declined invite from the list
       setTournamentInvites(prev => prev.filter(invite => invite.id !== inviteId));
@@ -580,16 +535,12 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
   };
 
   const handleLeaveTournament = async (tournamentInviteId: string, tournamentId: string) => {
-    console.log('🚪 handleLeaveTournament called with:', { tournamentInviteId, tournamentId });
-    console.log('🔍 Current state:', { userTeamId: userTeam?.teamId, activeTab });
     
     if (!userTeam?.teamId) {
-      console.log('❌ No userTeam.teamId, returning early');
       return;
     }
     
     if (!window.confirm('Are you sure you want to leave this tournament?')) {
-      console.log('❌ User cancelled leaving tournament');
       return;
     }
     
@@ -599,18 +550,14 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
       
       // Import teamService dynamically to avoid circular dependencies
       const { teamService } = await import('../services/teamService');
-      console.log('✅ teamService imported successfully');
       
       await teamService.leaveTournament(userTeam.teamId, tournamentId);
-      console.log('✅ Successfully left tournament');
       
       // Show success message
-      alert('Successfully left the tournament!');
+      showToast('Successfully left the tournament!');
       
       // Refresh enrolled tournaments from server to ensure data consistency
-      console.log('🔄 About to call fetchEnrolledTournaments...');
       await fetchEnrolledTournaments();
-      console.log('✅ fetchEnrolledTournaments completed');
       
     } catch (err) {
       console.error('❌ Error in handleLeaveTournament:', err);
@@ -620,943 +567,165 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
     }
   };
 
-  // Helper function to sort team members by role
-  const sortTeamMembersByRole = (members: TeamMember[]) => {
-    const roleOrder = { 'COACH': 1, 'PARENT': 2, 'PLAYER': 3 };
-    return [...members].sort((a, b) => {
-      const orderA = roleOrder[a.role as keyof typeof roleOrder] || 4;
-      const orderB = roleOrder[b.role as keyof typeof roleOrder] || 4;
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      // If same role, sort by last name, then first name
-      if (a.lastName !== b.lastName) {
-        return a.lastName.localeCompare(b.lastName);
-      }
-      return a.firstName.localeCompare(b.firstName);
-    });
-  };
+  const rosterPanel = (
+    <TeamRosterPanel
+      userRole={userTeam.role}
+      currentUserId={currentUser.id}
+      teamMembers={teamMembers}
+      loading={loadingTeamMembers}
+      coachCount={coachCount}
+      loadingCoachCount={loadingCoachCount}
+      inviteForm={inviteForm}
+      inviteError={inviteError}
+      invitingUser={invitingUser}
+      onInviteFormChange={setInviteForm}
+      onInviteSubmit={handleInviteUser}
+      onUpdateRole={async (memberId, role) => {
+        try {
+          setError('');
+          await teamService.updateUserRole(memberId, role);
+          setTeamMembers((prev) =>
+            prev.map((m) => (m.id === memberId ? { ...m, role } : m))
+          );
+          showToast('User role updated successfully!');
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to update user role');
+          throw err;
+        }
+      }}
+      onRemoveMember={async (member) => {
+        try {
+          setError('');
+          await teamService.removeUserFromTeam(member.id);
+          setTeamMembers((prev) => prev.filter((m) => m.id !== member.id));
+          showToast('User removed from team successfully!');
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to remove user from team');
+          throw err;
+        }
+      }}
+      panelError={activeTab === 'roster' ? error : undefined}
+    />
+  );
 
-  // Helper function to get role display name
-  const getRoleDisplayName = (role: string) => {
-    switch (role) {
-      case 'COACH': return 'Coach';
-      case 'PARENT': return 'Parent';
-      case 'PLAYER': return 'Player';
-      default: return role;
-    }
-  };
+  const tournamentsPanel = (
+    <TeamTournamentsPanel
+      invites={tournamentInvites}
+      enrolled={enrolledTournaments}
+      tournamentDetails={tournamentDetails}
+      loadingInvites={loadingTournamentInvites}
+      loadingEnrolled={loadingEnrolledTournaments}
+      processingInviteId={processingInvite}
+      leavingTournamentId={leavingTournament}
+      onAcceptInvite={handleAcceptTournamentInvite}
+      onDeclineInvite={handleDeclineTournamentInvite}
+      onLeaveTournament={handleLeaveTournament}
+      panelError={activeTab === 'tournaments' ? error : undefined}
+    />
+  );
 
-  // User management functions (coaches only)
-  const handleUserClick = (user: TeamMember) => {
-    if (userTeam.role === 'COACH' && user.userId !== currentUser.id) {
-      setSelectedUser(user);
-      setNewRole(user.role);
-      setShowUserManagementModal(true);
-    }
-  };
+  const settingsPanel = (
+    <TeamSettingsPanel
+      userRole={userTeam.role}
+      joinedAt={userTeam.joinedAt}
+      teamDetails={teamDetails}
+      loadingTeamDetails={loadingTeamDetails}
+      editForm={editTeamForm}
+      teamPhotoPreview={teamPhotoPreview}
+      editingTeam={editingTeam}
+      notificationPrefs={notificationPrefs}
+      savingNotifications={savingNotifications}
+      notificationMessage={notificationMessage}
+      panelError={activeTab === 'settings' ? error : undefined}
+      onEditFormChange={handleEditTeamInputChange}
+      onPhotoUpload={handleTeamPhotoUpload}
+      onRemovePhoto={removeTeamPhoto}
+      onResetForm={resetEditForm}
+      onSaveTeam={handleEditTeam}
+      onNotificationPrefsChange={setNotificationPrefs}
+      onSaveNotifications={handleSaveNotificationPrefs}
+      onLeaveTeam={handleLeaveTeam}
+      onTerminateTeam={handleTerminateTeam}
+    />
+  );
 
-  const handleUpdateUserRole = async () => {
-    if (!selectedUser || !newRole.trim()) {
-      setError('Please select a valid role');
-      return;
-    }
+  const isCoach = userTeam?.role === 'COACH';
 
-    // Prevent coaches from changing their own role
-    if (selectedUser.userId === currentUser.id) {
-      setError('You cannot change your own role');
-      return;
-    }
+  return (
+    <div className="min-h-screen w-full overflow-x-hidden bg-gray-50">
+      <ToastBanner message={toastMessage} onDismiss={() => setToastMessage('')} />
+      <WorkspaceHeader
+        title={loadingTeamDetails ? 'Loading...' : teamDetails?.teamName || 'Unknown Team'}
+        subtitle={
+          userTeam
+            ? `Your role: ${userTeam.role === 'COACH' ? 'Coach' : 'Player'}`
+            : undefined
+        }
+        onLogout={onLogout}
+      />
 
-    try {
-      setError('');
-      await teamService.updateUserRole(selectedUser.id, newRole);
-      
-      // Update local state
-      setTeamMembers(prev => prev.map(member => 
-        member.id === selectedUser.id 
-          ? { ...member, role: newRole }
-          : member
-      ));
-      
-      alert('User role updated successfully!');
-      setShowUserManagementModal(false);
-      setSelectedUser(null);
-      setNewRole('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user role');
-    }
-  };
-
-  const handleRemoveUserFromTeam = async () => {
-    if (!selectedUser) {
-      setError('No user selected');
-      return;
-    }
-
-    if (window.confirm(`Are you sure you want to remove ${selectedUser.firstName} ${selectedUser.lastName} from the team? This action cannot be undone.`)) {
-      try {
-        setError('');
-        await teamService.removeUserFromTeam(selectedUser.id);
-        
-        // Update local state
-        setTeamMembers(prev => prev.filter(member => member.id !== selectedUser.id));
-        
-        alert('User removed from team successfully!');
-        setShowUserManagementModal(false);
-        setSelectedUser(null);
-        setNewRole('');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to remove user from team');
-      }
-    }
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'roster':
-        return (
-          <div className="content-roster">
-            <div className="roster-header">
-              <div className="roster-header-top">
-                <h2 className="tab-title">Team Roster</h2>
-                <div className="roster-header-actions">
-                  <div className="coach-count-display">
-                    <span className="coach-count-label">
-                      <AppIcon name="users" size={14} /> Coaches:
-                    </span>
-                    {loadingCoachCount ? (
-                      <span className="coach-count-loading">Loading...</span>
-                    ) : (
-                      <span className="coach-count-value">{coachCount}</span>
-                    )}
-                  </div>
-                  {userTeam.role === 'COACH' && (
-                    <button
-                      type="button"
-                      className="btn btn-invite"
-                      onClick={() => setShowInviteForm(true)}
-                    >
-                      Invite User
-                    </button>
-                  )}
-                </div>
-              </div>
-              {userTeam.role === 'COACH' && (
-                <p className="coach-hint">
-                  <AppIcon name="info" size={14} /> Click on any roster member (except yourself) to manage their role.
-                </p>
-              )}
-            </div>
-            
-            {/* Invite Form Modal */}
-            {showInviteForm && (
-              <div className="invite-form-modal">
-                <div className="invite-form-content">
-                  <h3>Invite User to Team</h3>
-                  <form onSubmit={handleInviteUser}>
-                    <div className="form-group">
-                      <label htmlFor="inviteEmail">Email Address</label>
-                      <input
-                        type="email"
-                        id="inviteEmail"
-                        value={inviteForm.email}
-                        onChange={(e) => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="Enter user's email"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="inviteRole">Role</label>
-                      <select
-                        id="inviteRole"
-                        value={inviteForm.role}
-                        onChange={(e) => setInviteForm(prev => ({ ...prev, role: e.target.value }))}
-                        required
-                      >
-                        <option value="PLAYER">Player</option>
-                        <option value="PARENT">Parent</option>
-                        <option value="COACH">Coach</option>
-                      </select>
-                    </div>
-                    
-                    {inviteError && (
-                      <div className="error-message">
-                        {inviteError}
-                      </div>
-                    )}
-                    
-                    <div className="form-actions">
-                      <button 
-                        type="button" 
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          setShowInviteForm(false);
-                          setInviteForm({ email: '', role: 'PLAYER' });
-                          setInviteError('');
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button 
-                        type="submit" 
-                        className="btn btn-primary"
-                        disabled={invitingUser}
-                      >
-                        {invitingUser ? 'Inviting...' : 'Send Invite'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
+      <PageContainer className="py-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className={workspaceTabsListClass}>
+            <TabsTrigger value="roster" className={workspaceTabsTriggerClass}>
+              Roster
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className={workspaceTabsTriggerClass}>
+              Schedule
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className={workspaceTabsTriggerClass}>
+              Tasks
+            </TabsTrigger>
+            <TabsTrigger value="chat" className={workspaceTabsTriggerClass}>
+              Chat
+            </TabsTrigger>
+            {isCoach && (
+              <TabsTrigger value="tournaments" className={workspaceTabsTriggerClass}>
+                Tournaments
+              </TabsTrigger>
             )}
-            
-            {loadingTeamMembers ? (
-              <div className="loading-message">
-                <p>Loading team roster...</p>
-              </div>
-            ) : teamMembers.length > 0 ? (
-              <div className="roster-container">
-                {sortTeamMembersByRole(teamMembers).map((member) => {
-                  const isClickable = userTeam.role === 'COACH' && member.userId !== currentUser.id;
-                  return (
-                    <div 
-                      key={member.id} 
-                      className={`roster-member ${isClickable ? 'clickable' : ''}`} 
-                      data-role={member.role}
-                      onClick={() => handleUserClick(member)}
-                      style={{ cursor: isClickable ? 'pointer' : 'default' }}
-                    >
-                    <div className="member-avatar">
-                      <div className="profile-photo">
-                        {member.profilePhotoUrl ? (
-                          <img src={member.profilePhotoUrl} alt={`${member.firstName} ${member.lastName}`} />
-                        ) : (
-                          <div className="profile-initials">
-                            {member.firstName.charAt(0)}{member.lastName.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="member-info">
-                      <div className="member-name">
-                        {member.firstName} {member.lastName}
-                        {!member.inviteAccepted && (
-                          <span className="invite-pending"> (Invite Pending)</span>
-                        )}
-                      </div>
-                      <div className="member-role">
-                        {getRoleDisplayName(member.role)}
-                      </div>
-                      <div className="member-details">
-                        <span className="member-email">{member.email}</span>
-                        {member.phoneNumber && (
-                          <span className="member-phone">Phone: {member.phoneNumber}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="empty-roster">
-                <p>No team members found.</p>
-                <p>Team roster will appear here once members are added.</p>
-              </div>
-            )}
+            <TabsTrigger value="settings" className={workspaceTabsTriggerClass}>
+              Settings
+            </TabsTrigger>
+          </TabsList>
 
-            {/* User Management Modal */}
-            {showUserManagementModal && selectedUser && (
-              <div className="modal-overlay" onClick={() => setShowUserManagementModal(false)}>
-                <div className="modal user-management-modal" onClick={(e) => e.stopPropagation()}>
-                  <h3>Manage User: {selectedUser.firstName} {selectedUser.lastName}</h3>
-                  
-                  <div className="form-group">
-                    <label htmlFor="newRole">Role</label>
-                    <select
-                      id="newRole"
-                      value={newRole}
-                      onChange={(e) => setNewRole(e.target.value)}
-                      required
-                    >
-                      <option value="PLAYER">Player</option>
-                      <option value="PARENT">Parent</option>
-                      {selectedUser.userId !== currentUser.id && (
-                        <option value="COACH">Coach</option>
-                      )}
-                    </select>
-                  </div>
-
-                  {selectedUser.role === 'COACH' && (
-                    <div className="info-message">
-                      <p className="coach-hint"><AppIcon name="info" size={14} /> <strong>Note:</strong> Coaches cannot be removed from the team, but their role can be changed by other coaches.</p>
-                    </div>
-                  )}
-
-                  {selectedUser.userId === currentUser.id && (
-                    <div className="info-message">
-                      <div className="notice-warning">
-                        <AppIcon name="alert" size={16} />
-                        <p><strong>Note:</strong> You cannot change your own role.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="error-message">
-                      {error}
-                    </div>
-                  )}
-
-                  <div className="form-actions">
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setShowUserManagementModal(false);
-                        setSelectedUser(null);
-                        setNewRole('');
-                        setError('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn btn-warning"
-                      onClick={handleUpdateUserRole}
-                    >
-                      Update Role
-                    </button>
-                    {selectedUser.role !== 'COACH' && (
-                      <button 
-                        type="button" 
-                        className="btn btn-danger"
-                        onClick={handleRemoveUserFromTeam}
-                      >
-                        Remove from Team
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      case 'schedule':
-        return (
-          <div className="content-schedule">
-            <Schedule 
+          <TabsContent value="roster" className="mt-0 outline-none">
+            {rosterPanel}
+          </TabsContent>
+          <TabsContent value="schedule" className="mt-0 outline-none">
+            <Schedule
               teamId={userTeam.teamId}
               userRole={userTeam.role}
               teamName={teamDetails?.teamName || 'Loading...'}
               currentUserId={currentUser.id}
             />
-          </div>
-        );
-      case 'tasks':
-        return (
-          <div className="content-tasks">
-            <TaskList 
+          </TabsContent>
+          <TabsContent value="tasks" className="mt-0 outline-none">
+            <TaskList
               teamId={userTeam.teamId}
               userRole={userTeam.role}
               teamName={teamDetails?.teamName || 'Loading...'}
               currentUserId={currentUser.id}
             />
-          </div>
-        );
-      case 'chat':
-        return (
-          <div className="content-chat">
+          </TabsContent>
+          <TabsContent value="chat" className="mt-0 outline-none">
             <Chat
               scope="team"
               scopeId={userTeam.teamId}
               currentUserId={currentUser.id}
               displayName={teamDetails?.teamName || 'Loading...'}
             />
-          </div>
-        );
-      case 'tournaments':
-        return (
-          <div className="content-tournaments">
-            <h2 className="tab-title">Team Tournaments</h2>
-            
-            {/* Tournament Invites */}
-            <div className="tournament-invites">
-              <h3 className="tab-section-title">Tournament Invites</h3>
-              {loadingTournamentInvites ? (
-                <p>Loading tournament invites...</p>
-              ) : tournamentInvites.length > 0 ? (
-                <div className="invite-list">
-                  {tournamentInvites.map((invite) => (
-                    <div key={invite.id} className="tournament-invite-card">
-                      <div className="invite-info">
-                        <div className="invite-tournament">
-                          <strong>{tournamentDetails[invite.tournamentId]?.name || `Tournament ID: ${invite.tournamentId.substring(0, 8)}...`}</strong>
-                        </div>
-                        {tournamentDetails[invite.tournamentId] && (
-                          <div className="tournament-info">
-                            <span className="meta-chip">Max {tournamentDetails[invite.tournamentId].maxSize} teams</span>
-                            <span className="meta-chip">Current {tournamentDetails[invite.tournamentId].teamCount}</span>
-                          </div>
-                        )}
-                        <div className="invite-date">Invited: {new Date(invite.createdAt).toLocaleDateString()}</div>
-                      </div>
-                      <div className="invite-actions">
-                        <button 
-                          className="btn btn-primary"
-                          onClick={() => handleAcceptTournamentInvite(invite.id)}
-                          disabled={processingInvite === invite.id}
-                        >
-                          {processingInvite === invite.id ? 'Accepting...' : 'Accept'}
-                        </button>
-                        <button 
-                          className="btn btn-secondary"
-                          onClick={() => handleDeclineTournamentInvite(invite.id)}
-                          disabled={processingInvite === invite.id}
-                        >
-                          {processingInvite === invite.id ? 'Declining...' : 'Decline'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No pending tournament invites.</p>
-              )}
-            </div>
-
-            {/* Enrolled Tournaments */}
-            <div className="enrolled-tournaments">
-              <h3 className="tab-section-title">Enrolled Tournaments</h3>
-              {loadingEnrolledTournaments ? (
-                <p>Loading enrolled tournaments...</p>
-              ) : enrolledTournaments.length > 0 ? (
-                <div className="enrolled-list">
-                  {enrolledTournaments.map((tournamentInvite) => (
-                    <div key={tournamentInvite.id} className="enrolled-tournament-card">
-                      <div className="tournament-info">
-                        <div className="tournament-name">
-                          <strong>{tournamentDetails[tournamentInvite.tournamentId]?.name || `Tournament ID: ${tournamentInvite.tournamentId.substring(0, 8)}...`}</strong>
-                        </div>
-                        {tournamentDetails[tournamentInvite.tournamentId] && (
-                          <div className="tournament-details">
-                            <span className="meta-chip">Max {tournamentDetails[tournamentInvite.tournamentId].maxSize}</span>
-                            <span className="meta-chip">Teams {tournamentDetails[tournamentInvite.tournamentId].teamCount}</span>
-                            <span className="meta-chip">{tournamentDetails[tournamentInvite.tournamentId].organizerCount} organizers</span>
-                          </div>
-                        )}
-                        <div className="enrolled-date">Joined: {new Date(tournamentInvite.createdAt).toLocaleDateString()}</div>
-                      </div>
-                      <div className="enrolled-actions">
-                        <button 
-                          className="btn btn-danger"
-                          onClick={() => handleLeaveTournament(tournamentInvite.id, tournamentInvite.tournamentId)}
-                          disabled={leavingTournament === tournamentInvite.id}
-                        >
-                          {leavingTournament === tournamentInvite.id ? 'Leaving...' : 'Leave Tournament'}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p>No enrolled tournaments.</p>
-              )}
-            </div>
-
-
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="content-settings">
-             
-             {/* Team Information Display */}
-             <div className="team-info">
-              {loadingTeamDetails ? (
-                <p>Loading team information...</p>
-              ) : teamDetails ? (
-                <>
-                  <div className="team-header-info">
-                    {teamDetails.profilePhotoUrl && (
-                      <div className="team-photo">
-                        <img src={teamDetails.profilePhotoUrl} alt="Team photo" />
-                      </div>
-                    )}
-                    <div className="team-text-info">
-                      <h3>{teamDetails.teamName}</h3>
-                      <p className="team-sport">{teamDetails.sport}</p>
-                      <p className="team-age-group">Age Group: {teamDetails.ageGroup}</p>
-                      {teamDetails.description && (
-                        <p className="team-description">{teamDetails.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <p>Failed to load team information</p>
-              )}
-              <p className="team-role">Your Role: {userTeam.role}</p>
-              <p className="team-joined">Joined: {new Date(userTeam.joinedAt).toLocaleDateString()}</p>
-            </div>
-
-            <div className="settings-section notification-settings">
-              <h4>Email reminders</h4>
-              <p className="notification-settings-hint">
-                Receive an email before upcoming games and tasks you&apos;re signed up for.
-              </p>
-              <label className="notification-toggle-row" htmlFor="emailNotificationsEnabled">
-                <input
-                  id="emailNotificationsEnabled"
-                  type="checkbox"
-                  checked={notificationPrefs.emailNotificationsEnabled}
-                  onChange={(e) =>
-                    setNotificationPrefs((prev) => ({
-                      ...prev,
-                      emailNotificationsEnabled: e.target.checked,
-                    }))
-                  }
-                />
-                <span>Enable email reminders</span>
-              </label>
-              <div className="form-group notification-lead-time">
-                <label htmlFor="reminderLeadTime">Remind me before</label>
-                <select
-                  id="reminderLeadTime"
-                  value={notificationPrefs.reminderLeadTime}
-                  disabled={!notificationPrefs.emailNotificationsEnabled}
-                  onChange={(e) =>
-                    setNotificationPrefs((prev) => ({
-                      ...prev,
-                      reminderLeadTime: e.target.value as ReminderLeadTime,
-                    }))
-                  }
-                >
-                  {REMINDER_LEAD_TIME_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSaveNotificationPrefs}
-                disabled={savingNotifications}
-              >
-                {savingNotifications ? 'Saving...' : 'Save reminder preferences'}
-              </button>
-              {notificationMessage && (
-                <p className={`notification-message ${notificationMessage.includes('saved') ? 'success' : 'error'}`}>
-                  {notificationMessage}
-                </p>
-              )}
-            </div>
-
-            {/* Coach-only Settings */}
-            {userTeam.role === 'COACH' && !loadingTeamDetails && teamDetails && (
-          <div className="coach-settings">
-            <h3>Team Management</h3>
-            
-            {/* Edit Team Information */}
-            <div className="settings-section">
-              <h4>Edit Team Information</h4>
-              <form className="edit-team-form" onSubmit={handleEditTeam}>
-                <div className="form-group">
-                  <label htmlFor="teamName">Team Name</label>
-                  <input
-                    type="text"
-                    id="teamName"
-                    name="teamName"
-                    value={editTeamForm.teamName}
-                    onChange={handleEditTeamInputChange}
-                    placeholder="Enter team name"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="sport">Sport</label>
-                  <select
-                    id="sport"
-                    name="sport"
-                    value={editTeamForm.sport}
-                    onChange={handleEditTeamInputChange}
-                    required
-                  >
-                    <option value="">Select a sport</option>
-                    <option value="Soccer">Soccer</option>
-                    <option value="Basketball">Basketball</option>
-                    <option value="Baseball">Baseball</option>
-                    <option value="Football">Football</option>
-                    <option value="Volleyball">Volleyball</option>
-                    <option value="Tennis">Tennis</option>
-                    <option value="Swimming">Swimming</option>
-                    <option value="Track & Field">Track & Field</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="ageGroup">Age Group</label>
-                  <select
-                    id="ageGroup"
-                    name="ageGroup"
-                    value={editTeamForm.ageGroup}
-                    onChange={handleEditTeamInputChange}
-                    required
-                  >
-                    <option value="">Select age group</option>
-                    <option value="5-7">5-7 years</option>
-                    <option value="8-10">8-10 years</option>
-                    <option value="11-13">11-13 years</option>
-                    <option value="14-16">14-16 years</option>
-                    <option value="17-18">17-18 years</option>
-                    <option value="19+">19+ years</option>
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={editTeamForm.description}
-                    onChange={handleEditTeamInputChange}
-                    placeholder="Optional team description"
-                    rows={3}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>Team Profile Photo</label>
-                  <div className="photo-upload-section">
-                    {teamPhotoPreview ? (
-                      <div className="photo-preview">
-                        <img src={teamPhotoPreview} alt="Team photo preview" />
-                        <div className="photo-actions">
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-small"
-                            onClick={() => document.getElementById('teamPhotoInput')?.click()}
-                          >
-                            Change Photo
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-danger btn-small"
-                            onClick={removeTeamPhoto}
-                          >
-                            Remove Photo
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-small"
-                        onClick={() => document.getElementById('teamPhotoInput')?.click()}
-                      >
-                        <AppIcon name="camera" size={16} /> Upload Photo
-                      </button>
-                    )}
-                    <input
-                      id="teamPhotoInput"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleTeamPhotoUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </div>
-                </div>
-                
-                <div className="form-actions">
-                  <button type="submit" className="btn btn-primary" disabled={editingTeam}>
-                    {editingTeam ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button type="button" className="btn btn-secondary" onClick={resetEditForm}>
-                    Reset
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Team Termination */}
-            <div className="settings-section danger-zone">
-              <h4>Danger Zone</h4>
-              <div className="danger-warning">
-                <div className="notice-warning">
-                  <AppIcon name="alert" size={18} />
-                  <p><strong>Warning:</strong> Terminating a team will permanently delete all team data, including roster, schedule, and chat history. This action cannot be undone.</p>
-                </div>
-              </div>
-              
-              {!showTerminateConfirm ? (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => setShowTerminateConfirm(true)}
-                >
-                  <AppIcon name="trash" size={16} /> Terminate Team
-                </button>
-              ) : (
-                <div className="terminate-confirm">
-                  <p>Type "DELETE" to confirm team termination:</p>
-                  <input
-                    type="text"
-                    value={terminateConfirm}
-                    onChange={(e) => setTerminateConfirm(e.target.value)}
-                    placeholder="Type DELETE"
-                    className="terminate-input"
-                  />
-                  <div className="terminate-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setShowTerminateConfirm(false);
-                        setTerminateConfirm('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={handleTerminateTeam}
-                      disabled={terminateConfirm !== 'DELETE'}
-                    >
-                      Confirm Termination
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Leave Team Section for Coaches */}
-            <div className="settings-section danger-zone">
-              <h4>Leave Team</h4>
-              <div className="danger-warning">
-                <div className="notice-warning">
-                  <AppIcon name="alert" size={18} />
-                  <p><strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
-                </div>
-                <p><strong>Note:</strong> As a coach, leaving the team will transfer ownership to another team member or the team may become inactive.</p>
-              </div>
-              
-              {!showLeaveTeamConfirm ? (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => setShowLeaveTeamConfirm(true)}
-                >
-                  <AppIcon name="logout" size={16} /> Leave Team
-                </button>
-              ) : (
-                <div className="leave-team-confirm">
-                  <p>Type "LEAVE" to confirm leaving the team:</p>
-                  <input
-                    type="text"
-                    value={leaveTeamConfirm}
-                    onChange={(e) => setLeaveTeamConfirm(e.target.value)}
-                    placeholder="Type LEAVE"
-                    className="leave-team-input"
-                  />
-                  <div className="leave-team-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setShowLeaveTeamConfirm(false);
-                        setLeaveTeamConfirm('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={handleLeaveTeam}
-                      disabled={leaveTeamConfirm !== 'LEAVE'}
-                    >
-                      Confirm Leave
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Non-coach message */}
-        {userTeam.role !== 'COACH' && (
-          <div className="non-coach-message">
-            <p>Only team coaches can modify team settings.</p>
-            <p>Contact your team coach if you need changes made.</p>
-          </div>
-        )}
-
-        {/* Loading state for coach */}
-        {userTeam.role === 'COACH' && loadingTeamDetails && (
-          <div className="coach-settings">
-            <h3>Team Management</h3>
-            <p>Loading team settings...</p>
-          </div>
-        )}
-
-        {/* View-only settings for non-coach users */}
-        {userTeam.role !== 'COACH' && teamDetails && (
-          <div className="view-only-settings">
-            
-            {/* Leave Team Section */}
-            <div className="settings-section danger-zone">
-              <h4>Leave Team</h4>
-              <div className="danger-warning">
-                <div className="notice-warning">
-                  <AppIcon name="alert" size={18} />
-                  <p><strong>Warning:</strong> Leaving the team will remove you from the roster and you will lose access to team information. This action cannot be undone.</p>
-                </div>
-              </div>
-              
-              {!showLeaveTeamConfirm ? (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => setShowLeaveTeamConfirm(true)}
-                >
-                  <AppIcon name="logout" size={16} /> Leave Team
-                </button>
-              ) : (
-                <div className="leave-team-confirm">
-                  <p>Type "LEAVE" to confirm leaving the team:</p>
-                  <input
-                    type="text"
-                    value={leaveTeamConfirm}
-                    onChange={(e) => setLeaveTeamConfirm(e.target.value)}
-                    placeholder="Type LEAVE"
-                    className="leave-team-input"
-                  />
-                  <div className="leave-team-actions">
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setShowLeaveTeamConfirm(false);
-                        setLeaveTeamConfirm('');
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={handleLeaveTeam}
-                      disabled={leaveTeamConfirm !== 'LEAVE'}
-                    >
-                      Confirm Leave
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
-      </div>
-    );
-      default:
-        return (
-          <div className="content-roster">
-            <h2>Team Roster</h2>
-            <p>Roster management coming soon...</p>
-          </div>
-        );
-    }
-  };
-
-  return (
-    <div className="team-page">
-      {/* Header */}
-      <div className="team-header app-shell-header">
-        <button className="btn btn-back" onClick={handleBackToHome}>
-          ← Back to Home
-        </button>
-                 <h1>{loadingTeamDetails ? 'Loading...' : teamDetails?.teamName || 'Unknown Team'}</h1>
-        <button className="btn btn-logout" onClick={onLogout}>
-          Logout
-        </button>
-      </div>
-
-      <div className="team-layout app-shell-layout">
-        {/* Sidebar */}
-        <div className="team-sidebar app-shell-sidebar">
-          <nav className="sidebar-nav">
-            <button
-              className={`sidebar-item ${activeTab === 'roster' ? 'active' : ''}`}
-              onClick={() => handleTabChange('roster')}
-            >
-              <span className="sidebar-icon"><AppIcon name="users" size={18} /></span>
-              <span className="sidebar-text">Roster</span>
-            </button>
-            
-            <button
-              className={`sidebar-item ${activeTab === 'schedule' ? 'active' : ''}`}
-              onClick={() => handleTabChange('schedule')}
-            >
-              <span className="sidebar-icon"><AppIcon name="calendar" size={18} /></span>
-              <span className="sidebar-text">Schedule</span>
-            </button>
-            
-            <button
-              className={`sidebar-item ${activeTab === 'tasks' ? 'active' : ''}`}
-              onClick={() => handleTabChange('tasks')}
-            >
-              <span className="sidebar-icon"><AppIcon name="check" size={18} /></span>
-              <span className="sidebar-text">Tasks</span>
-            </button>
-            
-            <button
-              className={`sidebar-item ${activeTab === 'chat' ? 'active' : ''}`}
-              onClick={() => handleTabChange('chat')}
-            >
-              <span className="sidebar-icon"><AppIcon name="message" size={18} /></span>
-              <span className="sidebar-text">Chat</span>
-            </button>
-            
-            {userTeam.role === 'COACH' && (
-              <button
-                className={`sidebar-item ${activeTab === 'tournaments' ? 'active' : ''}`}
-                onClick={() => handleTabChange('tournaments')}
-              >
-                <span className="sidebar-icon"><AppIcon name="trophy" size={18} /></span>
-                <span className="sidebar-text">Tournaments</span>
-              </button>
-            )}
-            
-            <button
-              className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
-              onClick={() => handleTabChange('settings')}
-            >
-              <span className="sidebar-icon"><AppIcon name="settings" size={18} /></span>
-              <span className="sidebar-text">Settings</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Main Content */}
-        <div className="team-content app-shell-main-card">
-          {renderContent()}
-        </div>
-      </div>
+          </TabsContent>
+          {isCoach && (
+            <TabsContent value="tournaments" className="mt-0 outline-none">
+              {tournamentsPanel}
+            </TabsContent>
+          )}
+          <TabsContent value="settings" className="mt-0 outline-none">
+            {settingsPanel}
+          </TabsContent>
+        </Tabs>
+      </PageContainer>
 
       {/* Coach Safety Modal */}
       {showCoachSafetyModal && (
