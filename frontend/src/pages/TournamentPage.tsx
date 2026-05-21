@@ -11,6 +11,7 @@ import { REMINDER_LEAD_TIME_OPTIONS } from '../types/Auth';
 import { resolveRefereeNotificationPreferences } from '../services/tournamentService';
 import TournamentSafetyPrompt from '../components/TournamentSafetyPrompt';
 import TournamentSchedule from '../components/TournamentSchedule';
+import Chat from '../components/Chat';
 import AppIcon from '../components/icons/AppIcon';
 import './TournamentPage.css';
 
@@ -22,7 +23,7 @@ interface TournamentPageProps {
 function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
   const { tournamentId } = useParams<{ tournamentId: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'organizers' | 'referees' | 'teams' | 'scheduling' | 'settings'>('organizers');
+  const [activeTab, setActiveTab] = useState<'organizers' | 'referees' | 'teams' | 'scheduling' | 'chat' | 'settings'>('organizers');
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -1097,6 +1098,18 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
           </div>
         );
 
+      case 'chat':
+        return (
+          <div className="content-chat">
+            <Chat
+              scope="tournament"
+              scopeId={tournamentId!}
+              currentUserId={currentUser.id}
+              displayName={tournament?.name || 'Loading...'}
+            />
+          </div>
+        );
+
       case 'settings':
         return (
           <div className="tab-content active">
@@ -1202,7 +1215,7 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
                 <h4>Danger Zone</h4>
                 <div className="notice-warning">
                   <AppIcon name="alert" size={18} />
-                  <p><strong>Warning:</strong> Deleting a tournament will permanently remove all tournament data, including team registrations and organizer information. This action cannot be undone.</p>
+                  <p><strong>Warning:</strong> Deleting a tournament will permanently remove all tournament data, including team registrations, organizer information, and chat history. This action cannot be undone.</p>
                 </div>
                 
                 {!showDeleteConfirm ? (
@@ -1489,6 +1502,15 @@ function TournamentPage({ currentUser, onLogout }: TournamentPageProps) {
             >
               <span className="sidebar-icon"><AppIcon name="calendar" size={18} /></span>
               <span className="sidebar-text">Scheduling</span>
+            </button>
+
+            <button
+              type="button"
+              className={`sidebar-item ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <span className="sidebar-icon"><AppIcon name="message" size={18} /></span>
+              <span className="sidebar-text">Chat</span>
             </button>
             
             <button

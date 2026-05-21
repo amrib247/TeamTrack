@@ -971,10 +971,11 @@ function TeamPage({ currentUser, onLogout, onRefreshUserData }: TeamPageProps) {
         return (
           <div className="content-chat">
             <Chat
-                    teamId={userTeam.teamId}
-                    currentUserId={currentUser.id}
-                    teamName={teamDetails?.teamName || 'Loading...'}
-                />
+              scope="team"
+              scopeId={userTeam.teamId}
+              currentUserId={currentUser.id}
+              displayName={teamDetails?.teamName || 'Loading...'}
+            />
           </div>
         );
       case 'tournaments':

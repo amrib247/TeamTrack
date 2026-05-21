@@ -380,6 +380,8 @@ export class TournamentService {
     await deleteQueryBatch('organizerTournaments', [where('tournamentId', '==', tournamentId)]);
     await deleteQueryBatch('refereeTournaments', [where('tournamentId', '==', tournamentId)]);
     await deleteQueryBatch('tournamentInvites', [where('tournamentId', '==', tournamentId)]);
+    await deleteQueryBatch('chat_messages', [where('tournamentId', '==', tournamentId)]);
+    await deleteQueryBatch('chat_rooms', [where('tournamentId', '==', tournamentId)]);
     await deleteDoc(doc(db, 'tournaments', tournamentId));
   }
 

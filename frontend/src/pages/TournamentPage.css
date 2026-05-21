@@ -62,6 +62,23 @@
   padding: var(--space-lg);
 }
 
+.tournament-content.app-shell-main-card .content-chat {
+  padding: 0;
+}
+
+.content-chat {
+  height: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-chat .chat-container {
+  flex: 1;
+  height: 100%;
+  min-height: 400px;
+}
+
 .tab-content {
   display: none;
 }

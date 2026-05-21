@@ -39,8 +39,11 @@ service cloud.firestore {
       allow read: if isVerified();
       allow create: if isVerified()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.teamId is string
-        && request.resource.data.content is string;
+        && request.resource.data.content is string
+        && (
+          request.resource.data.teamId is string
+          || request.resource.data.tournamentId is string
+        );
       allow update: if isVerified()
         && resource.data.userId == request.auth.uid;
       allow delete: if isVerified()

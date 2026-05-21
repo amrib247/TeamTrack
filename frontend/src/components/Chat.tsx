@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { chatService } from '../services/chatService';
 import { storageService } from '../services/storageService';
-import type { ChatMessage } from '../types/Auth';
+import type { ChatMessage, ChatScope } from '../types/Auth';
 import AppIcon from './icons/AppIcon';
 import './Chat.css';
 
 interface ChatProps {
-    teamId: string;
-    currentUserId: string;
-    teamName: string;
+  scope: ChatScope;
+  scopeId: string;
+  currentUserId: string;
+  displayName: string;
 }
 
 interface FileUpload {
-    file: File;
-    preview?: string;
-    uploading: boolean;
-    error?: string;
+  file: File;
+  preview?: string;
+  uploading: boolean;
+  error?: string;
 }
 
-function Chat({ teamId, currentUserId, teamName }: ChatProps) {
+function Chat({ scope, scopeId, currentUserId, displayName }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -27,45 +28,42 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [fileUpload, setFileUpload] = useState<FileUpload | null>(null);
 
-  
+  const subtitle = scope === 'team' ? 'Team communication hub' : 'Tournament communication hub';
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageLimit = 50;
 
-  // Scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Load initial messages
   useEffect(() => {
     loadMessages();
-  }, [teamId]);
+  }, [scopeId, scope]);
 
   const loadMessages = async (offset: number = 0) => {
     try {
       setError('');
-      
-      const fetchedMessages = await chatService.getTeamMessages(teamId, messageLimit, offset);
-      
+
+      const fetchedMessages = await chatService.getMessages(scope, scopeId, messageLimit, offset);
+
       if (offset === 0) {
         setMessages(fetchedMessages);
       } else {
         setMessages(prev => [...fetchedMessages, ...prev]);
       }
-      
+
       setHasMoreMessages(fetchedMessages.length === messageLimit);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load messages';
       setError(errorMessage);
-      
-      // If it's a network error, show a more helpful message
+
       if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
         setError('Unable to connect to the server. Please check if the backend is running and try again.');
       }
@@ -76,31 +74,28 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
 
   const loadMoreMessages = async () => {
     if (loadingMore || !hasMoreMessages) return;
-    
+
     setLoadingMore(true);
     await loadMessages(messages.length);
   };
 
   const handleFileSelect = (file: File) => {
-    // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
       setError('File size must be less than 10MB');
       return;
     }
 
-    // Validate file type
     const allowedTypes = [
       'text/', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument',
       'image/', 'video/', 'audio/'
     ];
-    
+
     const isValidType = allowedTypes.some(type => file.type.startsWith(type));
     if (!isValidType) {
       setError('File type not supported');
       return;
     }
 
-    // Create preview for images
     let preview: string | undefined;
     if (file.type.startsWith('image/')) {
       preview = URL.createObjectURL(file);
@@ -114,8 +109,6 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     setError('');
   };
 
-
-
   const removeFile = () => {
     if (fileUpload?.preview) {
       URL.revokeObjectURL(fileUpload.preview);
@@ -127,9 +120,9 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     if (!fileUpload) return null;
 
     setFileUpload(prev => prev ? { ...prev, uploading: true, error: undefined } : null);
-    
+
     try {
-      const fileUrl = await storageService.uploadChatFile(fileUpload.file, teamId);
+      const fileUrl = await storageService.uploadChatFile(fileUpload.file, scopeId);
       return {
         fileUrl,
         fileName: fileUpload.file.name,
@@ -143,18 +136,17 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if ((!newMessage.trim() && !fileUpload) || sending) return;
 
     try {
       setSending(true);
       setError('');
-      
+
       let fileUrl: string | undefined;
       let fileName: string | undefined;
       let messageType: 'TEXT' | 'IMAGE' | 'FILE' = 'TEXT';
 
-      // Upload file if present
       if (fileUpload) {
         const uploadResult = await uploadFile();
         if (uploadResult) {
@@ -168,24 +160,22 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
       }
 
       const sentMessage = await chatService.sendMessage(
-        teamId,
+        scope,
+        scopeId,
         newMessage.trim() || (fileUpload ? `Shared ${fileUpload.file.name}` : ''),
         currentUserId,
         messageType,
         fileUrl,
         fileName
       );
-      
-      // Add the new message to the local state
+
       setMessages(prev => [...prev, sentMessage]);
-      
-      // Clear the input and file
+
       setNewMessage('');
       removeFile();
-      
-      // Mark messages as read
-      await chatService.markMessagesAsRead(teamId, [sentMessage.id], currentUserId);
-      
+
+      await chatService.markMessagesAsRead(scopeId, [sentMessage.id], currentUserId);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
@@ -195,7 +185,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
 
   const handleDeleteMessage = async (messageId: string) => {
     if (!window.confirm('Are you sure you want to delete this message?')) return;
-    
+
     try {
       await chatService.deleteMessage(messageId, currentUserId);
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
@@ -208,7 +198,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInHours < 48) {
@@ -238,13 +228,12 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Show error state when there are no messages and an error
   if (messages.length === 0 && error) {
     return (
       <div className="chat-container">
         <div className="chat-header">
-          <h2 className="section-heading"><AppIcon name="message" size={22} /> {teamName} Chat</h2>
-          <p className="chat-subtitle">Team communication hub</p>
+          <h2 className="section-heading"><AppIcon name="message" size={22} /> {displayName} Chat</h2>
+          <p className="chat-subtitle">{subtitle}</p>
         </div>
         <div className="chat-error">
           <p>{error}</p>
@@ -259,8 +248,8 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h2 className="section-heading"><AppIcon name="message" size={22} /> {teamName} Chat</h2>
-        <p className="chat-subtitle">Team communication hub</p>
+        <h2 className="section-heading"><AppIcon name="message" size={22} /> {displayName} Chat</h2>
+        <p className="chat-subtitle">{subtitle}</p>
       </div>
 
       {error && (
@@ -295,7 +284,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
                 {getUserInitials(message)}
               </div>
             </div>
-            
+
             <div className="message-content">
               <div className="message-header">
                 <span className="message-author">
@@ -303,7 +292,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
                 </span>
                 <span className="message-time">{formatTimestamp(message.timestamp)}</span>
               </div>
-              
+
               <div className="message-text">
                 {message.messageType === 'TEXT' && message.content}
                 {message.messageType === 'IMAGE' && message.fileUrl && (
@@ -319,7 +308,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
                   </div>
                 )}
               </div>
-              
+
               {canDeleteMessage(message) && (
                 <button
                   onClick={() => handleDeleteMessage(message.id)}
@@ -332,12 +321,11 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
             </div>
           </div>
         ))}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
       <form onSubmit={handleSendMessage} className="chat-input-form">
-        {/* File Preview Area - only show when file is selected */}
         {fileUpload && (
           <div className="file-preview-container">
             <div className="file-preview">
@@ -362,7 +350,6 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
         )}
 
         <div className="chat-input-container">
-          {/* Hidden file input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -370,8 +357,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
             accept="*/*"
             style={{ display: 'none' }}
           />
-          
-          {/* Add file button */}
+
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -381,7 +367,7 @@ function Chat({ teamId, currentUserId, teamName }: ChatProps) {
             <span className="add-file-label">File upload</span>
             <span className="add-file-icon">+</span>
           </button>
-          
+
           <input
             type="text"
             value={newMessage}

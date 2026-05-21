@@ -87,9 +87,12 @@ export interface UpdateUserRequest {
   profilePhotoUrl?: string;
 }
 
+export type ChatScope = 'team' | 'tournament';
+
 export interface ChatMessage {
   id: string;
-  teamId: string;
+  teamId?: string;
+  tournamentId?: string;
   userId: string;
   userFirstName: string;
   userLastName: string;
@@ -102,8 +105,10 @@ export interface ChatMessage {
 
 export interface ChatRoom {
   id: string;
-  teamId: string;
-  teamName: string;
+  teamId?: string;
+  teamName?: string;
+  tournamentId?: string;
+  tournamentName?: string;
   lastMessage?: ChatMessage;
   unreadCount: number;
   lastActivity: string;
