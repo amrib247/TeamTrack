@@ -15,6 +15,7 @@ type EventDoc = {
   startTime: string;
   timeZone?: string;
   startAtUtc?: string;
+  lengthMinutes?: number;
   location?: string;
   tournamentId?: string;
   refereeUserIds?: string[];
@@ -71,13 +72,42 @@ function deliveryId(
   return `${userId}_${entityType}_${entityId}_${leadTime}`;
 }
 
+/** Canonical UTC instant for dedupe keys (paired event docs may store slightly different ISO strings). */
+function normalizeStartAtUtcKey(startAtUtc: string): string {
+  const ms = new Date(startAtUtc).getTime();
+  if (Number.isNaN(ms)) return startAtUtc;
+  return new Date(ms).toISOString();
+}
+
 function refereeDeliveryId(
   userId: string,
   tournamentId: string,
   startAtUtc: string,
   leadTime: ReminderLeadTime
 ): string {
-  return `${userId}_referee_event_${tournamentId}_${startAtUtc}_${leadTime}`;
+  const utcKey = normalizeStartAtUtcKey(startAtUtc);
+  return `${userId}_referee_event_${tournamentId}_${utcKey}_${leadTime}`;
+}
+
+/** Same grouping as tournament schedule: one reminder per matchup, not per team event row. */
+function tournamentGameGroupKey(event: EventDoc): string | null {
+  if (!event.tournamentId) return null;
+  const startAtUtc = resolveStartAtUtc(event);
+  const utcKey = normalizeStartAtUtcKey(startAtUtc);
+  const lengthMinutes = event.lengthMinutes ?? 60;
+  return `${event.tournamentId}|${utcKey}|${event.location ?? ''}|${lengthMinutes}`;
+}
+
+function buildTournamentGameGroups(events: EventDoc[]): Map<string, EventDoc[]> {
+  const groups = new Map<string, EventDoc[]>();
+  for (const event of events) {
+    const key = tournamentGameGroupKey(event);
+    if (!key || !(event.refereeUserIds?.length)) continue;
+    const list = groups.get(key) ?? [];
+    list.push(event);
+    groups.set(key, list);
+  }
+  return groups;
 }
 
 function isInReminderWindow(start: Date, leadTime: ReminderLeadTime, now: Date): boolean {
@@ -261,25 +291,30 @@ async function trySendRefereeReminder(params: {
 
 async function processRefereeAssignmentsFromEvents(
   db: admin.firestore.Firestore,
-  eventsSnap: admin.firestore.QuerySnapshot,
+  events: EventDoc[],
   now: Date
 ): Promise<number> {
   let sent = 0;
+  const gameGroups = buildTournamentGameGroups(events);
 
-  for (const eventDoc of eventsSnap.docs) {
-    const event = eventDoc.data() as EventDoc;
-    const tournamentId = event.tournamentId;
-    const refereeUserIds = event.refereeUserIds ?? [];
-    if (!tournamentId || refereeUserIds.length === 0) continue;
+  for (const groupEvents of gameGroups.values()) {
+    const representative = groupEvents[0];
+    const tournamentId = representative.tournamentId;
+    if (!tournamentId) continue;
+
+    const refereeUserIds = [
+      ...new Set(groupEvents.flatMap((e) => e.refereeUserIds ?? [])),
+    ];
+    if (refereeUserIds.length === 0) continue;
 
     for (const userId of refereeUserIds) {
       const didSend = await trySendRefereeReminder({
         db,
         userId,
         tournamentId,
-        itemName: event.name,
-        schedule: event,
-        location: event.location ?? '',
+        itemName: representative.name,
+        schedule: representative,
+        location: representative.location ?? '',
         now,
       });
       if (didSend) sent += 1;
@@ -299,7 +334,8 @@ async function processRefereeAssignments(db: admin.firestore.Firestore, now: Dat
     .where('startAtUtc', '<=', maxIso)
     .get();
 
-  return processRefereeAssignmentsFromEvents(db, eventsSnap, now);
+  const events = eventsSnap.docs.map((d) => d.data() as EventDoc);
+  return processRefereeAssignmentsFromEvents(db, events, now);
 }
 
 async function processLegacyRefereeAssignmentsWithoutUtc(
@@ -317,31 +353,11 @@ async function processLegacyRefereeAssignmentsWithoutUtc(
     .where('date', '<=', maxDate)
     .get();
 
-  let sent = 0;
+  const legacyEvents = eventsSnap.docs
+    .map((d) => d.data() as EventDoc)
+    .filter((event) => !event.startAtUtc);
 
-  for (const eventDoc of eventsSnap.docs) {
-    const event = eventDoc.data() as EventDoc;
-    if (event.startAtUtc) continue;
-
-    const tournamentId = event.tournamentId;
-    const refereeUserIds = event.refereeUserIds ?? [];
-    if (!tournamentId || refereeUserIds.length === 0) continue;
-
-    for (const userId of refereeUserIds) {
-      const didSend = await trySendRefereeReminder({
-        db,
-        userId,
-        tournamentId,
-        itemName: event.name,
-        schedule: event,
-        location: event.location ?? '',
-        now,
-      });
-      if (didSend) sent += 1;
-    }
-  }
-
-  return sent;
+  return processRefereeAssignmentsFromEvents(db, legacyEvents, now);
 }
 
 async function processEvents(db: admin.firestore.Firestore, now: Date): Promise<number> {

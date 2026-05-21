@@ -35,11 +35,13 @@ export interface CreateEventRequest {
 export interface UpdateEventRequest {
   name?: string;
   tournamentId?: string;
+  opposingTeamId?: string;
   date?: string;
   startTime?: string;
   timeZone?: string;
   lengthMinutes?: number;
   location?: string;
+  description?: string;
   score?: string;
   refereeUserIds?: string[];
 }

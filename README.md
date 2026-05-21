@@ -103,7 +103,7 @@ Reminders are sent by a **GitHub Actions** workflow on a schedule—users do not
 
 **Event and task times** are saved with a **time zone** (defaults to your device’s zone via the browser) and a UTC instant (`startAtUtc`). Everyone sees the correct local time on their device; email reminders use UTC. Older records without UTC are treated as **Pacific Time**.
 
-Referee reminder preferences are stored on each user’s `refereeTournaments` membership document (`emailNotificationsEnabled`, `reminderLeadTime`). The reminder job deduplicates by tournament and start time so paired team event rows for the same matchup do not send duplicate referee emails.
+Referee reminder preferences are stored on each user’s `refereeTournaments` membership document (`emailNotificationsEnabled`, `reminderLeadTime`). The reminder job groups paired tournament event rows into one matchup before sending, and deduplicates by tournament + normalized start time so each referee gets at most one email per game.
 
 ### Requirements
 

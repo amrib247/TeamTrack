@@ -30,11 +30,15 @@ function buildEventDoc(
   data: CreateEventRequest | (UpdateEventRequest & ScheduledFields),
   existing?: Partial<EventDoc>
 ): EventDoc {
+  const scheduleFieldsProvided =
+    data.date !== undefined || data.startTime !== undefined || data.timeZone !== undefined;
+
   const merged: ScheduledFields = {
     date: data.date ?? existing?.date ?? '',
     startTime: data.startTime ?? existing?.startTime ?? '',
     timeZone: data.timeZone ?? existing?.timeZone,
-    startAtUtc: existing?.startAtUtc,
+    // Recompute UTC when date/time/zone change; keeping old startAtUtc would ignore edits
+    startAtUtc: scheduleFieldsProvided ? undefined : existing?.startAtUtc,
   };
   const schedule = normalizeScheduledFields(merged);
   return {

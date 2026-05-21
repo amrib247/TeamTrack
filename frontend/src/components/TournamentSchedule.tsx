@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Event, CreateEventRequest } from '../types/Event';
+import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/Event';
 import {
   calendarDateInZone,
   formatScheduledDate,
@@ -365,14 +365,18 @@ const TournamentSchedule: React.FC<TournamentScheduleProps> = ({
         event.lengthMinutes === selectedEvent.lengthMinutes
       );
 
-             // Update all related events
-       const updatePromises = sameGameEvents.map(event => {
-         const updateData: any = {
-           ...formData,
-           teamId: event.teamId // Keep the original team ID for each event
-         };
-         return eventService.updateEvent(event.id, updateData);
-       });
+      const { name: _formName, teamId: _formTeamId, tournamentId: _formTournamentId, opposingTeamId: _formOpposing, ...sharedFields } =
+        formData;
+
+      const updatePromises = sameGameEvents.map((event) => {
+        const updateData: UpdateEventRequest = {
+          ...sharedFields,
+          name: event.name,
+          tournamentId: event.tournamentId,
+          opposingTeamId: event.opposingTeamId,
+        };
+        return eventService.updateEvent(event.id, updateData);
+      });
 
       const updatedEvents = await Promise.all(updatePromises);
       
