@@ -24,14 +24,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        # Regenerate the lockfile on the Linux runner to work around npm's
+        # optional-dependency bug (https://github.com/npm/cli/issues/4828),
+        # which can omit platform-specific @tailwindcss/oxide native binaries
+        # when the committed lockfile was generated on a different OS.
         run: |
           cd frontend
-          npm ci
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: Build
         run: |
