@@ -17,6 +17,20 @@ import { normalizeScheduledFields, type ScheduledFields } from '../lib/timezoneU
 
 type EventDoc = Omit<Event, 'id'>;
 
+/** Treat null, empty string, and legacy bad values as "no tournament". */
+export function normalizeTournamentId(
+  tournamentId?: string | null
+): string | undefined {
+  if (!tournamentId || tournamentId === '' || tournamentId === 'null') {
+    return undefined;
+  }
+  return tournamentId;
+}
+
+export function isTournamentManagedEvent(event: Pick<Event, 'tournamentId'>): boolean {
+  return normalizeTournamentId(event.tournamentId) !== undefined;
+}
+
 function normalizeEvent(id: string, data: EventDoc): Event {
   const schedule = normalizeScheduledFields(data as ScheduledFields);
   return {

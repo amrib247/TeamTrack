@@ -8,11 +8,40 @@ import {
   getUserTimeZone,
   utcIsoToLocalParts,
 } from '../lib/timezoneUtils';
-import { eventService } from '../services/eventService';
+import { eventService, isTournamentManagedEvent } from '../services/eventService';
 import { tournamentService } from '../services/tournamentService';
-import AvailabilityModal from './AvailabilityModal';
+import { availabilityService } from '../services/availabilityService';
+import type { TeamAvailabilityResponse } from '../services/availabilityService';
 import AppIcon from './icons/AppIcon';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar, MapPin, CheckCircle2, XCircle, HelpCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import './Schedule.css';
+
+type EventAvailabilitySummary = {
+  going: number;
+  notGoing: number;
+  maybe: number;
+  userStatus: 'YES' | 'NO' | 'MAYBE' | 'UNKNOWN';
+};
+
+type EventAvailabilityDetail = TeamAvailabilityResponse & { eventId: string };
 
 // Calendar helper functions
 const getDaysInMonth = (year: number, month: number) => {
@@ -47,10 +76,14 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [eventAvailability, setEventAvailability] = useState<Record<string, EventAvailabilitySummary>>({});
+  const [expandedResponsesEventId, setExpandedResponsesEventId] = useState<string | null>(null);
+  const [teamResponsesDetail, setTeamResponsesDetail] = useState<EventAvailabilityDetail | null>(null);
+  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [updatingRsvpEventId, setUpdatingRsvpEventId] = useState<string | null>(null);
   
   // Calendar state
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -66,7 +99,6 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   const [formData, setFormData] = useState<CreateEventRequest>({
     teamId: teamId,
     name: '',
-    tournamentId: '',
     date: '',
     startTime: '',
     timeZone: getUserTimeZone(),
@@ -95,15 +127,107 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     try {
       const teamEvents = await eventService.getEventsByTeamId(teamId);
       // Ensure events are properly sorted by date and time
-      setEvents(sortEventsByDateTime(teamEvents));
-      
-      // Load tournament names for events that have tournament IDs
-      await loadTournamentNames(teamEvents);
+      const sorted = sortEventsByDateTime(teamEvents);
+      setEvents(sorted);
+      await loadTournamentNames(sorted);
+      await loadEventAvailabilitySummaries(sorted);
     } catch (err) {
       setError('Failed to load events');
       console.error('Error loading events:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const summarizeAvailability = (
+    data: TeamAvailabilityResponse
+  ): EventAvailabilitySummary => {
+    let going = 0;
+    let notGoing = 0;
+    let maybe = 0;
+    let userStatus: EventAvailabilitySummary['userStatus'] = 'UNKNOWN';
+    for (const m of data.teamAvailability) {
+      if (m.status === 'YES') going++;
+      else if (m.status === 'NO') notGoing++;
+      else if (m.status === 'MAYBE') maybe++;
+      if (m.isCurrentUser) userStatus = m.status;
+    }
+    return { going, notGoing, maybe, userStatus };
+  };
+
+  const loadEventAvailabilitySummaries = async (eventList: Event[]) => {
+    if (!teamId || !currentUserId || eventList.length === 0) {
+      setEventAvailability({});
+      return;
+    }
+    try {
+      const entries = await Promise.all(
+        eventList.map(async (event) => {
+          const data = await availabilityService.getTeamAvailabilityForEvent(
+            teamId,
+            event.id,
+            currentUserId
+          );
+          return [event.id, summarizeAvailability(data)] as const;
+        })
+      );
+      setEventAvailability(Object.fromEntries(entries));
+    } catch (err) {
+      console.error('Error loading availability summaries:', err);
+    }
+  };
+
+  const handleInlineRsvp = async (
+    eventId: string,
+    status: 'YES' | 'NO' | 'MAYBE'
+  ) => {
+    setUpdatingRsvpEventId(eventId);
+    try {
+      await availabilityService.setAvailability(
+        currentUserId,
+        teamId,
+        eventId,
+        status
+      );
+      const data = await availabilityService.getTeamAvailabilityForEvent(
+        teamId,
+        eventId,
+        currentUserId
+      );
+      setEventAvailability((prev) => ({
+        ...prev,
+        [eventId]: summarizeAvailability(data),
+      }));
+      if (expandedResponsesEventId === eventId) {
+        setTeamResponsesDetail({ ...data, eventId });
+      }
+    } catch (err) {
+      setError('Failed to update availability');
+      console.error(err);
+    } finally {
+      setUpdatingRsvpEventId(null);
+    }
+  };
+
+  const toggleTeamResponses = async (eventId: string) => {
+    if (expandedResponsesEventId === eventId) {
+      setExpandedResponsesEventId(null);
+      setTeamResponsesDetail(null);
+      return;
+    }
+    setExpandedResponsesEventId(eventId);
+    setLoadingResponses(true);
+    try {
+      const data = await availabilityService.getTeamAvailabilityForEvent(
+        teamId,
+        eventId,
+        currentUserId
+      );
+      setTeamResponsesDetail({ ...data, eventId });
+    } catch (err) {
+      setError('Failed to load team responses');
+    } finally {
+      setLoadingResponses(false);
     }
   };
 
@@ -150,7 +274,11 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setError('');
 
     try {
-      const newEvent = await eventService.createEvent(formData);
+      const { tournamentId: _tid, ...rest } = formData;
+      const newEvent = await eventService.createEvent({
+        ...rest,
+        tournamentId: formData.tournamentId || undefined,
+      });
       // Add new event and sort by date and time (oldest first)
       setEvents(prev => sortEventsByDateTime([...prev, newEvent]));
       setShowCreateModal(false);
@@ -177,7 +305,10 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setError('');
 
     try {
-      const updatedEvent = await eventService.updateEvent(selectedEvent.id, formData);
+      const updatedEvent = await eventService.updateEvent(selectedEvent.id, {
+        ...formData,
+        tournamentId: formData.tournamentId || undefined,
+      });
       // Update event and sort by date and time (oldest first)
       setEvents(prev => {
         const updatedEvents = prev.map(event => 
@@ -212,14 +343,13 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setFormData({
       teamId: teamId,
       name: '',
-      tournamentId: '',
       date: '',
       startTime: '',
       timeZone: getUserTimeZone(),
       lengthMinutes: 60,
       location: '',
       description: '',
-      score: ''
+      score: '',
     });
   };
 
@@ -229,7 +359,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setFormData({
       teamId: event.teamId,
       name: event.name,
-      tournamentId: event.tournamentId || '',
+      tournamentId: event.tournamentId,
       date: parts.date,
       startTime: parts.startTime,
       timeZone: event.timeZone,
@@ -255,8 +385,7 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
   };
 
   const canManageEvents = (event?: Event) => {
-    // Coaches cannot manage events that were created by tournaments
-    if (event && event.tournamentId && event.tournamentId !== '') {
+    if (event && isTournamentManagedEvent(event)) {
       return false;
     }
     return userRole === 'COACH';
@@ -285,35 +414,165 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
     setSelectedEvent(null);
   };
 
-  return (
-    <div className="schedule-section">
-      <div className="schedule-header">
-        <h3>{teamName} Schedule</h3>
-        <div className="schedule-controls">
-          <div className="view-toggle">
-            <button
-              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-            >
-              List
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
-              onClick={() => setViewMode('calendar')}
-            >
-              Calendar
-            </button>
-          </div>
+  const eventFormFields = (idPrefix: string) => (
+    <>
+      <div>
+        <Label htmlFor={`${idPrefix}-name`}>Event Name</Label>
+        <Input
+          id={`${idPrefix}-name`}
+          value={formData.name}
+          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+          required
+          className="mt-1"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`${idPrefix}-date`}>Date</Label>
+          <Input
+            id={`${idPrefix}-date`}
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor={`${idPrefix}-startTime`}>Start Time</Label>
+          <Input
+            id={`${idPrefix}-startTime`}
+            type="time"
+            value={formData.startTime}
+            onChange={(e) => setFormData((prev) => ({ ...prev, startTime: e.target.value }))}
+            required
+            className="mt-1"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-timeZone`}>Time zone</Label>
+        <Select
+          value={formData.timeZone ?? viewerTimeZone}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, timeZone: value }))}
+        >
+          <SelectTrigger id={`${idPrefix}-timeZone`} className="mt-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeZoneOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`${idPrefix}-length`}>Duration (minutes)</Label>
+          <Input
+            id={`${idPrefix}-length`}
+            type="number"
+            min={15}
+            step={15}
+            value={formData.lengthMinutes}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                lengthMinutes: parseInt(e.target.value, 10) || 60,
+              }))
+            }
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor={`${idPrefix}-location`}>Location</Label>
+          <Input
+            id={`${idPrefix}-location`}
+            value={formData.location}
+            onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+            className="mt-1"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-description`}>Description (optional)</Label>
+        <Textarea
+          id={`${idPrefix}-description`}
+          value={formData.description}
+          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          rows={3}
+          className="mt-1"
+        />
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-score`}>Score (optional)</Label>
+        <Input
+          id={`${idPrefix}-score`}
+          value={formData.score}
+          onChange={(e) => setFormData((prev) => ({ ...prev, score: e.target.value }))}
+          placeholder="e.g. 3-1"
+          pattern="^\d+-\d+$"
+          className="mt-1"
+        />
+        {formData.score && !/^\d+-\d+$/.test(formData.score) && (
+          <p className="mt-1 text-sm text-red-600">Use format number-number (e.g. 3-1)</p>
+        )}
+      </div>
+    </>
+  );
 
-          {canManageEvents() && (
-            <button className="btn btn-primary" onClick={openCreateModal}>
-              Add Event
-            </button>
-          )}
+  return (
+    <div className="border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">{teamName} Schedule</h2>
+            <p className="mt-1 text-sm text-gray-600">Upcoming events and activities</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-md border border-gray-200 p-0.5">
+              <button
+                type="button"
+                className={`rounded px-3 py-1.5 text-sm ${
+                  viewMode === 'list' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-600'
+                }`}
+                onClick={() => setViewMode('list')}
+              >
+                List
+              </button>
+              <button
+                type="button"
+                className={`rounded px-3 py-1.5 text-sm ${
+                  viewMode === 'calendar' ? 'bg-gray-100 font-medium text-gray-900' : 'text-gray-600'
+                }`}
+                onClick={() => setViewMode('calendar')}
+              >
+                Calendar
+              </button>
+            </div>
+            {canManageEvents() && (
+              <Button
+                type="button"
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={openCreateModal}
+              >
+                <Plus className="mr-2 size-4" />
+                Create Event
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      <div className="p-6">
+      {error && (
+        <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       {loading ? (
         <div className="loading-message">Loading events...</div>
@@ -325,108 +584,172 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                 <div className="no-events">
                   <p>No events scheduled for this team.</p>
                   {canManageEvents() && (
-                    <button className="btn btn-primary" onClick={openCreateModal}>
-                      Add Your First Event
-                    </button>
+                    <Button
+                      type="button"
+                      className="bg-blue-600 text-white hover:bg-blue-700"
+                      onClick={openCreateModal}
+                    >
+                      Create Your First Event
+                    </Button>
                   )}
                 </div>
               ) : (
-                events.map(event => (
-                  <div key={event.id} className="event-card">
-                    <div className="event-header">
-                      <h4>{event.name}</h4>
-                      <div className="event-actions">
-                        <button 
-                          className="btn btn-small btn-primary"
-                          onClick={() => {
-                            setSelectedEvent(event);
-                            setShowAvailabilityModal(true);
-                          }}
-                        >
-                          Availability
-                        </button>
-                        {canManageEvents(event) ? (
-                          <>
-                            <button 
-                              className="btn btn-small btn-secondary"
+                events.map((event) => {
+                  const summary = eventAvailability[event.id];
+                  const isUpdating = updatingRsvpEventId === event.id;
+                  return (
+                    <div
+                      key={event.id}
+                      className="mb-4 border border-gray-200 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-foreground">{event.name}</h4>
+                          <div className="flex flex-wrap items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Calendar className="size-4" />
+                              {formatScheduledDate(event.startAtUtc, viewerTimeZone)} at{' '}
+                              {formatScheduledTime(event.startAtUtc, viewerTimeZone)}
+                            </span>
+                            {event.location && (
+                              <span className="inline-flex items-center gap-1">
+                                <MapPin className="size-4" />
+                                {event.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {canManageEvents(event) && (
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => openEditModal(event)}
                             >
                               Edit
-                            </button>
-                            <button 
-                              className="btn btn-small btn-danger"
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
                               onClick={() => handleDeleteEvent(event.id)}
                             >
                               Delete
-                            </button>
-                          </>
-                        ) : event.tournamentId && event.tournamentId !== '' ? (
-                          <span className="tournament-event-note">
-                            Tournament event - cannot edit/delete
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    
-                    <div className="event-content">
-                      <div className="event-details">
-                        <div className="event-column">
-                          <div className="event-info">
-                            <span className="event-label">Tournament</span>
-                            <span className="event-value">
-                              {event.tournamentId 
-                                ? (tournamentNames[event.tournamentId] || `Tournament ID: ${event.tournamentId.substring(0, 8)}...`)
-                                : 'No tournament'
-                              }
-                            </span>
-                          </div>
-                          <div className="event-info">
-                            <span className="event-label">Date</span>
-                            <span className="event-value">{formatScheduledDate(event.startAtUtc, viewerTimeZone)}</span>
-                          </div>
-                          {event.description && (
-                            <div className="event-info">
-                              <span className="event-label">Description</span>
-                              <span className="event-value">{event.description}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="event-column">
-                          <div className="event-info">
-                            <span className="event-label">Time</span>
-                            <span className="event-value">{formatScheduledTime(event.startAtUtc, viewerTimeZone)} ({formatDuration(event.lengthMinutes)})</span>
-                          </div>
-                          <div className="event-info">
-                            <span className="event-label">Location</span>
-                            <span className="event-value">{event.location}</span>
-                          </div>
-                        </div>
-                        
-                        {event.score && (
-                          <div className="event-score-section">
-                            <span className="event-score-label">Final Score</span>
-                            <span className="event-score-value">{event.score}</span>
+                            </Button>
                           </div>
                         )}
                       </div>
+
+                      {summary && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {summary.going} going · {summary.notGoing} not going · {summary.maybe}{' '}
+                          maybe
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {(['YES', 'MAYBE', 'NO'] as const).map((status) => {
+                          const active = summary?.userStatus === status;
+                          const labels = {
+                            YES: { text: 'Going', Icon: CheckCircle2 },
+                            MAYBE: { text: 'Maybe', Icon: HelpCircle },
+                            NO: { text: 'Not going', Icon: XCircle },
+                          };
+                          const { text, Icon } = labels[status];
+                          return (
+                            <Button
+                              key={status}
+                              type="button"
+                              size="sm"
+                              variant={active ? 'default' : 'outline'}
+                              disabled={isUpdating}
+                              onClick={() => handleInlineRsvp(event.id, status)}
+                            >
+                              <Icon className="size-4 mr-1" />
+                              {text}
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      {userRole === 'COACH' && (
+                        <div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-muted-foreground"
+                            onClick={() => toggleTeamResponses(event.id)}
+                          >
+                            {expandedResponsesEventId === event.id ? (
+                              <ChevronUp className="size-4 mr-1" />
+                            ) : (
+                              <ChevronDown className="size-4 mr-1" />
+                            )}
+                            View all responses
+                          </Button>
+                          {expandedResponsesEventId === event.id && (
+                            <div className="mt-2 border border-border rounded-md p-3 text-sm">
+                              {loadingResponses ? (
+                                <p className="text-muted-foreground">Loading...</p>
+                              ) : teamResponsesDetail?.eventId === event.id ? (
+                                <ul className="space-y-2">
+                                  {teamResponsesDetail.teamAvailability.map((m) => (
+                                    <li
+                                      key={m.userId}
+                                      className="flex justify-between gap-2"
+                                    >
+                                      <span>
+                                        {m.firstName} {m.lastName}
+                                        {m.isCurrentUser && (
+                                          <Badge variant="secondary" className="ml-2">
+                                            You
+                                          </Badge>
+                                        )}
+                                      </span>
+                                      <span className="text-muted-foreground">
+                                        {m.status === 'UNKNOWN'
+                                          ? 'Not set'
+                                          : m.status === 'YES'
+                                            ? 'Going'
+                                            : m.status === 'NO'
+                                              ? 'Not going'
+                                              : 'Maybe'}
+                                      </span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {event.score && (
+                        <p className="text-sm mt-2">
+                          <strong>Score:</strong> {event.score}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           ) : (
             <div className="calendar-view">
               <div className="calendar-header">
-                <button className="calendar-nav-btn" onClick={goToPreviousMonth}>
-                  ‹
-                </button>
-                <h4 className="calendar-title">
-                  {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </h4>
-                <button className="calendar-nav-btn" onClick={goToNextMonth}>
-                  ›
-                </button>
+                <div className="calendar-header-nav">
+                  <button className="calendar-nav-btn" onClick={goToPreviousMonth}>
+                    ‹
+                  </button>
+                  <h4 className="calendar-title">
+                    {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h4>
+                  <button className="calendar-nav-btn" onClick={goToNextMonth}>
+                    ›
+                  </button>
+                </div>
                 <button className="calendar-today-btn" onClick={goToToday}>
                   Today
                 </button>
@@ -475,13 +798,13 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                                   <div className="calendar-event-time">{formatScheduledTime(event.startAtUtc, viewerTimeZone)}</div>
                                 </div>
                                 <button
+                                  type="button"
                                   className="calendar-availability-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setSelectedEvent(event);
-                                    setShowAvailabilityModal(true);
+                                    openEventDetails(event);
                                   }}
-                                  title="View Availability"
+                                  title="Event details & RSVP"
                                 >
                                   <AppIcon name="users" size={16} />
                                 </button>
@@ -500,287 +823,45 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
           )}
         </div>
       )}
+      </div>
 
-      {/* Create Event Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal event-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create New Event</h3>
-              <button 
-                className="close-button" 
-                onClick={() => setShowCreateModal(false)}
-              >
-                ×
-              </button>
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Event</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateEvent} className="space-y-4">
+            {eventFormFields('create')}
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
+                {loading ? 'Creating...' : 'Create Event'}
+              </Button>
             </div>
-            <form onSubmit={handleCreateEvent} className="event-form">
-              <div className="form-group">
-                <label htmlFor="name">Event Name *</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="date">Date *</label>
-                  <input
-                    type="date"
-                    id="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="startTime">Start Time *</label>
-                  <input
-                    type="time"
-                    id="startTime"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="timeZone">Time zone *</label>
-                <select
-                  id="timeZone"
-                  value={formData.timeZone ?? viewerTimeZone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
-                  required
-                >
-                  {timeZoneOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="form-hint">Defaults to your device time zone. Stored in UTC so everyone sees the correct local time.</p>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="lengthMinutes">Duration (minutes) *</label>
-                  <input
-                    type="number"
-                    id="lengthMinutes"
-                    value={formData.lengthMinutes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lengthMinutes: parseInt(e.target.value) || 60 }))}
-                    min="15"
-                    step="15"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="location">Location</label>
-                  <input
-                    type="text"
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="description">Description (Optional)</label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter event description, details, or notes..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="score">Score (Optional)</label>
-                <input
-                  type="text"
-                  id="score"
-                  value={formData.score}
-                  onChange={(e) => setFormData(prev => ({ ...prev, score: e.target.value }))}
-                  placeholder="Enter final score (e.g., 3-1, 2-0, etc.)"
-                  pattern="^\d+-\d+$"
-                  title="Score must be in format: number-number (e.g., 3-1)"
-                />
-                {formData.score && !/^\d+-\d+$/.test(formData.score) && (
-                  <div className="error-message">Score must be in format: number-number (e.g., 3-1)</div>
-                )}
-              </div>
-              
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating...' : 'Create Event'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Event Modal */}
-      {showEditModal && selectedEvent && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal event-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Edit Event</h3>
-              <button 
-                className="close-button" 
-                onClick={() => setShowEditModal(false)}
-              >
-                ×
-              </button>
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Event</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateEvent} className="space-y-4">
+            {eventFormFields('edit')}
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowEditModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 bg-blue-600 text-white hover:bg-blue-700" disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
-            <form onSubmit={handleUpdateEvent} className="event-form">
-              <div className="form-group">
-                <label htmlFor="edit-name">Event Name *</label>
-                <input
-                  type="text"
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="edit-date">Date *</label>
-                  <input
-                    type="date"
-                    id="edit-date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="edit-startTime">Start Time *</label>
-                  <input
-                    type="time"
-                    id="edit-startTime"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="edit-timeZone">Time zone *</label>
-                <select
-                  id="edit-timeZone"
-                  value={formData.timeZone ?? viewerTimeZone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
-                  required
-                >
-                  {timeZoneOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="edit-lengthMinutes">Duration (minutes) *</label>
-                  <input
-                    type="number"
-                    id="edit-lengthMinutes"
-                    value={formData.lengthMinutes}
-                    onChange={(e) => setFormData(prev => ({ ...prev, lengthMinutes: parseInt(e.target.value) || 60 }))}
-                    min="15"
-                    step="15"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="edit-location">Location</label>
-                  <input
-                    type="text"
-                    id="edit-location"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="edit-description">Description (Optional)</label>
-                <textarea
-                  id="edit-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter event description, details, or notes..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="edit-score">Score (Optional)</label>
-                <input
-                  type="text"
-                  id="edit-score"
-                  value={formData.score}
-                  onChange={(e) => setFormData(prev => ({ ...prev, score: e.target.value }))}
-                  placeholder="Enter final score (e.g., 3-1, 2-0, etc.)"
-                  pattern="^\d+-\d+$"
-                  title="Score must be in format: number-number (e.g., 3-1)"
-                />
-                {formData.score && !/^\d+-\d+$/.test(formData.score) && (
-                  <div className="error-message">Score must be in format: number-number (e.g., 3-1)</div>
-                )}
-              </div>
-              
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowEditModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? 'Updating...' : 'Update Event'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Event Details Modal */}
       {showEventDetails && selectedEvent && (
@@ -831,20 +912,48 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                   </div>
                 )}
               </div>
+
+              <div className="flex flex-wrap gap-2 my-4">
+                {(['YES', 'MAYBE', 'NO'] as const).map((status) => {
+                  const summary = eventAvailability[selectedEvent.id];
+                  const active = summary?.userStatus === status;
+                  const labels = {
+                    YES: { text: 'Going', Icon: CheckCircle2 },
+                    MAYBE: { text: 'Maybe', Icon: HelpCircle },
+                    NO: { text: 'Not going', Icon: XCircle },
+                  };
+                  const { text, Icon } = labels[status];
+                  return (
+                    <Button
+                      key={status}
+                      type="button"
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      disabled={updatingRsvpEventId === selectedEvent.id}
+                      onClick={() => handleInlineRsvp(selectedEvent.id, status)}
+                    >
+                      <Icon className="size-4 mr-1" />
+                      {text}
+                    </Button>
+                  );
+                })}
+              </div>
               
               {canManageEvents(selectedEvent) ? (
-                <div className="event-details-actions">
-                  <button 
-                    className="btn btn-secondary"
+                <div className="flex flex-wrap gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       closeEventDetails();
                       openEditModal(selectedEvent);
                     }}
                   >
                     Edit Event
-                  </button>
-                  <button 
-                    className="btn btn-danger"
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
                     onClick={() => {
                       if (window.confirm('Are you sure you want to delete this event?')) {
                         handleDeleteEvent(selectedEvent.id);
@@ -853,9 +962,9 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
                     }}
                   >
                     Delete Event
-                  </button>
+                  </Button>
                 </div>
-              ) : selectedEvent.tournamentId && selectedEvent.tournamentId !== '' ? (
+              ) : isTournamentManagedEvent(selectedEvent) ? (
                 <div className="tournament-event-note">
                   <p>This is a tournament event and cannot be edited or deleted by team coaches.</p>
                   <p>Please contact the tournament organizer if changes are needed.</p>
@@ -866,20 +975,6 @@ const Schedule: React.FC<ScheduleProps> = ({ teamId, userRole, teamName, current
         </div>
       )}
 
-      {/* Availability Modal */}
-      {showAvailabilityModal && selectedEvent && (
-        <AvailabilityModal
-          isOpen={showAvailabilityModal}
-          onClose={() => {
-            setShowAvailabilityModal(false);
-            setSelectedEvent(null);
-          }}
-          eventId={selectedEvent.id}
-          teamId={teamId}
-          currentUserId={currentUserId}
-
-        />
-      )}
     </div>
   );
 };

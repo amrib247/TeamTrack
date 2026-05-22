@@ -9,10 +9,26 @@ import {
 } from '../lib/timezoneUtils';
 import { taskService } from '../services/taskService';
 import TaskDetailsModal from './TaskDetailsModal';
-import './TaskList.css';
+import { Calendar, Clock, MapPin, Users, Plus, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-// Task sorting helper function
-// Sorts tasks by date and time in ascending order (oldest first)
 const sortTasksByDateTime = (tasks: Task[]): Task[] =>
   [...tasks].sort((a, b) => new Date(a.startAtUtc).getTime() - new Date(b.startAtUtc).getTime());
 
@@ -31,8 +47,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  // Form state for creating/editing tasks
+
   const [viewerTimeZone] = useState(() => getUserTimeZone());
   const timeZoneOptions = getTimeZoneOptions();
 
@@ -46,28 +61,26 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
     timeZone: getUserTimeZone(),
     maxSignups: 10,
     minSignups: 1,
-    createdBy: currentUserId
+    createdBy: currentUserId,
   });
 
-  // Initialize formData teamId when teamId changes
   useEffect(() => {
-    setFormData(prev => ({ ...prev, teamId, createdBy: currentUserId }));
+    setFormData((prev) => ({ ...prev, teamId, createdBy: currentUserId }));
   }, [teamId, currentUserId]);
 
   useEffect(() => {
     if (teamId) {
       loadTasks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
   const loadTasks = async () => {
     if (!teamId) return;
-    
     setLoading(true);
     setError('');
     try {
       const teamTasks = await taskService.getTasksByTeamId(teamId);
-      // Ensure tasks are properly sorted by date and time
       setTasks(sortTasksByDateTime(teamTasks));
     } catch (err) {
       setError('Failed to load tasks');
@@ -79,25 +92,22 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate signup limits
+
     if (formData.minSignups > formData.maxSignups) {
       setError('Minimum signups cannot exceed maximum signups');
       return;
     }
-    
     if (formData.minSignups < 0 || formData.maxSignups < 1) {
       setError('Invalid signup limits');
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
     try {
       const newTask = await taskService.createTask(formData);
-      // Add new task and sort by date and time (oldest first)
-      setTasks(prev => sortTasksByDateTime([...prev, newTask]));
+      setTasks((prev) => sortTasksByDateTime([...prev, newTask]));
       setShowCreateModal(false);
       resetForm();
     } catch (err) {
@@ -112,12 +122,10 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
     e.preventDefault();
     if (!selectedTask) return;
 
-    // Validate signup limits
     if (formData.minSignups > formData.maxSignups) {
       setError('Minimum signups cannot exceed maximum signups');
       return;
     }
-    
     if (formData.minSignups < 0 || formData.maxSignups < 1) {
       setError('Invalid signup limits');
       return;
@@ -128,9 +136,8 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
 
     try {
       const updatedTask = await taskService.updateTask(selectedTask.id, formData);
-      // Update task and sort by date and time (oldest first)
-      setTasks(prev => {
-        const updatedTasks = prev.map(task => 
+      setTasks((prev) => {
+        const updatedTasks = prev.map((task) =>
           task.id === selectedTask.id ? updatedTask : task
         );
         return sortTasksByDateTime(updatedTasks);
@@ -151,7 +158,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
 
     try {
       await taskService.deleteTask(taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
     } catch (err) {
       setError('Failed to delete task');
       console.error('Error deleting task:', err);
@@ -161,16 +168,11 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
   const handleSignUp = async (taskId: string) => {
     try {
       const updatedTask = await taskService.signUpForTask(taskId, currentUserId);
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? updatedTask : task
-      ));
+      setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
     } catch (err) {
-      // Check if the error is about the user already being signed up
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (errorMessage.includes('User is already signed up')) {
-        // Silently ignore duplicate signup attempts
         console.log('User is already signed up for this task');
-        // Optionally reload tasks to ensure UI is in sync
         loadTasks();
       } else {
         setError('Failed to sign up for task');
@@ -182,9 +184,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
   const handleRemoveSignup = async (taskId: string) => {
     try {
       const updatedTask = await taskService.removeFromTask(taskId, currentUserId);
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? updatedTask : task
-      ));
+      setTasks((prev) => prev.map((task) => (task.id === taskId ? updatedTask : task)));
     } catch (err) {
       setError('Failed to remove signup');
       console.error('Error removing signup:', err);
@@ -202,7 +202,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
       timeZone: getUserTimeZone(),
       maxSignups: 10,
       minSignups: 1,
-      createdBy: currentUserId
+      createdBy: currentUserId,
     });
   };
 
@@ -219,7 +219,7 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
       timeZone: task.timeZone,
       maxSignups: task.maxSignups,
       minSignups: task.minSignups,
-      createdBy: task.createdBy
+      createdBy: task.createdBy,
     });
     setShowEditModal(true);
   };
@@ -239,446 +239,344 @@ const TaskList: React.FC<TaskListProps> = ({ teamId, userRole, teamName, current
     setShowDetailsModal(false);
   };
 
-  const canManageTasks = () => {
-    return userRole === 'COACH';
-  };
+  const canManageTasks = () => userRole === 'COACH';
+  const isUserSignedUp = (task: Task) => task.signedUpUserIds.includes(currentUserId);
 
-  const isUserSignedUp = (task: Task) => {
-    return task.signedUpUserIds.includes(currentUserId);
-  };
+  const taskFormFields = (idPrefix: string) => (
+    <>
+      <div>
+        <Label htmlFor={`${idPrefix}-name`}>Task Name</Label>
+        <Input
+          id={`${idPrefix}-name`}
+          value={formData.name}
+          onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+          required
+          className="mt-1"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`${idPrefix}-date`}>Date</Label>
+          <Input
+            id={`${idPrefix}-date`}
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor={`${idPrefix}-startTime`}>Start Time</Label>
+          <Input
+            id={`${idPrefix}-startTime`}
+            type="time"
+            value={formData.startTime}
+            onChange={(e) => setFormData((prev) => ({ ...prev, startTime: e.target.value }))}
+            required
+            className="mt-1"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-timeZone`}>Time zone</Label>
+        <Select
+          value={formData.timeZone ?? viewerTimeZone}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, timeZone: value }))}
+        >
+          <SelectTrigger id={`${idPrefix}-timeZone`} className="mt-1">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {timeZoneOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-location`}>Location</Label>
+        <Input
+          id={`${idPrefix}-location`}
+          value={formData.location}
+          onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+          className="mt-1"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor={`${idPrefix}-minSignups`}>Minimum Signups</Label>
+          <Input
+            id={`${idPrefix}-minSignups`}
+            type="number"
+            min={1}
+            value={formData.minSignups}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, minSignups: parseInt(e.target.value, 10) || 1 }))
+            }
+            required
+            className="mt-1"
+          />
+        </div>
+        <div>
+          <Label htmlFor={`${idPrefix}-maxSignups`}>Maximum Signups</Label>
+          <Input
+            id={`${idPrefix}-maxSignups`}
+            type="number"
+            min={1}
+            value={formData.maxSignups}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, maxSignups: parseInt(e.target.value, 10) || 10 }))
+            }
+            required
+            className="mt-1"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor={`${idPrefix}-description`}>Description (optional)</Label>
+        <Textarea
+          id={`${idPrefix}-description`}
+          value={formData.description}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, description: e.target.value }))
+          }
+          rows={3}
+          placeholder="Enter task description, details, or notes..."
+          className="mt-1"
+        />
+      </div>
+    </>
+  );
 
   return (
-    <div className="task-list-section">
-      <div className="task-list-header">
-        <h3>{teamName} Tasks</h3>
-        <div className="task-list-controls">
+    <div className="border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">{teamName} Tasks</h2>
+            <p className="mt-1 text-sm text-gray-600">Volunteer tasks and assignments</p>
+          </div>
           {canManageTasks() && (
-            <button className="btn btn-primary" onClick={openCreateModal}>
+            <Button
+              type="button"
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              onClick={openCreateModal}
+            >
+              <Plus className="mr-2 size-4" />
               Add Task
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      <div className="p-6">
+        {error && (
+          <p className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </p>
+        )}
 
-      {loading ? (
-        <div className="loading-message">Loading tasks...</div>
-      ) : (
-        <div className="task-list-content">
-          <div className="tasks-list">
-            {tasks.length === 0 ? (
-              <div className="no-tasks">
-                <p>No tasks scheduled for this team.</p>
-                {canManageTasks() && (
-                  <button className="btn btn-primary" onClick={openCreateModal}>
-                    Add Your First Task
-                  </button>
-                )}
-              </div>
-            ) : (
-              tasks.map(task => {
-                // Compute helper properties for display
-                const currentSignups = task.signedUpUserIds.length;
-                const isFull = currentSignups >= task.maxSignups;
-                const hasMinimumSignups = currentSignups >= task.minSignups;
-                
-                return (
-                  <div 
-                    key={task.id} 
-                    className={`task-card ${!hasMinimumSignups ? 'task-card-warning' : ''} task-card-clickable`}
-                    onClick={() => openDetailsModal(task)}
-                    title="Click to view task details and signed up users"
-                  >
-                  <div className="task-header">
-                    <h4 className="task-name">
-                      {task.name}
-                    </h4>
-                    <div className="task-actions">
-                      {isUserSignedUp(task) ? (
-                        <button 
-                          className="btn btn-small btn-danger"
+        {loading ? (
+          <p className="py-8 text-center text-sm text-gray-500">Loading tasks...</p>
+        ) : tasks.length === 0 ? (
+          <div className="py-12 text-center text-gray-500">
+            <p>No tasks scheduled for this team.</p>
+            {canManageTasks() && (
+              <Button
+                type="button"
+                className="mt-4 bg-blue-600 text-white hover:bg-blue-700"
+                onClick={openCreateModal}
+              >
+                <Plus className="mr-2 size-4" />
+                Add Your First Task
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {tasks.map((task) => {
+              const currentSignups = task.signedUpUserIds.length;
+              const isFull = currentSignups >= task.maxSignups;
+              const hasMinimumSignups = currentSignups >= task.minSignups;
+              const signedUp = isUserSignedUp(task);
+
+              return (
+                <div
+                  key={task.id}
+                  className="cursor-pointer border border-gray-200 p-4 transition-colors hover:border-blue-300 hover:shadow-sm"
+                  onClick={() => openDetailsModal(task)}
+                >
+                  <div className="mb-3 flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <h4 className="font-semibold text-gray-900">{task.name}</h4>
+                        <Badge variant={hasMinimumSignups ? 'default' : 'outline'}>
+                          {currentSignups}/{task.maxSignups} signed up
+                        </Badge>
+                        {!hasMinimumSignups && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-300 bg-amber-50 text-amber-700"
+                          >
+                            <AlertTriangle className="size-3" />
+                            Needs {task.minSignups - currentSignups} more
+                          </Badge>
+                        )}
+                        {isFull && (
+                          <Badge variant="outline" className="border-gray-300 text-gray-600">
+                            Full
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar className="size-4 shrink-0" />
+                          {formatScheduledDate(task.startAtUtc, viewerTimeZone)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="size-4 shrink-0" />
+                          {formatScheduledTime(task.startAtUtc, viewerTimeZone)}
+                        </span>
+                        {task.location && (
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="size-4 shrink-0" />
+                            {task.location}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="size-4 shrink-0" />
+                          Min {task.minSignups}
+                        </span>
+                      </div>
+                      {task.description && (
+                        <p className="mt-2 text-sm text-gray-600">{task.description}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {signedUp ? (
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveSignup(task.id);
                           }}
-                          title={`Currently signed up. Click to remove signup.`}
                         >
-                          ✓ Unsign Up
-                        </button>
+                          <CheckCircle2 className="mr-1 size-4" />
+                          Signed Up
+                        </Button>
                       ) : (
-                        <button 
-                          className="btn btn-small btn-primary"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isFull}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSignUp(task.id);
                           }}
-                          disabled={isFull}
-                          title={isFull ? 'Task is full' : 'Click to sign up for this task'}
                         >
-                          {isFull ? 'Full' : '+ Sign Up'}
-                        </button>
+                          <XCircle className="mr-1 size-4" />
+                          {isFull ? 'Full' : 'Sign Up'}
+                        </Button>
                       )}
                       {canManageTasks() && (
                         <>
-                          <button 
-                            className="btn btn-small btn-secondary"
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditModal(task);
                             }}
                           >
                             Edit
-                          </button>
-                          <button 
-                            className="btn btn-small btn-danger"
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteTask(task.id);
                             }}
                           >
                             Delete
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
                   </div>
-                  
-                  <div className="task-content">
-                    <div className="task-details">
-                      <div className="task-column">
-                        <div className="task-info">
-                          <span className="task-label">Date</span>
-                          <span className="task-value">{formatScheduledDate(task.startAtUtc, viewerTimeZone)}</span>
-                        </div>
-                        {task.description && (
-                          <div className="task-info">
-                            <span className="task-label">Description</span>
-                            <span className="task-value">{task.description}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="task-column">
-                        <div className="task-info">
-                          <span className="task-label">Time</span>
-                          <span className="task-value">{formatScheduledTime(task.startAtUtc, viewerTimeZone)}</span>
-                        </div>
-                        <div className="task-info">
-                          <span className="task-label">Location</span>
-                          <span className="task-value">{task.location}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="task-signup-section">
-                        <div className="task-signup-info">
-                          <span className="task-signup-label">Signups</span>
-                          <span className="task-signup-value">
-                            {currentSignups}/{task.maxSignups}
-                          </span>
-                        </div>
-                        <div className="task-min-signup">
-                          <span className="task-min-label">Min Required</span>
-                          <span className="task-min-value">{task.minSignups}</span>
-                        </div>
-                        {isUserSignedUp(task) && (
-                          <div className="task-status user-signed-up">
-                            ✓ You are signed up
-                          </div>
-                        )}
-                        {hasMinimumSignups && (
-                          <div className="task-status success">
-                            ✓ Minimum signups met
-                          </div>
-                        )}
-                        {isFull && (
-                          <div className="task-status full">
-                            ✗ Task is full
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-                );
-              })
-            )}
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Create Task Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal task-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create New Task</h3>
-              <button 
-                className="close-button" 
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateTask} className="space-y-4">
+            {taskFormFields('create')}
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
                 onClick={() => setShowCreateModal(false)}
               >
-                ×
-              </button>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+                disabled={loading}
+              >
+                {loading ? 'Creating...' : 'Create Task'}
+              </Button>
             </div>
-            <form onSubmit={handleCreateTask} className="task-form">
-              <div className="form-group">
-                <label htmlFor="name">Task Name *</label>
-                <input
-                  type="text"
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="date">Date *</label>
-                  <input
-                    type="date"
-                    id="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="startTime">Start Time *</label>
-                  <input
-                    type="time"
-                    id="startTime"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div className="form-group">
-                <label htmlFor="timeZone">Time zone *</label>
-                <select
-                  id="timeZone"
-                  value={formData.timeZone ?? viewerTimeZone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
-                  required
-                >
-                  {timeZoneOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="location">Location</label>
-                <input
-                  type="text"
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="minSignups">Minimum Signups *</label>
-                  <input
-                    type="number"
-                    id="minSignups"
-                    value={formData.minSignups}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minSignups: parseInt(e.target.value) || 1 }))}
-                    min="1"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="maxSignups">Maximum Signups *</label>
-                  <input
-                    type="number"
-                    id="maxSignups"
-                    value={formData.maxSignups}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxSignups: parseInt(e.target.value) || 10 }))}
-                    min="1"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="description">Description (Optional)</label>
-                <textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter task description, details, or notes..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowCreateModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? 'Creating...' : 'Create Task'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Task Modal */}
-      {showEditModal && selectedTask && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal task-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Edit Task</h3>
-              <button 
-                className="close-button" 
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateTask} className="space-y-4">
+            {taskFormFields('edit')}
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
                 onClick={() => setShowEditModal(false)}
               >
-                ×
-              </button>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+                disabled={loading}
+              >
+                {loading ? 'Updating...' : 'Update Task'}
+              </Button>
             </div>
-            <form onSubmit={handleUpdateTask} className="task-form">
-              <div className="form-group">
-                <label htmlFor="edit-name">Task Name *</label>
-                <input
-                  type="text"
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="edit-date">Date *</label>
-                  <input
-                    type="date"
-                    id="edit-date"
-                    value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="edit-startTime">Start Time *</label>
-                  <input
-                    type="time"
-                    id="edit-startTime"
-                    value={formData.startTime}
-                    onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-              <div className="form-group">
-                <label htmlFor="edit-timeZone">Time zone *</label>
-                <select
-                  id="edit-timeZone"
-                  value={formData.timeZone ?? viewerTimeZone}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, timeZone: e.target.value }))}
-                  required
-                >
-                  {timeZoneOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="edit-location">Location</label>
-                <input
-                  type="text"
-                  id="edit-location"
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="edit-minSignups">Minimum Signups *</label>
-                  <input
-                    type="number"
-                    id="edit-minSignups"
-                    value={formData.minSignups}
-                    onChange={(e) => setFormData(prev => ({ ...prev, minSignups: parseInt(e.target.value) || 1 }))}
-                    min="1"
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label htmlFor="edit-maxSignups">Maximum Signups *</label>
-                  <input
-                    type="number"
-                    id="edit-maxSignups"
-                    value={formData.maxSignups}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxSignups: parseInt(e.target.value) || 10 }))}
-                    min="1"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="edit-description">Description (Optional)</label>
-                <textarea
-                  id="edit-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter task description, details, or notes..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="modal-actions">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary"
-                  onClick={() => setShowEditModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
-                  {loading ? 'Updating...' : 'Update Task'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Task Details Modal */}
       {showDetailsModal && selectedTask && (
-        <TaskDetailsModal 
-          task={selectedTask}
-          onClose={closeDetailsModal}
-        />
+        <TaskDetailsModal task={selectedTask} onClose={closeDetailsModal} />
       )}
     </div>
   );

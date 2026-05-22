@@ -48,7 +48,7 @@
   font-size: 0.95rem;
 }
 
-.team-content h2 {
+.team-content > h2 {
   color: var(--color-text);
   margin-bottom: var(--space-md);
   font-size: var(--text-xl);
