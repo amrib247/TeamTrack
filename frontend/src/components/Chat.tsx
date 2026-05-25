@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Paperclip, Send, Trash2, X } from 'lucide-react';
 import { chatService } from '../services/chatService';
 import { storageService } from '../services/storageService';
 import type { ChatMessage, ChatScope } from '../types/Auth';
-import AppIcon from './icons/AppIcon';
-import './Chat.css';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
 
 interface ChatProps {
   scope: ChatScope;
@@ -28,7 +29,8 @@ function Chat({ scope, scopeId, currentUserId, displayName }: ChatProps) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [fileUpload, setFileUpload] = useState<FileUpload | null>(null);
 
-  const subtitle = scope === 'team' ? 'Team communication hub' : 'Tournament communication hub';
+  const subtitle =
+    scope === 'team' ? 'Team communication hub' : 'Tournament communication hub';
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ function Chat({ scope, scopeId, currentUserId, displayName }: ChatProps) {
     setFileUpload({
       file,
       preview,
-      uploading: false
+      uploading: false,
     });
     setError('');
   };
@@ -228,166 +230,221 @@ function Chat({ scope, scopeId, currentUserId, displayName }: ChatProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const renderHeader = () => (
+    <div className="p-6 border-b border-gray-200">
+      <h2 className="text-xl font-semibold text-gray-900">{displayName} Chat</h2>
+      <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+    </div>
+  );
+
+  const renderErrorBanner = () => {
+    if (!error) return null;
+    return (
+      <div className="mx-6 mt-4 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <p className="m-0 flex-1">{error}</p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => loadMessages()}
+          className="border-red-300 bg-white text-red-700 hover:bg-red-100"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  };
+
   if (messages.length === 0 && error) {
     return (
-      <div className="chat-container">
-        <div className="chat-header">
-          <h2 className="section-heading"><AppIcon name="message" size={22} /> {displayName} Chat</h2>
-          <p className="chat-subtitle">{subtitle}</p>
-        </div>
-        <div className="chat-error">
-          <p>{error}</p>
-          <button onClick={() => loadMessages()} className="btn btn-secondary btn-small">
-            Retry
-          </button>
-        </div>
+      <div className="bg-white border border-gray-200 shadow-sm rounded-md flex flex-col h-[calc(100vh-120px)] min-h-[480px] mt-2 mx-2">
+        {renderHeader()}
+        {renderErrorBanner()}
       </div>
     );
   }
 
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <h2 className="section-heading"><AppIcon name="message" size={22} /> {displayName} Chat</h2>
-        <p className="chat-subtitle">{subtitle}</p>
-      </div>
+    <div className="bg-white border border-gray-200 shadow-sm rounded-md flex flex-col h-[calc(100vh-120px)] min-h-[480px] mt-2 mx-2">
+      {renderHeader()}
 
-      {error && (
-        <div className="chat-error">
-          <p>{error}</p>
-          <button onClick={() => loadMessages()} className="btn btn-secondary btn-small">
-            Retry
-          </button>
-        </div>
-      )}
+      {renderErrorBanner()}
 
-      <div className="chat-messages" ref={chatContainerRef}>
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
         {hasMoreMessages && (
-          <div className="load-more-container">
-            <button
+          <div className="text-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={loadMoreMessages}
               disabled={loadingMore}
-              className="btn btn-secondary btn-small"
+              className="border-gray-300"
             >
-              {loadingMore ? 'Loading...' : 'Load More Messages'}
-            </button>
+              {loadingMore ? 'Loading...' : 'Load Older Messages'}
+            </Button>
           </div>
         )}
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`chat-message ${message.userId === currentUserId ? 'own-message' : 'other-message'}`}
-          >
-            <div className="message-avatar">
-              <div className="message-initials">
+        {messages.map((message) => {
+          const isOwn = message.userId === currentUserId;
+          return (
+            <div
+              key={message.id}
+              className={`group flex items-end gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+            >
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-sm font-semibold text-gray-600">
                 {getUserInitials(message)}
               </div>
-            </div>
 
-            <div className="message-content">
-              <div className="message-header">
-                <span className="message-author">
-                  {getUserDisplayName(message)}
-                </span>
-                <span className="message-time">{formatTimestamp(message.timestamp)}</span>
-              </div>
-
-              <div className="message-text">
-                {message.messageType === 'TEXT' && message.content}
-                {message.messageType === 'IMAGE' && message.fileUrl && (
-                  <div className="message-image">
-                    <img src={message.fileUrl} alt="Shared image" />
-                  </div>
+              <div
+                className={`relative max-w-[70%] border p-3 ${
+                  isOwn
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-gray-100 text-gray-900 border-gray-200'
+                }`}
+              >
+                {!isOwn && (
+                  <p className="text-xs font-semibold mb-1">{getUserDisplayName(message)}</p>
                 )}
-                {message.messageType === 'FILE' && message.fileUrl && (
-                  <div className="message-file">
-                    <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
-                      <AppIcon name="paperclip" size={14} /> {message.fileName || 'Download file'}
-                    </a>
-                  </div>
-                )}
-              </div>
 
-              {canDeleteMessage(message) && (
-                <button
-                  onClick={() => handleDeleteMessage(message.id)}
-                  className="message-delete-btn"
-                  title="Delete message"
+                <div className="text-sm break-words leading-snug">
+                  {message.messageType === 'TEXT' && message.content}
+                  {message.messageType === 'IMAGE' && message.fileUrl && (
+                    <div className="mt-1">
+                      <img
+                        src={message.fileUrl}
+                        alt="Shared image"
+                        className="max-w-full max-h-72 rounded-md border border-black/10"
+                      />
+                    </div>
+                  )}
+                  {message.messageType === 'FILE' && message.fileUrl && (
+                    <div className="mt-1">
+                      <a
+                        href={message.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-2 rounded-sm border px-2 py-1 text-sm no-underline ${
+                          isOwn
+                            ? 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                            : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Paperclip className="size-4" /> {message.fileName || 'Download file'}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                <p
+                  className={`text-xs mt-1 ${
+                    isOwn ? 'text-primary-foreground/70' : 'text-gray-500'
+                  }`}
                 >
-                  <AppIcon name="trash" size={16} />
-                </button>
-              )}
+                  {formatTimestamp(message.timestamp)}
+                </p>
+
+                {canDeleteMessage(message) && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMessage(message.id)}
+                    title="Delete message"
+                    className={`absolute -top-2 ${
+                      isOwn ? '-left-2' : '-right-2'
+                    } flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-red-600 opacity-0 shadow-sm transition-opacity hover:bg-red-50 group-hover:opacity-100`}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSendMessage} className="chat-input-form">
+      <form onSubmit={handleSendMessage} className="border-t border-gray-200 bg-gray-50 p-4">
         {fileUpload && (
-          <div className="file-preview-container">
-            <div className="file-preview">
-              {fileUpload.preview && (
-                <img src={fileUpload.preview} alt="File preview" className="file-preview-image" />
+          <div className="mb-3 flex items-center gap-3 rounded-md border border-gray-200 bg-white p-2">
+            {fileUpload.preview && (
+              <img
+                src={fileUpload.preview}
+                alt="File preview"
+                className="h-14 w-14 rounded-sm border border-gray-200 object-cover"
+              />
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-sm font-medium text-gray-900">
+                {fileUpload.file.name}
+              </span>
+              <span className="text-xs text-gray-500">
+                {formatFileSize(fileUpload.file.size)}
+              </span>
+              {fileUpload.error && (
+                <span className="text-xs text-red-600">{fileUpload.error}</span>
               )}
-              <div className="file-info">
-                <span className="file-name">{fileUpload.file.name}</span>
-                <span className="file-size">{formatFileSize(fileUpload.file.size)}</span>
-                {fileUpload.error && <span className="file-error">{fileUpload.error}</span>}
-              </div>
-              <button
-                type="button"
-                onClick={removeFile}
-                className="remove-file-btn"
-                title="Remove file"
-              >
-                ✕
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={removeFile}
+              title="Remove file"
+              className="flex h-7 w-7 items-center justify-center rounded-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            >
+              <X className="size-4" />
+            </button>
           </div>
         )}
 
-        <div className="chat-input-container">
+        <div className="flex gap-2">
           <input
             ref={fileInputRef}
             type="file"
             onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
             accept="*/*"
-            style={{ display: 'none' }}
+            className="hidden"
           />
 
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="icon"
             onClick={() => fileInputRef.current?.click()}
-            className="btn btn-secondary add-file-btn"
-            title="Add file attachment"
+            title="Attach file"
+            className="flex-shrink-0 border-gray-300"
           >
-            <span className="add-file-label">File upload</span>
-            <span className="add-file-icon">+</span>
-          </button>
+            <Paperclip className="size-5" />
+          </Button>
 
-          <input
+          <Input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder={fileUpload ? "Add a message (optional)..." : "Type your message..."}
-            className="chat-input"
+            placeholder={fileUpload ? 'Add a message (optional)...' : 'Type a message...'}
             disabled={sending}
             maxLength={1000}
+            className="flex-1"
           />
-          <button
+
+          <Button
             type="submit"
             disabled={(!newMessage.trim() && !fileUpload) || sending}
-            className="btn btn-primary chat-send-btn"
+            className="flex-shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {sending ? 'Sending...' : 'Send'}
-          </button>
+            {sending ? (
+              'Sending...'
+            ) : (
+              <>
+                <Send className="size-5" />
+              </>
+            )}
+          </Button>
         </div>
-        <div className="chat-input-info">
-          <span className="character-count">{newMessage.length}/1000</span>
-          <span className="input-hint">Press Enter to send</span>
+
+        <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+          <span className="font-medium">{newMessage.length}/1000</span>
+          <span className="italic">Press Enter to send</span>
         </div>
       </form>
     </div>

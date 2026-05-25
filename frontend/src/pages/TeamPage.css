@@ -1230,14 +1230,6 @@
 }
 
 .content-chat {
-  height: 100%;
-  min-height: 400px;
   display: flex;
   flex-direction: column;
-}
-
-.content-chat .chat-container {
-  flex: 1;
-  height: 100%;
-  min-height: 400px;
 }

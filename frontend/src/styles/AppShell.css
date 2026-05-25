@@ -154,8 +154,7 @@
 /* Nested tab content: no double borders */
 .app-shell-main-card .schedule-section,
 .app-shell-main-card .task-list-section,
-.app-shell-main-card .tournament-schedule-section,
-.app-shell-main-card .chat-container {
+.app-shell-main-card .tournament-schedule-section {
   border: none;
   border-radius: 0;
   background: transparent;
@@ -164,7 +163,6 @@
 }
 
 .app-shell-main-card .content-chat {
-  min-height: 400px;
   display: flex;
   flex-direction: column;
 }
